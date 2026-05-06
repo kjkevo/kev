@@ -1,0 +1,38 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")       // pooler URL  — used by Vercel serverless functions
+  directUrl = env("DIRECT_URL")         // direct URL  — used by prisma migrate
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+
+  name      String?
+  email     String  @unique
+  password  String
+
+  @@index([email])
+}
+
+model Lead {
+  id                 Int      @id @default(autoincrement())
+  createdAt          DateTime @default(now())
+
+  companyName        String
+  website            String?
+  contactName        String
+  title              String
+  email              String   @unique
+  phone              String?
+
+  triggerEvent        String
+  intelligenceSummary String
+
+  @@index([email])
+  @@index([companyName])
+}
