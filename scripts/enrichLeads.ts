@@ -129,7 +129,7 @@ Reply with valid JSON only, matching this shape exactly:
   const stream = await client.messages.stream({
     model: "claude-opus-4-7",
     max_tokens: 512,
-    thinking: { type: "adaptive" },
+    thinking: { type: "enabled", budget_tokens: 1024 },
     messages: [{ role: "user", content: prompt }],
   });
 
