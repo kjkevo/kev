@@ -1,3 +1,6 @@
+# Local-only scripts (not part of the web app)
+scripts/
+
 # Dependencies
 node_modules/
 .pnp
