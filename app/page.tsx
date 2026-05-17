@@ -1,4 +1,6 @@
-import Link from "next/link";
+"use client";
+
+import { useState } from "react";
 import Navbar from "./components/Navbar";
 
 const features = [
@@ -48,6 +50,21 @@ const stats = [
 ];
 
 export default function HomePage() {
+  const [modalOpen, setModalOpen] = useState(false);
+  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [submitted, setSubmitted] = useState(false);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSubmitted(true);
+  }
+
+  function closeModal() {
+    setModalOpen(false);
+    setSubmitted(false);
+    setForm({ name: "", email: "", password: "" });
+  }
+
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
@@ -66,19 +83,13 @@ export default function HomePage() {
             LeadIQ combines intent data, firmographic enrichment, and AI scoring
             to surface your highest-value prospects — before your competitors do.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="#cta"
+          <div className="flex justify-center">
+            <button
+              onClick={() => setModalOpen(true)}
               className="px-8 py-4 bg-brand-600 text-white font-semibold rounded-xl hover:bg-brand-700 transition-colors shadow-lg shadow-brand-100"
             >
               Start free trial
-            </Link>
-            <Link
-              href="/dashboard"
-              className="px-8 py-4 border border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-colors"
-            >
-              View demo dashboard →
-            </Link>
+            </button>
           </div>
         </div>
       </section>
@@ -137,19 +148,12 @@ export default function HomePage() {
             Join 2,000+ revenue teams using LeadIQ to hit their pipeline goals.
             No credit card required.
           </p>
-          <form className="flex flex-col sm:flex-row gap-3 justify-center">
-            <input
-              type="email"
-              placeholder="Work email"
-              className="flex-1 max-w-sm px-5 py-3 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-white"
-            />
-            <button
-              type="submit"
-              className="px-6 py-3 bg-white text-brand-700 font-semibold rounded-xl hover:bg-brand-50 transition-colors whitespace-nowrap"
-            >
-              Start free trial
-            </button>
-          </form>
+          <button
+            onClick={() => setModalOpen(true)}
+            className="px-8 py-4 bg-white text-brand-700 font-semibold rounded-xl hover:bg-brand-50 transition-colors"
+          >
+            Start free trial
+          </button>
         </div>
       </section>
 
@@ -159,12 +163,109 @@ export default function HomePage() {
           <p className="font-bold text-white text-base">LeadIQ</p>
           <p>© {new Date().getFullYear()} LeadIQ. All rights reserved.</p>
           <div className="flex gap-6">
-            <Link href="#" className="hover:text-white transition-colors">Privacy</Link>
-            <Link href="#" className="hover:text-white transition-colors">Terms</Link>
-            <Link href="#" className="hover:text-white transition-colors">Contact</Link>
+            <a href="#" className="hover:text-white transition-colors">Privacy</a>
+            <a href="#" className="hover:text-white transition-colors">Terms</a>
+            <a href="#" className="hover:text-white transition-colors">Contact</a>
           </div>
         </div>
       </footer>
+
+      {/* Signup Modal */}
+      {modalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+          onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}
+        >
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 relative">
+            {/* Close */}
+            <button
+              onClick={closeModal}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl leading-none"
+              aria-label="Close"
+            >
+              ×
+            </button>
+
+            {submitted ? (
+              <div className="text-center py-6">
+                <div className="text-5xl mb-4">🎉</div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">You&apos;re in!</h2>
+                <p className="text-gray-500">
+                  Check your inbox — we sent a confirmation to{" "}
+                  <span className="font-medium text-gray-700">{form.email}</span>.
+                </p>
+                <button
+                  onClick={closeModal}
+                  className="mt-6 px-6 py-3 bg-brand-600 text-white font-semibold rounded-xl hover:bg-brand-700 transition-colors"
+                >
+                  Done
+                </button>
+              </div>
+            ) : (
+              <>
+                <h2 className="text-2xl font-bold text-gray-900 mb-1">Create your account</h2>
+                <p className="text-gray-500 text-sm mb-6">Free for 14 days. No credit card required.</p>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Full name
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Jane Smith"
+                      value={form.name}
+                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 text-gray-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Work email
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="jane@company.com"
+                      value={form.email}
+                      onChange={(e) => setForm({ ...form, email: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 text-gray-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Password
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      minLength={8}
+                      placeholder="Min. 8 characters"
+                      value={form.password}
+                      onChange={(e) => setForm({ ...form, password: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 text-gray-900"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full py-3 bg-brand-600 text-white font-semibold rounded-xl hover:bg-brand-700 transition-colors mt-2"
+                  >
+                    Create account
+                  </button>
+                </form>
+
+                <p className="text-center text-xs text-gray-400 mt-4">
+                  By signing up you agree to our{" "}
+                  <a href="#" className="underline hover:text-gray-600">Terms</a>{" "}
+                  and{" "}
+                  <a href="#" className="underline hover:text-gray-600">Privacy Policy</a>.
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
