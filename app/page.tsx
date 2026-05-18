@@ -1,7 +1,6 @@
-"use client";
-
-import { useState } from "react";
 import Navbar from "./components/Navbar";
+import SignupModal from "./components/SignupModal";
+import Link from "next/link";
 
 const features = [
   {
@@ -50,21 +49,6 @@ const stats = [
 ];
 
 export default function HomePage() {
-  const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
-  const [submitted, setSubmitted] = useState(false);
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setSubmitted(true);
-  }
-
-  function closeModal() {
-    setModalOpen(false);
-    setSubmitted(false);
-    setForm({ name: "", email: "", password: "" });
-  }
-
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
@@ -84,12 +68,7 @@ export default function HomePage() {
             to surface your highest-value prospects — before your competitors do.
           </p>
           <div className="flex justify-center">
-            <button
-              onClick={() => setModalOpen(true)}
-              className="px-8 py-4 bg-brand-600 text-white font-semibold rounded-xl hover:bg-brand-700 transition-colors shadow-lg shadow-brand-100"
-            >
-              Start free trial
-            </button>
+            <SignupModal />
           </div>
         </div>
       </section>
@@ -114,11 +93,9 @@ export default function HomePage() {
               Everything you need to fill the pipeline
             </h2>
             <p className="text-gray-500 max-w-xl mx-auto">
-              One platform to find, enrich, score, and engage your best-fit
-              accounts.
+              One platform to find, enrich, score, and engage your best-fit accounts.
             </p>
           </div>
-
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((f) => (
               <div
@@ -126,12 +103,8 @@ export default function HomePage() {
                 className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
               >
                 <span className="text-3xl">{f.icon}</span>
-                <h3 className="mt-4 text-lg font-semibold text-gray-900">
-                  {f.title}
-                </h3>
-                <p className="mt-2 text-gray-500 text-sm leading-relaxed">
-                  {f.description}
-                </p>
+                <h3 className="mt-4 text-lg font-semibold text-gray-900">{f.title}</h3>
+                <p className="mt-2 text-gray-500 text-sm leading-relaxed">{f.description}</p>
               </div>
             ))}
           </div>
@@ -148,12 +121,7 @@ export default function HomePage() {
             Join 2,000+ revenue teams using LeadIQ to hit their pipeline goals.
             No credit card required.
           </p>
-          <button
-            onClick={() => setModalOpen(true)}
-            className="px-8 py-4 bg-white text-brand-700 font-semibold rounded-xl hover:bg-brand-50 transition-colors"
-          >
-            Start free trial
-          </button>
+          <SignupModal />
         </div>
       </section>
 
@@ -163,109 +131,12 @@ export default function HomePage() {
           <p className="font-bold text-white text-base">LeadIQ</p>
           <p>© {new Date().getFullYear()} LeadIQ. All rights reserved.</p>
           <div className="flex gap-6">
-            <a href="#" className="hover:text-white transition-colors">Privacy</a>
-            <a href="#" className="hover:text-white transition-colors">Terms</a>
-            <a href="#" className="hover:text-white transition-colors">Contact</a>
+            <Link href="#" className="hover:text-white transition-colors">Privacy</Link>
+            <Link href="#" className="hover:text-white transition-colors">Terms</Link>
+            <Link href="#" className="hover:text-white transition-colors">Contact</Link>
           </div>
         </div>
       </footer>
-
-      {/* Signup Modal */}
-      {modalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
-          onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}
-        >
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 relative">
-            {/* Close */}
-            <button
-              onClick={closeModal}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl leading-none"
-              aria-label="Close"
-            >
-              ×
-            </button>
-
-            {submitted ? (
-              <div className="text-center py-6">
-                <div className="text-5xl mb-4">🎉</div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">You&apos;re in!</h2>
-                <p className="text-gray-500">
-                  Check your inbox — we sent a confirmation to{" "}
-                  <span className="font-medium text-gray-700">{form.email}</span>.
-                </p>
-                <button
-                  onClick={closeModal}
-                  className="mt-6 px-6 py-3 bg-brand-600 text-white font-semibold rounded-xl hover:bg-brand-700 transition-colors"
-                >
-                  Done
-                </button>
-              </div>
-            ) : (
-              <>
-                <h2 className="text-2xl font-bold text-gray-900 mb-1">Create your account</h2>
-                <p className="text-gray-500 text-sm mb-6">Free for 14 days. No credit card required.</p>
-
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Full name
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Jane Smith"
-                      value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 text-gray-900"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Work email
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      placeholder="jane@company.com"
-                      value={form.email}
-                      onChange={(e) => setForm({ ...form, email: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 text-gray-900"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Password
-                    </label>
-                    <input
-                      type="password"
-                      required
-                      minLength={8}
-                      placeholder="Min. 8 characters"
-                      value={form.password}
-                      onChange={(e) => setForm({ ...form, password: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 text-gray-900"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    className="w-full py-3 bg-brand-600 text-white font-semibold rounded-xl hover:bg-brand-700 transition-colors mt-2"
-                  >
-                    Create account
-                  </button>
-                </form>
-
-                <p className="text-center text-xs text-gray-400 mt-4">
-                  By signing up you agree to our{" "}
-                  <a href="#" className="underline hover:text-gray-600">Terms</a>{" "}
-                  and{" "}
-                  <a href="#" className="underline hover:text-gray-600">Privacy Policy</a>.
-                </p>
-              </>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
