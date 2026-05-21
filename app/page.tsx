@@ -125,7 +125,12 @@ export default function HomePage() {
             Join 2,000+ revenue teams using LeadIQ to hit their pipeline goals.
             No credit card required.
           </p>
-          <SignupModal />
+          <Link
+            href="/dashboard"
+            className="px-8 py-4 bg-white text-brand-700 font-semibold rounded-xl hover:bg-brand-50 transition-colors"
+          >
+            Start free trial
+          </Link>
         </div>
       </section>
 
