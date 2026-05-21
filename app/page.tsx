@@ -1,5 +1,4 @@
 import Navbar from "./components/Navbar";
-import SignupModal from "./components/SignupModal";
 import Link from "next/link";
 
 const features = [
@@ -68,7 +67,12 @@ export default function HomePage() {
             to surface your highest-value prospects — before your competitors do.
           </p>
           <div className="flex justify-center">
-            <SignupModal />
+            <Link
+              href="/dashboard"
+              className="px-8 py-4 bg-brand-600 text-white font-semibold rounded-xl hover:bg-brand-700 transition-colors shadow-lg shadow-brand-100"
+            >
+              Start free trial
+            </Link>
           </div>
         </div>
       </section>
