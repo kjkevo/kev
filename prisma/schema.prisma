@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -11,33 +12,28 @@ datasource db {
 model User {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
-
   name      String?
-  email     String  @unique
+  email     String   @unique
   password  String
 
   @@index([email])
 }
 
 model Lead {
-  id                  Int      @id @default(autoincrement())
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-
+  id                  Int                @id @default(autoincrement())
+  createdAt           DateTime           @default(now())
   companyName         String
   website             String?
   contactName         String
   title               String
-  email               String   @unique
+  email               String             @unique
   phone               String?
-
   triggerEvent        String
   intelligenceSummary String
-
-  status              String   @default("new")
   notes               String?
+  status              String             @default("new")
   tags                String[]
-
+  updatedAt           DateTime           @updatedAt
   activities          Activity[]
   customFieldValues   CustomFieldValue[]
 
@@ -49,34 +45,28 @@ model Lead {
 model Activity {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
-
   leadId    Int
-  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
-
   type      String
   content   String
   date      DateTime @default(now())
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
 
   @@index([leadId])
 }
 
 model CustomField {
-  id     Int    @id @default(autoincrement())
-  name   String @unique
-
+  id     Int                @id @default(autoincrement())
+  name   String             @unique
   values CustomFieldValue[]
 }
 
 model CustomFieldValue {
   id            Int         @id @default(autoincrement())
-
   leadId        Int
-  lead          Lead        @relation(fields: [leadId], references: [id], onDelete: Cascade)
-
   customFieldId Int
-  customField   CustomField @relation(fields: [customFieldId], references: [id], onDelete: Cascade)
-
   value         String
+  customField   CustomField @relation(fields: [customFieldId], references: [id], onDelete: Cascade)
+  lead          Lead        @relation(fields: [leadId], references: [id], onDelete: Cascade)
 
   @@unique([leadId, customFieldId])
 }
