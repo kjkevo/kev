@@ -1,25 +1,26 @@
-import { db } from "@/app/lib/db";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
+import { supabase } from "@/app/lib/supabase";
 import KanbanClient from "./KanbanClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function KanbanPage() {
-  await getServerSession(authOptions);
+  const { data: raw, error } = await supabase
+    .from("Lead")
+    .select("id, companyName, contactName, title, email, triggerEvent, status, tags, createdAt")
+    .order("createdAt", { ascending: false });
 
-  const raw = await db.lead.findMany({ orderBy: { createdAt: "desc" } });
+  if (error) console.error("DB error on kanban:", error.message);
 
-  const leads = raw.map((l) => ({
-    id: l.id,
-    companyName: l.companyName,
-    contactName: l.contactName,
-    title: l.title,
-    email: l.email,
-    triggerEvent: l.triggerEvent,
-    status: l.status,
-    tags: l.tags,
-    createdAt: l.createdAt.toISOString(),
+  const leads = (raw ?? []).map((l) => ({
+    id: l.id as number,
+    companyName: l.companyName as string,
+    contactName: l.contactName as string,
+    title: l.title as string,
+    email: l.email as string,
+    triggerEvent: l.triggerEvent as string,
+    status: l.status as string,
+    tags: (l.tags ?? []) as string[],
+    createdAt: l.createdAt as string,
   }));
 
   return <KanbanClient leads={leads} />;

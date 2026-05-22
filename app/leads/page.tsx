@@ -1,10 +1,15 @@
 export const dynamic = "force-dynamic";
 
-import { db } from "@/app/lib/db";
+import { supabase } from "@/app/lib/supabase";
 import Link from "next/link";
 
 export default async function LeadsDashboard() {
-  const leads = await db.lead.findMany({ orderBy: { createdAt: "desc" } });
+  const { data: leads } = await supabase
+    .from("Lead")
+    .select("*")
+    .order("createdAt", { ascending: false });
+
+  const allLeads = leads ?? [];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -13,7 +18,7 @@ export default async function LeadsDashboard() {
           LeadIQ
         </Link>
         <h1 className="text-lg font-semibold text-gray-900">Lead Dashboard</h1>
-        <span className="text-sm text-gray-500">{leads.length} total leads</span>
+        <span className="text-sm text-gray-500">{allLeads.length} total leads</span>
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-10 space-y-6">
@@ -23,14 +28,13 @@ export default async function LeadsDashboard() {
           </div>
 
           <div className="divide-y divide-gray-50">
-            {leads.length === 0 && (
+            {allLeads.length === 0 && (
               <p className="px-6 py-12 text-center text-gray-400">
-                No leads yet. Run{" "}
-                <code className="bg-gray-100 px-1 rounded">npx prisma db seed</code> to load demo data.
+                No leads yet. Use the dashboard to import leads via CSV.
               </p>
             )}
 
-            {leads.map((lead) => (
+            {allLeads.map((lead) => (
               <div key={lead.id} className="px-6 py-5 hover:bg-gray-50 transition-colors">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/app/lib/db";
+import { supabase } from "@/app/lib/supabase";
 import Papa from "papaparse";
 
 export async function POST(req: NextRequest) {
@@ -17,7 +17,6 @@ export async function POST(req: NextRequest) {
 
   const rows = result.data;
 
-  // Flexible column name mapping
   function col(row: Record<string, string>, ...keys: string[]): string {
     for (const k of keys) {
       const v = row[k.toLowerCase().replace(/\s+/g, "")] ?? "";
@@ -42,40 +41,35 @@ export async function POST(req: NextRequest) {
       continue;
     }
 
-    try {
-      const lead = await db.lead.upsert({
-        where: { email },
-        create: {
-          companyName,
-          website: col(row, "website") || null,
-          contactName,
-          title: title || "Unknown",
-          email,
-          phone: col(row, "phone") || null,
-          triggerEvent: triggerEvent || "Imported",
-          intelligenceSummary: intelligenceSummary || "Imported via CSV",
-          status: col(row, "status") || "new",
-          notes: col(row, "notes") || null,
-          tags: col(row, "tags") ? col(row, "tags").split(";").map((t) => t.trim()).filter(Boolean) : [],
-        },
-        update: {
-          companyName,
-          website: col(row, "website") || null,
-          contactName,
-          title: title || "Unknown",
-          phone: col(row, "phone") || null,
-          triggerEvent: triggerEvent || "Imported",
-          intelligenceSummary: intelligenceSummary || "Imported via CSV",
-          status: col(row, "status") || "new",
-          notes: col(row, "notes") || null,
-          tags: col(row, "tags") ? col(row, "tags").split(";").map((t) => t.trim()).filter(Boolean) : [],
-        },
-      });
-      created.push(lead.id);
-    } catch {
+    const payload = {
+      companyName,
+      website: col(row, "website") || null,
+      contactName,
+      title: title || "Unknown",
+      email,
+      phone: col(row, "phone") || null,
+      triggerEvent: triggerEvent || "Imported",
+      intelligenceSummary: intelligenceSummary || "Imported via CSV",
+      status: col(row, "status") || "new",
+      notes: col(row, "notes") || null,
+      tags: col(row, "tags") ? col(row, "tags").split(";").map((t) => t.trim()).filter(Boolean) : [],
+    };
+
+    const { data, error } = await supabase
+      .from("Lead")
+      .upsert(payload, { onConflict: "email" })
+      .select("id")
+      .single();
+
+    if (error || !data) {
       skipped.push(email);
+    } else {
+      created.push(data.id);
     }
   }
 
-  return NextResponse.json({ imported: created.length, skipped: skipped.length, skippedEmails: skipped }, { status: 201 });
+  return NextResponse.json(
+    { imported: created.length, skipped: skipped.length, skippedEmails: skipped },
+    { status: 201 }
+  );
 }

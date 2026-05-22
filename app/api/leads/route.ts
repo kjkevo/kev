@@ -1,41 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/app/lib/db";
+import { supabase } from "@/app/lib/supabase";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const search = searchParams.get("search") ?? "";
 
-  const leads = await db.lead.findMany({
-    where: search
-      ? {
-          OR: [
-            { contactName: { contains: search } },
-            { email: { contains: search } },
-            { companyName: { contains: search } },
-          ],
-        }
-      : undefined,
-    orderBy: { createdAt: "desc" },
-  });
+  let query = supabase.from("Lead").select("*").order("createdAt", { ascending: false });
 
-  return NextResponse.json(leads);
+  if (search) {
+    query = query.or(
+      `contactName.ilike.%${search}%,email.ilike.%${search}%,companyName.ilike.%${search}%`
+    );
+  }
+
+  const { data, error } = await query;
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  return NextResponse.json(data);
 }
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
 
-  const lead = await db.lead.create({
-    data: {
+  const { data, error } = await supabase
+    .from("Lead")
+    .insert({
       companyName: body.companyName,
-      website: body.website,
+      website: body.website ?? null,
       contactName: body.contactName,
       title: body.title,
       email: body.email,
-      phone: body.phone,
+      phone: body.phone ?? null,
       triggerEvent: body.triggerEvent,
       intelligenceSummary: body.intelligenceSummary,
-    },
-  });
+    })
+    .select()
+    .single();
 
-  return NextResponse.json(lead, { status: 201 });
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  return NextResponse.json(data, { status: 201 });
 }

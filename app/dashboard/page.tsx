@@ -1,63 +1,31 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
-import { db } from "@/app/lib/db";
+import { supabase } from "@/app/lib/supabase";
 import DashboardClient from "./DashboardClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  let session = null;
-  let leads: {
-    id: number;
-    companyName: string;
-    website: string | null;
-    contactName: string;
-    title: string;
-    email: string;
-    phone: string | null;
-    triggerEvent: string;
-    intelligenceSummary: string;
-    status: string;
-    notes: string | null;
-    tags: string[];
-    createdAt: string;
-  }[] = [];
+  const { data: raw, error } = await supabase
+    .from("Lead")
+    .select("*")
+    .order("createdAt", { ascending: false });
 
-  try {
-    session = await getServerSession(authOptions);
-  } catch {
-    // auth failure is non-fatal
-  }
+  if (error) console.error("DB error on dashboard:", error.message);
 
-  try {
-    const raw = await db.lead.findMany({ orderBy: { createdAt: "desc" } });
-    leads = raw.map((l) => ({
-      id: l.id,
-      companyName: l.companyName,
-      website: l.website,
-      contactName: l.contactName,
-      title: l.title,
-      email: l.email,
-      phone: l.phone,
-      triggerEvent: l.triggerEvent,
-      intelligenceSummary: l.intelligenceSummary,
-      status: l.status,
-      notes: l.notes,
-      tags: l.tags,
-      createdAt: l.createdAt.toISOString(),
-    }));
-  } catch (err) {
-    console.error("DB error on dashboard:", err);
-    // return empty leads — dashboard still renders
-  }
+  const leads = (raw ?? []).map((l) => ({
+    id: l.id as number,
+    companyName: l.companyName as string,
+    website: (l.website ?? null) as string | null,
+    contactName: l.contactName as string,
+    title: l.title as string,
+    email: l.email as string,
+    phone: (l.phone ?? null) as string | null,
+    triggerEvent: l.triggerEvent as string,
+    intelligenceSummary: l.intelligenceSummary as string,
+    status: l.status as string,
+    notes: (l.notes ?? null) as string | null,
+    tags: (l.tags ?? []) as string[],
+    createdAt: l.createdAt as string,
+  }));
 
-  return (
-    <DashboardClient
-      leads={leads}
-      user={{
-        name: session?.user?.name ?? null,
-        email: session?.user?.email ?? null,
-      }}
-    />
-  );
+  return <DashboardClient leads={leads} user={{ name: null, email: null }} />;
 }

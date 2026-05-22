@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
-import { db } from "@/app/lib/db";
+import { supabase } from "@/app/lib/supabase";
 import Papa from "papaparse";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const leads = await db.lead.findMany({ orderBy: { createdAt: "desc" } });
+  const { data: leads, error } = await supabase
+    .from("Lead")
+    .select("*")
+    .order("createdAt", { ascending: false });
 
-  const rows = leads.map((l) => ({
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  const rows = (leads ?? []).map((l) => ({
     id: l.id,
     companyName: l.companyName,
     website: l.website ?? "",
@@ -19,8 +24,8 @@ export async function GET() {
     intelligenceSummary: l.intelligenceSummary,
     status: l.status,
     notes: l.notes ?? "",
-    tags: l.tags.join(";"),
-    createdAt: l.createdAt.toISOString(),
+    tags: Array.isArray(l.tags) ? l.tags.join(";") : "",
+    createdAt: l.createdAt,
   }));
 
   const csv = Papa.unparse(rows);

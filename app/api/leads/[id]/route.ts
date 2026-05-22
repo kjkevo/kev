@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/app/lib/db";
+import { supabase } from "@/app/lib/supabase";
 
 export async function GET(
   _req: NextRequest,
@@ -8,16 +8,30 @@ export async function GET(
   const id = parseInt(params.id, 10);
   if (isNaN(id)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
 
-  const lead = await db.lead.findUnique({
-    where: { id },
-    include: {
-      activities: { orderBy: { date: "desc" } },
-      customFieldValues: { include: { customField: true } },
-    },
-  });
+  const { data: lead, error: leadErr } = await supabase
+    .from("Lead")
+    .select("*")
+    .eq("id", id)
+    .single();
 
-  if (!lead) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(lead);
+  if (leadErr || !lead) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const { data: activities } = await supabase
+    .from("Activity")
+    .select("*")
+    .eq("leadId", id)
+    .order("date", { ascending: false });
+
+  const { data: cfvRaw } = await supabase
+    .from("CustomFieldValue")
+    .select("*, CustomField(*)")
+    .eq("leadId", id);
+
+  return NextResponse.json({
+    ...lead,
+    activities: activities ?? [],
+    customFieldValues: cfvRaw ?? [],
+  });
 }
 
 export async function PUT(
@@ -29,9 +43,9 @@ export async function PUT(
 
   const body = await req.json();
 
-  const lead = await db.lead.update({
-    where: { id },
-    data: {
+  const { data, error } = await supabase
+    .from("Lead")
+    .update({
       companyName: body.companyName,
       website: body.website ?? null,
       contactName: body.contactName,
@@ -43,10 +57,15 @@ export async function PUT(
       status: body.status,
       notes: body.notes ?? null,
       tags: body.tags ?? [],
-    },
-  });
+      updatedAt: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .select()
+    .single();
 
-  return NextResponse.json(lead);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  return NextResponse.json(data);
 }
 
 export async function DELETE(
@@ -56,6 +75,12 @@ export async function DELETE(
   const id = parseInt(params.id, 10);
   if (isNaN(id)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
 
-  await db.lead.delete({ where: { id } });
+  // Delete related records first (cascade)
+  await supabase.from("Activity").delete().eq("leadId", id);
+  await supabase.from("CustomFieldValue").delete().eq("leadId", id);
+
+  const { error } = await supabase.from("Lead").delete().eq("id", id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
   return NextResponse.json({ success: true });
 }

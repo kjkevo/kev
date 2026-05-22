@@ -1,4 +1,4 @@
-import { db } from "@/app/lib/db";
+import { supabase } from "@/app/lib/supabase";
 import { notFound } from "next/navigation";
 import LeadDetailClient from "./LeadDetailClient";
 
@@ -12,31 +12,44 @@ export default async function LeadDetailPage({
   const id = parseInt(params.id, 10);
   if (isNaN(id)) notFound();
 
-  const lead = await db.lead.findUnique({
-    where: { id },
-    include: {
-      activities: { orderBy: { date: "desc" } },
-      customFieldValues: { include: { customField: true } },
-    },
-  });
+  const { data: lead, error } = await supabase
+    .from("Lead")
+    .select("*")
+    .eq("id", id)
+    .single();
 
-  if (!lead) notFound();
+  if (error || !lead) notFound();
+
+  const { data: activities } = await supabase
+    .from("Activity")
+    .select("*")
+    .eq("leadId", id)
+    .order("date", { ascending: false });
+
+  const { data: cfvRaw } = await supabase
+    .from("CustomFieldValue")
+    .select("*, CustomField(*)")
+    .eq("leadId", id);
 
   const serialized = {
     ...lead,
-    createdAt: lead.createdAt.toISOString(),
-    updatedAt: lead.updatedAt.toISOString(),
-    activities: lead.activities.map((a) => ({
-      ...a,
-      createdAt: a.createdAt.toISOString(),
-      date: a.date.toISOString(),
+    createdAt: lead.createdAt as string,
+    updatedAt: lead.updatedAt as string,
+    activities: (activities ?? []).map((a) => ({
+      id: a.id as number,
+      leadId: a.leadId as number,
+      type: a.type as string,
+      content: a.content as string,
+      createdAt: a.createdAt as string,
+      date: a.date as string,
     })),
-    customFieldValues: lead.customFieldValues.map((cfv) => ({
-      id: cfv.id,
-      leadId: cfv.leadId,
-      customFieldId: cfv.customFieldId,
-      value: cfv.value,
-      fieldName: cfv.customField.name,
+    customFieldValues: (cfvRaw ?? []).map((cfv) => ({
+      id: cfv.id as number,
+      leadId: cfv.leadId as number,
+      customFieldId: cfv.customFieldId as number,
+      value: cfv.value as string,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      fieldName: (cfv.CustomField as any)?.name ?? "",
     })),
   };
 
