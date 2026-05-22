@@ -43,22 +43,50 @@ export async function PUT(
 
   const body = await req.json();
 
+  // Fetch existing lead to compare status
+  const { data: existing } = await supabase.from("Lead").select("status, wonAt, lostAt").eq("id", id).single();
+
+  const updatePayload: Record<string, unknown> = {
+    companyName: body.companyName,
+    website: body.website ?? null,
+    contactName: body.contactName,
+    title: body.title,
+    email: body.email,
+    phone: body.phone ?? null,
+    triggerEvent: body.triggerEvent,
+    intelligenceSummary: body.intelligenceSummary,
+    status: body.status,
+    notes: body.notes ?? null,
+    tags: body.tags ?? [],
+    updatedAt: new Date().toISOString(),
+    // New fields
+    dealValue: body.dealValue ?? null,
+    source: body.source ?? null,
+    assignedTo: body.assignedTo ?? null,
+  };
+
+  // Set wonAt when transitioning to "won" (if not already set)
+  if (body.status === "won" && !existing?.wonAt) {
+    updatePayload.wonAt = body.wonAt ?? new Date().toISOString();
+  } else if (body.wonAt !== undefined) {
+    updatePayload.wonAt = body.wonAt;
+  }
+
+  // Set lostAt when transitioning to "lost" (if not already set)
+  if (body.status === "lost" && !existing?.lostAt) {
+    updatePayload.lostAt = body.lostAt ?? new Date().toISOString();
+  } else if (body.lostAt !== undefined) {
+    updatePayload.lostAt = body.lostAt;
+  }
+
+  // Allow explicit lossReason update
+  if (body.lossReason !== undefined) {
+    updatePayload.lossReason = body.lossReason;
+  }
+
   const { data, error } = await supabase
     .from("Lead")
-    .update({
-      companyName: body.companyName,
-      website: body.website ?? null,
-      contactName: body.contactName,
-      title: body.title,
-      email: body.email,
-      phone: body.phone ?? null,
-      triggerEvent: body.triggerEvent,
-      intelligenceSummary: body.intelligenceSummary,
-      status: body.status,
-      notes: body.notes ?? null,
-      tags: body.tags ?? [],
-      updatedAt: new Date().toISOString(),
-    })
+    .update(updatePayload)
     .eq("id", id)
     .select()
     .single();

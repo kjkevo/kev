@@ -37,6 +37,15 @@ model Lead {
   aiScore             Int?
   aiScoreReason       String?
   aiSuggestion        String?
+
+  // Analytics fields
+  dealValue           Float?     // expected deal value in USD
+  source              String?    // cold_email | referral | paid_ad | linkedin | inbound | event | other
+  wonAt               DateTime?  // timestamp when status changed to "won"
+  lostAt              DateTime?  // timestamp when status changed to "lost"
+  lossReason          String?    // price | timing | competitor | product_fit | no_budget | other
+  assignedTo          String?    // name/email of the team member who owns this lead
+
   activities          Activity[]
   customFieldValues   CustomFieldValue[]
 

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import WinLossModal from "@/app/components/WinLossModal";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -128,6 +129,7 @@ export default function LeadDetailClient({ lead: initialLead }: { lead: Lead }) 
   // Status
   const [status, setStatus] = useState(initialLead.status);
   const [savingStatus, setSavingStatus] = useState(false);
+  const [showWinLossModal, setShowWinLossModal] = useState(false);
 
   // Delete
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -161,12 +163,31 @@ export default function LeadDetailClient({ lead: initialLead }: { lead: Lead }) 
   async function saveStatus(newStatus: string) {
     setSavingStatus(true);
     setStatus(newStatus);
+
+    const extraFields: Record<string, string> = {};
+    if (newStatus === "won") {
+      extraFields.wonAt = new Date().toISOString();
+    }
+
     await fetch(`/api/leads/${lead.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...lead, notes, tags, status: newStatus }),
+      body: JSON.stringify({ ...lead, notes, tags, status: newStatus, ...extraFields }),
     });
     setSavingStatus(false);
+
+    if (newStatus === "lost") {
+      setShowWinLossModal(true);
+    }
+  }
+
+  async function handleLossReason(reason: string) {
+    setShowWinLossModal(false);
+    await fetch(`/api/leads/${lead.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...lead, notes, tags, status: "lost", lossReason: reason, lostAt: new Date().toISOString() }),
+    });
   }
 
   // --------------------------------------------------------------------------
@@ -288,6 +309,7 @@ export default function LeadDetailClient({ lead: initialLead }: { lead: Lead }) 
             <Link href="/dashboard" className="hover:text-gray-900 transition-colors">Dashboard</Link>
             <Link href="/kanban" className="hover:text-gray-900 transition-colors">Kanban</Link>
             <Link href="/leads" className="hover:text-gray-900 transition-colors">All Leads</Link>
+            <Link href="/analytics" className="hover:text-gray-900 transition-colors">Analytics</Link>
           </nav>
           <Link
             href="/dashboard"
@@ -297,6 +319,13 @@ export default function LeadDetailClient({ lead: initialLead }: { lead: Lead }) 
           </Link>
         </div>
       </header>
+
+      {showWinLossModal && (
+        <WinLossModal
+          onSelect={(reason) => handleLossReason(reason)}
+          onCancel={() => setShowWinLossModal(false)}
+        />
+      )}
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10 space-y-8">
         {/* Top row: identity + status */}

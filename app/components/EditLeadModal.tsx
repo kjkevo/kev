@@ -27,6 +27,9 @@ type Lead = {
   aiScore?: number | null;
   aiScoreReason?: string | null;
   aiSuggestion?: string | null;
+  dealValue?: number | null;
+  source?: string | null;
+  assignedTo?: string | null;
 };
 
 type Props = {
@@ -36,6 +39,16 @@ type Props = {
 };
 
 const STATUS_OPTIONS = ["new", "contacted", "qualified", "proposal", "negotiation", "won", "lost"];
+const SOURCE_OPTIONS = ["cold_email", "referral", "paid_ad", "linkedin", "inbound", "event", "other"];
+const SOURCE_LABELS: Record<string, string> = {
+  cold_email: "Cold Email",
+  referral: "Referral",
+  paid_ad: "Paid Ad",
+  linkedin: "LinkedIn",
+  inbound: "Inbound",
+  event: "Event",
+  other: "Other",
+};
 
 const TAG_COLORS = [
   "bg-blue-100 text-blue-700",
@@ -66,6 +79,9 @@ export default function EditLeadModal({ lead, onClose, onSaved }: Props) {
     intelligenceSummary: lead.intelligenceSummary,
     status: lead.status,
     notes: lead.notes ?? "",
+    dealValue: lead.dealValue != null ? String(lead.dealValue) : "",
+    source: lead.source ?? "",
+    assignedTo: lead.assignedTo ?? "",
   });
   const [tags, setTags] = useState<string[]>(lead.tags);
   const [tagInput, setTagInput] = useState("");
@@ -120,7 +136,16 @@ export default function EditLeadModal({ lead, onClose, onSaved }: Props) {
       const res = await fetch(`/api/leads/${lead.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, tags, website: form.website || null, phone: form.phone || null, notes: form.notes || null }),
+        body: JSON.stringify({
+          ...form,
+          tags,
+          website: form.website || null,
+          phone: form.phone || null,
+          notes: form.notes || null,
+          dealValue: form.dealValue !== "" ? parseFloat(form.dealValue) : null,
+          source: form.source || null,
+          assignedTo: form.assignedTo || null,
+        }),
       });
       if (!res.ok) throw new Error("Save failed");
       const updated = await res.json();
@@ -248,6 +273,44 @@ export default function EditLeadModal({ lead, onClose, onSaved }: Props) {
                 <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
               ))}
             </select>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Deal Value ($)</label>
+              <input
+                type="number"
+                min="0"
+                step="any"
+                value={form.dealValue}
+                onChange={(e) => updateField("dealValue", e.target.value)}
+                placeholder="e.g. 25000"
+                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Source</label>
+              <select
+                value={form.source}
+                onChange={(e) => updateField("source", e.target.value)}
+                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              >
+                <option value="">— Select source —</option>
+                {SOURCE_OPTIONS.map((s) => (
+                  <option key={s} value={s}>{SOURCE_LABELS[s]}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Assigned To</label>
+              <input
+                type="text"
+                value={form.assignedTo}
+                onChange={(e) => updateField("assignedTo", e.target.value)}
+                placeholder="Name or email"
+                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              />
+            </div>
           </div>
 
           <div>

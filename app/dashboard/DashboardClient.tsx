@@ -385,6 +385,7 @@ export default function DashboardClient({
             <Link href="/dashboard" className="text-brand-600 font-semibold">Dashboard</Link>
             <Link href="/kanban" className="hover:text-gray-900 transition-colors">Kanban</Link>
             <Link href="/leads" className="hover:text-gray-900 transition-colors">All Leads</Link>
+            <Link href="/analytics" className="hover:text-gray-900 transition-colors">Analytics</Link>
           </nav>
 
           <div className="flex items-center gap-3 shrink-0">
