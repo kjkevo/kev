@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import EditLeadModal from "@/app/components/EditLeadModal";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -18,6 +20,9 @@ type Lead = {
   phone: string | null;
   triggerEvent: string;
   intelligenceSummary: string;
+  status: string;
+  notes: string | null;
+  tags: string[];
   createdAt: string;
 };
 
@@ -118,6 +123,23 @@ const AVATAR_COLORS = [
   "bg-indigo-500",
 ];
 
+const TAG_COLORS = [
+  "bg-blue-100 text-blue-700",
+  "bg-violet-100 text-violet-700",
+  "bg-emerald-100 text-emerald-700",
+  "bg-amber-100 text-amber-700",
+  "bg-rose-100 text-rose-700",
+  "bg-cyan-100 text-cyan-700",
+  "bg-pink-100 text-pink-700",
+  "bg-indigo-100 text-indigo-700",
+];
+
+function tagColor(tag: string) {
+  let hash = 0;
+  for (let i = 0; i < tag.length; i++) hash = (hash * 31 + tag.charCodeAt(i)) | 0;
+  return TAG_COLORS[Math.abs(hash) % TAG_COLORS.length];
+}
+
 function avatarColor(name: string) {
   return AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
 }
@@ -145,54 +167,56 @@ function formatDate(iso: string) {
 
 function SearchIcon() {
   return (
-    <svg
-      className="w-4 h-4 text-gray-400"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"
-      />
+    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
     </svg>
   );
 }
 
 function ExternalLinkIcon() {
   return (
-    <svg
-      className="w-3 h-3 shrink-0"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-      />
+    <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
     </svg>
   );
 }
 
 function XIcon() {
   return (
-    <svg
-      className="w-3.5 h-3.5"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M6 18L18 6M6 6l12 12"
-      />
+    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  );
+}
+
+function PencilIcon() {
+  return (
+    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+    </svg>
+  );
+}
+
+function UploadIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+    </svg>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
     </svg>
   );
 }
@@ -204,14 +228,21 @@ function XIcon() {
 type User = { name: string | null; email: string | null };
 
 export default function DashboardClient({
-  leads,
+  leads: initialLeads,
   user,
 }: {
   leads: Lead[];
   user: User;
 }) {
+  const router = useRouter();
+  const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [query, setQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<TriggerType | "all">("all");
+  const [editingLead, setEditingLead] = useState<Lead | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importMsg, setImportMsg] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const enriched = useMemo(
     () => leads.map((l) => ({ ...l, triggerType: classifyTrigger(l.triggerEvent) })),
@@ -247,6 +278,62 @@ export default function DashboardClient({
     setActiveFilter("all");
   }
 
+  // --------------------------------------------------------------------------
+  // Delete lead
+  // --------------------------------------------------------------------------
+  async function deleteLead(id: number) {
+    await fetch(`/api/leads/${id}`, { method: "DELETE" });
+    setLeads((prev) => prev.filter((l) => l.id !== id));
+    setConfirmDeleteId(null);
+  }
+
+  // --------------------------------------------------------------------------
+  // CSV Export
+  // --------------------------------------------------------------------------
+  function exportCSV() {
+    window.location.href = "/api/leads/export";
+  }
+
+  // --------------------------------------------------------------------------
+  // CSV Import
+  // --------------------------------------------------------------------------
+  async function handleFileImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    setImportMsg("");
+    const text = await file.text();
+    try {
+      const res = await fetch("/api/leads/import", {
+        method: "POST",
+        headers: { "Content-Type": "text/csv" },
+        body: text,
+      });
+      const data = await res.json();
+      setImportMsg(`Imported ${data.imported} lead${data.imported !== 1 ? "s" : ""}${data.skipped > 0 ? `, skipped ${data.skipped}` : ""}.`);
+      // Refresh leads
+      const leadsRes = await fetch("/api/leads");
+      const leadsData = await leadsRes.json();
+      setLeads(leadsData.map((l: Lead & { createdAt: string | Date }) => ({
+        ...l,
+        createdAt: typeof l.createdAt === "string" ? l.createdAt : new Date(l.createdAt).toISOString(),
+      })));
+    } catch {
+      setImportMsg("Import failed. Please check your CSV format.");
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      setTimeout(() => setImportMsg(""), 5000);
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // Edit saved
+  // --------------------------------------------------------------------------
+  function onLeadSaved(updated: Lead) {
+    setLeads((prev) => prev.map((l) => (l.id === updated.id ? updated : l)));
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* ── Sticky header ── */}
@@ -257,15 +344,10 @@ export default function DashboardClient({
           </Link>
 
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-500">
-            <Link href="/" className="hover:text-gray-900 transition-colors">
-              Home
-            </Link>
-            <Link href="/dashboard" className="text-brand-600 font-semibold">
-              Dashboard
-            </Link>
-            <Link href="/leads" className="hover:text-gray-900 transition-colors">
-              All Leads
-            </Link>
+            <Link href="/" className="hover:text-gray-900 transition-colors">Home</Link>
+            <Link href="/dashboard" className="text-brand-600 font-semibold">Dashboard</Link>
+            <Link href="/kanban" className="hover:text-gray-900 transition-colors">Kanban</Link>
+            <Link href="/leads" className="hover:text-gray-900 transition-colors">All Leads</Link>
           </nav>
 
           <div className="flex items-center gap-3 shrink-0">
@@ -292,20 +374,49 @@ export default function DashboardClient({
         {/* ── Page heading ── */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Lead Intelligence Dashboard
-            </h1>
-            <p className="text-sm text-gray-500 mt-1">
-              AI-enriched prospects, classified by buying signal
-            </p>
+            <h1 className="text-2xl font-bold text-gray-900">Lead Intelligence Dashboard</h1>
+            <p className="text-sm text-gray-500 mt-1">AI-enriched prospects, classified by buying signal</p>
           </div>
-          <Link
-            href="/leads"
-            className="self-start sm:self-auto text-sm font-medium text-brand-600 hover:text-brand-700 underline-offset-2 hover:underline transition-colors"
-          >
-            View raw leads →
-          </Link>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* CSV import */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv"
+              onChange={handleFileImport}
+              className="hidden"
+              id="csv-import"
+            />
+            <label
+              htmlFor="csv-import"
+              className={`cursor-pointer inline-flex items-center gap-1.5 text-xs font-medium border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 px-3 py-2 rounded-xl transition-colors ${importing ? "opacity-60 pointer-events-none" : ""}`}
+            >
+              <UploadIcon />
+              {importing ? "Importing…" : "Import CSV"}
+            </label>
+            {/* CSV export */}
+            <button
+              onClick={exportCSV}
+              className="inline-flex items-center gap-1.5 text-xs font-medium border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 px-3 py-2 rounded-xl transition-colors"
+            >
+              <DownloadIcon />
+              Export CSV
+            </button>
+            <Link
+              href="/leads"
+              className="text-sm font-medium text-brand-600 hover:text-brand-700 underline-offset-2 hover:underline transition-colors"
+            >
+              View raw leads →
+            </Link>
+          </div>
         </div>
+
+        {/* Import status message */}
+        {importMsg && (
+          <div className="bg-brand-50 text-brand-700 text-sm px-4 py-2 rounded-xl border border-brand-100">
+            {importMsg}
+          </div>
+        )}
 
         {/* ── Signal-type stat cards ── */}
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
@@ -315,23 +426,17 @@ export default function DashboardClient({
             return (
               <button
                 key={type}
-                onClick={() =>
-                  setActiveFilter(isActive ? "all" : type)
-                }
+                onClick={() => setActiveFilter(isActive ? "all" : type)}
                 className={`rounded-xl border p-3 sm:p-4 text-left transition-all focus:outline-none focus:ring-2 focus:ring-brand-500 ${
                   isActive
                     ? `${cfg.badge} shadow-sm scale-[1.02]`
                     : "bg-white border-gray-100 hover:border-gray-200 hover:shadow-sm"
                 }`}
               >
-                <p className="text-2xl font-extrabold text-gray-900">
-                  {counts[type]}
-                </p>
+                <p className="text-2xl font-extrabold text-gray-900">{counts[type]}</p>
                 <div className="flex items-center gap-1.5 mt-1">
                   <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
-                  <p className="text-xs font-medium text-gray-500 leading-none">
-                    {cfg.label}
-                  </p>
+                  <p className="text-xs font-medium text-gray-500 leading-none">{cfg.label}</p>
                 </div>
               </button>
             );
@@ -340,7 +445,6 @@ export default function DashboardClient({
 
         {/* ── Search + filter bar ── */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col sm:flex-row gap-3">
-          {/* Search input */}
           <div className="relative flex-1">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
               <SearchIcon />
@@ -362,7 +466,6 @@ export default function DashboardClient({
             )}
           </div>
 
-          {/* Filter pills */}
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setActiveFilter("all")}
@@ -380,9 +483,7 @@ export default function DashboardClient({
               return (
                 <button
                   key={type}
-                  onClick={() =>
-                    setActiveFilter(isActive ? "all" : type)
-                  }
+                  onClick={() => setActiveFilter(isActive ? "all" : type)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-brand-500 ${
                     isActive
                       ? cfg.filterActive + " shadow-sm"
@@ -420,9 +521,7 @@ export default function DashboardClient({
         {filtered.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm py-20 text-center">
             <p className="text-2xl mb-3">🔍</p>
-            <p className="text-gray-500 text-sm font-medium">
-              No leads match your search.
-            </p>
+            <p className="text-gray-500 text-sm font-medium">No leads match your search.</p>
             <button
               onClick={clearFilters}
               className="mt-3 text-xs text-brand-600 hover:text-brand-700 font-medium hover:underline"
@@ -435,6 +534,7 @@ export default function DashboardClient({
             {filtered.map((lead) => {
               const cfg = TRIGGER_CONFIG[lead.triggerType];
               const color = avatarColor(lead.contactName);
+              const isConfirmDelete = confirmDeleteId === lead.id;
               return (
                 <article
                   key={lead.id}
@@ -456,38 +556,28 @@ export default function DashboardClient({
                           <span className="font-semibold text-gray-900 text-sm sm:text-base">
                             {lead.contactName}
                           </span>
-                          <span className="text-gray-300 text-xs hidden sm:inline">
-                            ·
-                          </span>
-                          <span className="text-gray-500 text-sm hidden sm:inline">
-                            {lead.title}
-                          </span>
-                          <span className="text-gray-300 text-xs hidden sm:inline">
-                            ·
-                          </span>
+                          <span className="text-gray-300 text-xs hidden sm:inline">·</span>
+                          <span className="text-gray-500 text-sm hidden sm:inline">{lead.title}</span>
+                          <span className="text-gray-300 text-xs hidden sm:inline">·</span>
                           {lead.website ? (
-                            <a
-                              href={lead.website}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                            <Link
+                              href={`/leads/${lead.id}`}
                               className="text-brand-600 font-semibold text-sm hover:underline underline-offset-2 flex items-center gap-1"
                             >
                               {lead.companyName}
-                              <ExternalLinkIcon />
-                            </a>
+                            </Link>
                           ) : (
-                            <span className="text-brand-600 font-semibold text-sm">
+                            <Link
+                              href={`/leads/${lead.id}`}
+                              className="text-brand-600 font-semibold text-sm hover:underline underline-offset-2"
+                            >
                               {lead.companyName}
-                            </span>
+                            </Link>
                           )}
                         </div>
 
-                        {/* Mobile: title on its own line */}
-                        <p className="text-gray-500 text-xs mt-0.5 sm:hidden">
-                          {lead.title}
-                        </p>
+                        <p className="text-gray-500 text-xs mt-0.5 sm:hidden">{lead.title}</p>
 
-                        {/* Contact details */}
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 mt-1.5">
                           <a
                             href={`mailto:${lead.email}`}
@@ -496,50 +586,90 @@ export default function DashboardClient({
                             {lead.email}
                           </a>
                           {lead.phone && (
-                            <span className="text-xs text-gray-400">
-                              {lead.phone}
-                            </span>
+                            <span className="text-xs text-gray-400">{lead.phone}</span>
                           )}
                         </div>
+
+                        {/* Tags */}
+                        {lead.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            {lead.tags.map((tag) => (
+                              <span
+                                key={tag}
+                                className={`text-xs px-2 py-0.5 rounded-full font-medium ${tagColor(tag)}`}
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    {/* Right side: type badge + date */}
+                    {/* Right side: type badge + date + actions */}
                     <div className="flex flex-col items-end gap-2 shrink-0">
                       <span
                         className={`hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${cfg.badge}`}
                       >
-                        <span
-                          className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`}
-                        />
+                        <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
                         {cfg.label}
                       </span>
-                      <time className="text-xs text-gray-400">
-                        {formatDate(lead.createdAt)}
-                      </time>
+                      <time className="text-xs text-gray-400">{formatDate(lead.createdAt)}</time>
+
+                      {/* Edit / Delete buttons */}
+                      <div className="flex items-center gap-1.5">
+                        {!isConfirmDelete ? (
+                          <>
+                            <button
+                              onClick={() => setEditingLead(lead)}
+                              title="Edit lead"
+                              className="p-1.5 text-gray-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
+                            >
+                              <PencilIcon />
+                            </button>
+                            <button
+                              onClick={() => setConfirmDeleteId(lead.id)}
+                              title="Delete lead"
+                              className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                            >
+                              <TrashIcon />
+                            </button>
+                          </>
+                        ) : (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs text-gray-500">Delete?</span>
+                            <button
+                              onClick={() => deleteLead(lead.id)}
+                              className="text-xs bg-rose-600 text-white px-2 py-1 rounded-lg hover:bg-rose-700 font-medium"
+                            >
+                              Yes
+                            </button>
+                            <button
+                              onClick={() => setConfirmDeleteId(null)}
+                              className="text-xs text-gray-500 hover:text-gray-700 font-medium"
+                            >
+                              No
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
                   {/* ── Intelligence panel ── */}
                   <div className="border-t border-gray-50 bg-gray-50/60 px-5 sm:px-6 py-4 space-y-3">
-                    {/* Trigger event */}
                     <div className="flex gap-3 items-start">
                       <span className="shrink-0 mt-px text-xs font-bold uppercase tracking-wider text-orange-600 bg-orange-50 border border-orange-100 px-2.5 py-1 rounded-full leading-none">
                         Trigger
                       </span>
-                      <p className="text-sm text-gray-800 leading-relaxed">
-                        {lead.triggerEvent}
-                      </p>
+                      <p className="text-sm text-gray-800 leading-relaxed">{lead.triggerEvent}</p>
                     </div>
 
-                    {/* Intel summary */}
                     <div className="flex gap-3 items-start">
                       <span className="shrink-0 mt-px text-xs font-bold uppercase tracking-wider text-brand-600 bg-brand-50 border border-brand-100 px-2.5 py-1 rounded-full leading-none">
                         Intel
                       </span>
-                      <p className="text-sm text-gray-500 leading-relaxed">
-                        {lead.intelligenceSummary}
-                      </p>
+                      <p className="text-sm text-gray-500 leading-relaxed">{lead.intelligenceSummary}</p>
                     </div>
                   </div>
                 </article>
@@ -548,9 +678,17 @@ export default function DashboardClient({
           </div>
         )}
 
-        {/* ── Footer spacer ── */}
         <div className="h-8" />
       </main>
+
+      {/* Edit modal */}
+      {editingLead && (
+        <EditLeadModal
+          lead={editingLead}
+          onClose={() => setEditingLead(null)}
+          onSaved={onLeadSaved}
+        />
+      )}
     </div>
   );
 }

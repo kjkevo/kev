@@ -4,8 +4,8 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL")       // pooler URL  — used by Vercel serverless functions
-  directUrl = env("DIRECT_URL")         // direct URL  — used by prisma migrate
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -20,19 +20,63 @@ model User {
 }
 
 model Lead {
-  id                 Int      @id @default(autoincrement())
-  createdAt          DateTime @default(now())
+  id                  Int      @id @default(autoincrement())
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
-  companyName        String
-  website            String?
-  contactName        String
-  title              String
-  email              String   @unique
-  phone              String?
+  companyName         String
+  website             String?
+  contactName         String
+  title               String
+  email               String   @unique
+  phone               String?
 
   triggerEvent        String
   intelligenceSummary String
 
+  status              String   @default("new")
+  notes               String?
+  tags                String[]
+
+  activities          Activity[]
+  customFieldValues   CustomFieldValue[]
+
   @@index([email])
   @@index([companyName])
+  @@index([status])
+}
+
+model Activity {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+
+  leadId    Int
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  type      String
+  content   String
+  date      DateTime @default(now())
+
+  @@index([leadId])
+}
+
+model CustomField {
+  id     Int    @id @default(autoincrement())
+  name   String @unique
+
+  values CustomFieldValue[]
+}
+
+model CustomFieldValue {
+  id            Int         @id @default(autoincrement())
+
+  leadId        Int
+  lead          Lead        @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  customFieldId Int
+  customField   CustomField @relation(fields: [customFieldId], references: [id], onDelete: Cascade)
+
+  value         String
+
+  @@unique([leadId, customFieldId])
 }
