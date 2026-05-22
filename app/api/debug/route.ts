@@ -14,7 +14,7 @@ export async function GET() {
         ok: false,
         error: error?.message ?? String(err),
         stack: error?.stack?.slice(0, 800),
-        dbUrl: process.env.DATABASE_URL?.slice(0, 40) + "...",
+        dbUrl: process.env.DATABASE_URL?.replace(/:([^:@]+)@/, ":***@"),
       },
       { status: 500 }
     );
