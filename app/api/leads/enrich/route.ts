@@ -49,7 +49,7 @@ async function fetchOgData(domain: string): Promise<{ title: string; description
     // Clean up company name: prefer og:site_name, then og:title, then <title>
     let rawName = ogSite || ogTitle || pageTitle;
     // Remove common suffixes like "| Home", "- Official Site", etc.
-    rawName = rawName.replace(/\s*[\|\-–—]\s*.{0,40}$/, "").trim();
+    rawName = rawName.replace(/\s*[\|\-–—].*$/, "").trim();
 
     return { title: rawName, description: ogDesc || metaDesc };
   } catch {
