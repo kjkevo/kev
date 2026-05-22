@@ -25,6 +25,9 @@ export default async function DashboardPage() {
     notes: (l.notes ?? null) as string | null,
     tags: (l.tags ?? []) as string[],
     createdAt: l.createdAt as string,
+    aiScore: (l.aiScore ?? null) as number | null,
+    aiScoreReason: (l.aiScoreReason ?? null) as string | null,
+    aiSuggestion: (l.aiSuggestion ?? null) as string | null,
   }));
 
   return <DashboardClient leads={leads} user={{ name: null, email: null }} />;

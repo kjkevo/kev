@@ -41,6 +41,9 @@ type Lead = {
   updatedAt: string;
   activities: Activity[];
   customFieldValues: CustomFieldValue[];
+  aiScore: number | null;
+  aiScoreReason: string | null;
+  aiSuggestion: string | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -130,6 +133,13 @@ export default function LeadDetailClient({ lead: initialLead }: { lead: Lead }) 
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  // AI
+  const [aiScore, setAiScore] = useState<number | null>(initialLead.aiScore);
+  const [aiScoreReason, setAiScoreReason] = useState<string | null>(initialLead.aiScoreReason);
+  const [aiSuggestion, setAiSuggestion] = useState<string | null>(initialLead.aiSuggestion);
+  const [scoring, setScoring] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
+
   // --------------------------------------------------------------------------
   // Save notes
   // --------------------------------------------------------------------------
@@ -198,8 +208,12 @@ export default function LeadDetailClient({ lead: initialLead }: { lead: Lead }) 
     });
     const activity = await res.json();
     setActivities([activity, ...activities]);
+    const capturedType = newActivityType;
+    const capturedContent = newActivityContent;
     setNewActivityContent("");
     setAddingActivity(false);
+    // Auto-fetch AI suggestion based on the logged activity
+    fetchSuggestion(capturedType, capturedContent);
   }
 
   async function deleteActivity(activityId: number) {
@@ -207,6 +221,47 @@ export default function LeadDetailClient({ lead: initialLead }: { lead: Lead }) 
       method: "DELETE",
     });
     setActivities(activities.filter((a) => a.id !== activityId));
+  }
+
+  // --------------------------------------------------------------------------
+  // AI Score
+  // --------------------------------------------------------------------------
+  async function scoreWithAI() {
+    setScoring(true);
+    try {
+      const res = await fetch(`/api/leads/${lead.id}/score`, { method: "POST" });
+      const data = await res.json();
+      if (data.score !== undefined) {
+        setAiScore(data.score);
+        setAiScoreReason(data.reason);
+      }
+    } catch { /* ignore */ } finally {
+      setScoring(false);
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // AI Suggest
+  // --------------------------------------------------------------------------
+  async function fetchSuggestion(type: string, content: string) {
+    setSuggesting(true);
+    try {
+      const res = await fetch(`/api/leads/${lead.id}/suggest`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, content }),
+      });
+      const data = await res.json();
+      if (data.suggestion) setAiSuggestion(data.suggestion);
+    } catch { /* ignore */ } finally {
+      setSuggesting(false);
+    }
+  }
+
+  async function refreshSuggestion() {
+    if (activities.length === 0) return;
+    const latest = activities[0];
+    await fetchSuggestion(latest.type, latest.content);
   }
 
   // --------------------------------------------------------------------------
@@ -280,6 +335,31 @@ export default function LeadDetailClient({ lead: initialLead }: { lead: Lead }) 
                 </select>
               </div>
 
+              {/* AI Score */}
+              <div className="flex items-center gap-2">
+                {aiScore !== null && (
+                  <span
+                    title={aiScoreReason ?? ""}
+                    className={`text-xs font-bold px-3 py-1.5 rounded-full ${
+                      aiScore >= 70
+                        ? "bg-emerald-100 text-emerald-700"
+                        : aiScore >= 40
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-rose-100 text-rose-700"
+                    }`}
+                  >
+                    AI Score: {aiScore}
+                  </span>
+                )}
+                <button
+                  onClick={scoreWithAI}
+                  disabled={scoring}
+                  className="text-xs font-medium bg-violet-600 text-white px-3 py-1.5 rounded-full hover:bg-violet-700 disabled:opacity-60 transition-colors"
+                >
+                  {scoring ? "Scoring…" : aiScore !== null ? "Re-score" : "✨ Score with AI"}
+                </button>
+              </div>
+
               {/* Delete */}
               {!confirmDelete ? (
                 <button
@@ -331,6 +411,48 @@ export default function LeadDetailClient({ lead: initialLead }: { lead: Lead }) 
                 </div>
               </div>
             </div>
+
+            {/* AI Score Reason */}
+            {aiScoreReason && (
+              <div className="bg-violet-50 border border-violet-100 rounded-2xl p-5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-bold text-violet-700 uppercase tracking-wider">AI Score Analysis</h2>
+                  <span
+                    className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                      (aiScore ?? 0) >= 70
+                        ? "bg-emerald-100 text-emerald-700"
+                        : (aiScore ?? 0) >= 40
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-rose-100 text-rose-700"
+                    }`}
+                  >
+                    {aiScore}/100
+                  </span>
+                </div>
+                <p className="text-sm text-violet-800 leading-relaxed">{aiScoreReason}</p>
+              </div>
+            )}
+
+            {/* AI Suggestion */}
+            {(aiSuggestion || suggesting) && (
+              <div className="bg-amber-50 border border-amber-100 rounded-2xl p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-bold text-amber-700 uppercase tracking-wider">AI Suggestion</h2>
+                  <button
+                    onClick={refreshSuggestion}
+                    disabled={suggesting || activities.length === 0}
+                    className="text-xs font-medium text-amber-600 hover:text-amber-800 disabled:opacity-50"
+                  >
+                    {suggesting ? "Thinking…" : "Refresh"}
+                  </button>
+                </div>
+                {suggesting ? (
+                  <p className="text-sm text-amber-600 italic">Generating suggestion…</p>
+                ) : (
+                  <p className="text-sm text-amber-800 leading-relaxed">💡 {aiSuggestion}</p>
+                )}
+              </div>
+            )}
 
             {/* Notes */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-3">

@@ -3,13 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 
-type DuplicateLead = {
-  id: number;
-  companyName: string;
-  contactName: string;
-  email: string;
-};
-
 type Lead = {
   id: number;
   companyName: string;
@@ -24,15 +17,21 @@ type Lead = {
   notes: string | null;
   tags: string[];
   createdAt: string;
-  aiScore?: number | null;
-  aiScoreReason?: string | null;
-  aiSuggestion?: string | null;
+  aiScore: number | null;
+  aiScoreReason: string | null;
+  aiSuggestion: string | null;
+};
+
+type DuplicateLead = {
+  id: number;
+  companyName: string;
+  contactName: string;
+  email: string;
 };
 
 type Props = {
-  lead: Lead;
   onClose: () => void;
-  onSaved: (updated: Lead) => void;
+  onSaved: (lead: Lead) => void;
 };
 
 const STATUS_OPTIONS = ["new", "contacted", "qualified", "proposal", "negotiation", "won", "lost"];
@@ -54,23 +53,25 @@ function tagColor(tag: string) {
   return TAG_COLORS[Math.abs(hash) % TAG_COLORS.length];
 }
 
-export default function EditLeadModal({ lead, onClose, onSaved }: Props) {
+export default function AddLeadModal({ onClose, onSaved }: Props) {
   const [form, setForm] = useState({
-    companyName: lead.companyName,
-    website: lead.website ?? "",
-    contactName: lead.contactName,
-    title: lead.title,
-    email: lead.email,
-    phone: lead.phone ?? "",
-    triggerEvent: lead.triggerEvent,
-    intelligenceSummary: lead.intelligenceSummary,
-    status: lead.status,
-    notes: lead.notes ?? "",
+    companyName: "",
+    website: "",
+    contactName: "",
+    title: "",
+    email: "",
+    phone: "",
+    triggerEvent: "",
+    intelligenceSummary: "",
+    status: "new",
+    notes: "",
   });
-  const [tags, setTags] = useState<string[]>(lead.tags);
+  const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [enriching, setEnriching] = useState(false);
+  const [enriched, setEnriched] = useState(false);
   const [emailDuplicate, setEmailDuplicate] = useState<DuplicateLead | null>(null);
   const [companyDuplicate, setCompanyDuplicate] = useState<DuplicateLead | null>(null);
 
@@ -89,45 +90,97 @@ export default function EditLeadModal({ lead, onClose, onSaved }: Props) {
     setTags(tags.filter((t) => t !== tag));
   }
 
+  // Duplicate check on email blur
   async function checkEmailDuplicate() {
     const email = form.email.trim();
-    if (!email || email === lead.email) return;
+    if (!email) return;
     try {
       const res = await fetch(`/api/leads/duplicate-check?email=${encodeURIComponent(email)}`);
       const data = await res.json();
       setEmailDuplicate(data.duplicate ?? null);
-    } catch { /* ignore */ }
+    } catch {
+      // ignore
+    }
   }
 
+  // Duplicate check on company blur
   async function checkCompanyDuplicate() {
     const company = form.companyName.trim();
-    if (!company || company === lead.companyName) return;
+    if (!company) return;
     try {
       const res = await fetch(`/api/leads/duplicate-check?company=${encodeURIComponent(company)}`);
       const data = await res.json();
-      setCompanyDuplicate(data.duplicate && data.duplicate.id !== lead.id ? data.duplicate : null);
-    } catch { /* ignore */ }
+      setCompanyDuplicate(data.duplicate ?? null);
+    } catch {
+      // ignore
+    }
+  }
+
+  // Enrich from email domain
+  async function enrichFromEmail() {
+    const email = form.email.trim();
+    if (!email || !email.includes("@")) return;
+    const domain = email.split("@")[1];
+    setEnriching(true);
+    try {
+      const res = await fetch("/api/leads/enrich", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domain }),
+      });
+      const data = await res.json();
+      if (!data.error) {
+        setForm((prev) => ({
+          ...prev,
+          companyName: data.companyName || prev.companyName,
+          website: data.website || prev.website,
+          intelligenceSummary: data.industry
+            ? `${data.industry}${data.size ? `, ${data.size} employees` : ""}`
+            : prev.intelligenceSummary,
+        }));
+        setEnriched(true);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setEnriching(false);
+    }
   }
 
   async function handleSave() {
-    if (!form.companyName || !form.contactName || !form.email) {
-      setError("Company name, contact name, and email are required.");
+    if (!form.companyName || !form.contactName || !form.email || !form.triggerEvent || !form.intelligenceSummary) {
+      setError("Company name, contact name, email, trigger event, and intelligence summary are required.");
       return;
     }
     setSaving(true);
     setError("");
     try {
-      const res = await fetch(`/api/leads/${lead.id}`, {
-        method: "PUT",
+      const res = await fetch("/api/leads", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, tags, website: form.website || null, phone: form.phone || null, notes: form.notes || null }),
+        body: JSON.stringify({
+          ...form,
+          tags,
+          website: form.website || null,
+          phone: form.phone || null,
+          notes: form.notes || null,
+        }),
       });
-      if (!res.ok) throw new Error("Save failed");
-      const updated = await res.json();
-      onSaved({ ...updated, createdAt: lead.createdAt });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error ?? "Save failed");
+      }
+      const created = await res.json();
+      onSaved({
+        ...created,
+        tags: created.tags ?? [],
+        aiScore: created.aiScore ?? null,
+        aiScoreReason: created.aiScoreReason ?? null,
+        aiSuggestion: created.aiSuggestion ?? null,
+      });
       onClose();
-    } catch {
-      setError("Failed to save. Please try again.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to save. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -138,7 +191,7 @@ export default function EditLeadModal({ lead, onClose, onSaved }: Props) {
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl z-10">
-          <h2 className="text-lg font-bold text-gray-900">Edit Lead</h2>
+          <h2 className="text-lg font-bold text-gray-900">Add New Lead</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-700 text-xl leading-none font-light"
@@ -156,6 +209,7 @@ export default function EditLeadModal({ lead, onClose, onSaved }: Props) {
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Company Name */}
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Company Name *</label>
               <input
@@ -177,8 +231,17 @@ export default function EditLeadModal({ lead, onClose, onSaved }: Props) {
                 </div>
               )}
             </div>
+
+            {/* Website */}
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Website</label>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">
+                Website
+                {enriched && (
+                  <span className="ml-2 text-xs font-normal text-violet-600 bg-violet-50 border border-violet-200 px-2 py-0.5 rounded-full">
+                    ✨ Enriched via AI
+                  </span>
+                )}
+              </label>
               <input
                 type="text"
                 value={form.website}
@@ -187,6 +250,8 @@ export default function EditLeadModal({ lead, onClose, onSaved }: Props) {
                 className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
+
+            {/* Contact Name */}
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Contact Name *</label>
               <input
@@ -196,6 +261,8 @@ export default function EditLeadModal({ lead, onClose, onSaved }: Props) {
                 className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
+
+            {/* Title */}
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Title</label>
               <input
@@ -205,15 +272,29 @@ export default function EditLeadModal({ lead, onClose, onSaved }: Props) {
                 className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
-            <div>
+
+            {/* Email + Enrich button */}
+            <div className="sm:col-span-2">
               <label className="block text-xs font-semibold text-gray-600 mb-1">Email *</label>
-              <input
-                type="email"
-                value={form.email}
-                onChange={(e) => { updateField("email", e.target.value); setEmailDuplicate(null); }}
-                onBlur={checkEmailDuplicate}
-                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
-              />
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => { updateField("email", e.target.value); setEmailDuplicate(null); setEnriched(false); }}
+                  onBlur={checkEmailDuplicate}
+                  className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                />
+                {form.email.includes("@") && (
+                  <button
+                    type="button"
+                    onClick={enrichFromEmail}
+                    disabled={enriching}
+                    className="shrink-0 text-xs font-medium bg-violet-600 text-white px-3 py-2.5 rounded-xl hover:bg-violet-700 disabled:opacity-60 transition-colors"
+                  >
+                    {enriching ? "Enriching…" : "✨ Enrich"}
+                  </button>
+                )}
+              </div>
               {emailDuplicate && (
                 <div className="mt-1.5 flex items-start gap-1.5 bg-amber-50 border border-amber-200 text-amber-800 text-xs px-3 py-2 rounded-xl">
                   <span>⚠️</span>
@@ -226,6 +307,8 @@ export default function EditLeadModal({ lead, onClose, onSaved }: Props) {
                 </div>
               )}
             </div>
+
+            {/* Phone */}
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Phone</label>
               <input
@@ -235,47 +318,53 @@ export default function EditLeadModal({ lead, onClose, onSaved }: Props) {
                 className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
+
+            {/* Status */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Status</label>
+              <select
+                value={form.status}
+                onChange={(e) => updateField("status", e.target.value)}
+                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              >
+                {STATUS_OPTIONS.map((s) => (
+                  <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
+          {/* Trigger Event */}
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Status</label>
-            <select
-              value={form.status}
-              onChange={(e) => updateField("status", e.target.value)}
-              className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
-            >
-              {STATUS_OPTIONS.map((s) => (
-                <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Trigger Event</label>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Trigger Event *</label>
             <input
               type="text"
               value={form.triggerEvent}
               onChange={(e) => updateField("triggerEvent", e.target.value)}
+              placeholder="e.g. Raised Series B, hiring 50 engineers…"
               className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
 
+          {/* Intelligence Summary */}
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Intelligence Summary</label>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Intelligence Summary *</label>
             <textarea
               value={form.intelligenceSummary}
               onChange={(e) => updateField("intelligenceSummary", e.target.value)}
               rows={3}
+              placeholder="Key context about this prospect…"
               className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
             />
           </div>
 
+          {/* Notes */}
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Notes</label>
             <textarea
               value={form.notes}
               onChange={(e) => updateField("notes", e.target.value)}
-              rows={3}
+              rows={2}
               placeholder="Internal notes…"
               className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
             />
@@ -328,7 +417,7 @@ export default function EditLeadModal({ lead, onClose, onSaved }: Props) {
             disabled={saving}
             className="text-sm bg-brand-600 text-white px-5 py-2 rounded-xl hover:bg-brand-700 font-medium disabled:opacity-60 transition-colors"
           >
-            {saving ? "Saving…" : "Save Changes"}
+            {saving ? "Saving…" : "Add Lead"}
           </button>
         </div>
       </div>

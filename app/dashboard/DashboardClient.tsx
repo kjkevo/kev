@@ -5,6 +5,7 @@ import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import EditLeadModal from "@/app/components/EditLeadModal";
+import AddLeadModal from "@/app/components/AddLeadModal";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -24,6 +25,9 @@ type Lead = {
   notes: string | null;
   tags: string[];
   createdAt: string;
+  aiScore: number | null;
+  aiScoreReason: string | null;
+  aiSuggestion: string | null;
 };
 
 type TriggerType = "Funding" | "Hiring" | "Competitor" | "Engagement" | "Content" | "Other";
@@ -242,6 +246,8 @@ export default function DashboardClient({
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [importing, setImporting] = useState(false);
   const [importMsg, setImportMsg] = useState("");
+  const [showAddLead, setShowAddLead] = useState(false);
+  const [scoringId, setScoringId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const enriched = useMemo(
@@ -334,6 +340,37 @@ export default function DashboardClient({
     setLeads((prev) => prev.map((l) => (l.id === updated.id ? updated : l)));
   }
 
+  // --------------------------------------------------------------------------
+  // Lead added
+  // --------------------------------------------------------------------------
+  function onLeadAdded(newLead: Lead) {
+    setLeads((prev) => [newLead, ...prev]);
+  }
+
+  // --------------------------------------------------------------------------
+  // AI Score
+  // --------------------------------------------------------------------------
+  async function scoreWithAI(id: number, e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setScoringId(id);
+    try {
+      const res = await fetch(`/api/leads/${id}/score`, { method: "POST" });
+      const data = await res.json();
+      if (data.score !== undefined) {
+        setLeads((prev) =>
+          prev.map((l) =>
+            l.id === id ? { ...l, aiScore: data.score, aiScoreReason: data.reason } : l
+          )
+        );
+      }
+    } catch {
+      // silently fail — user can retry
+    } finally {
+      setScoringId(null);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* ── Sticky header ── */}
@@ -378,6 +415,13 @@ export default function DashboardClient({
             <p className="text-sm text-gray-500 mt-1">AI-enriched prospects, classified by buying signal</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
+            {/* Add Lead */}
+            <button
+              onClick={() => setShowAddLead(true)}
+              className="inline-flex items-center gap-1.5 text-xs font-medium bg-brand-600 text-white hover:bg-brand-700 px-3 py-2 rounded-xl transition-colors"
+            >
+              + Add Lead
+            </button>
             {/* CSV import */}
             <input
               ref={fileInputRef}
@@ -606,7 +650,7 @@ export default function DashboardClient({
                       </div>
                     </div>
 
-                    {/* Right side: type badge + date + actions */}
+                    {/* Right side: type badge + AI score + date + actions */}
                     <div className="flex flex-col items-end gap-2 shrink-0">
                       <span
                         className={`hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${cfg.badge}`}
@@ -614,12 +658,37 @@ export default function DashboardClient({
                         <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
                         {cfg.label}
                       </span>
+
+                      {/* AI Score badge */}
+                      {lead.aiScore !== null && lead.aiScore !== undefined ? (
+                        <span
+                          title={lead.aiScoreReason ?? ""}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
+                            lead.aiScore >= 70
+                              ? "bg-emerald-100 text-emerald-700"
+                              : lead.aiScore >= 40
+                              ? "bg-amber-100 text-amber-700"
+                              : "bg-rose-100 text-rose-700"
+                          }`}
+                        >
+                          AI {lead.aiScore}
+                        </span>
+                      ) : null}
+
                       <time className="text-xs text-gray-400">{formatDate(lead.createdAt)}</time>
 
-                      {/* Edit / Delete buttons */}
+                      {/* Edit / Delete / Score buttons */}
                       <div className="flex items-center gap-1.5">
                         {!isConfirmDelete ? (
                           <>
+                            <button
+                              onClick={(e) => scoreWithAI(lead.id, e)}
+                              disabled={scoringId === lead.id}
+                              title="Score with AI"
+                              className="p-1.5 text-gray-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors text-xs font-medium disabled:opacity-60"
+                            >
+                              {scoringId === lead.id ? "…" : "✨"}
+                            </button>
                             <button
                               onClick={() => setEditingLead(lead)}
                               title="Edit lead"
@@ -687,6 +756,14 @@ export default function DashboardClient({
           lead={editingLead}
           onClose={() => setEditingLead(null)}
           onSaved={onLeadSaved}
+        />
+      )}
+
+      {/* Add Lead modal */}
+      {showAddLead && (
+        <AddLeadModal
+          onClose={() => setShowAddLead(false)}
+          onSaved={onLeadAdded}
         />
       )}
     </div>

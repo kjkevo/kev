@@ -34,6 +34,9 @@ model Lead {
   status              String             @default("new")
   tags                String[]
   updatedAt           DateTime           @updatedAt
+  aiScore             Int?
+  aiScoreReason       String?
+  aiSuggestion        String?
   activities          Activity[]
   customFieldValues   CustomFieldValue[]
 
