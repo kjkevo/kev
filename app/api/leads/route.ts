@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const body = await req.json();
 
+  const now = new Date().toISOString();
   const { data, error } = await supabase
     .from("Lead")
     .insert({
@@ -33,6 +34,7 @@ export async function POST(req: NextRequest) {
       phone: body.phone ?? null,
       triggerEvent: body.triggerEvent,
       intelligenceSummary: body.intelligenceSummary,
+      updatedAt: now,
     })
     .select()
     .single();
