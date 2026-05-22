@@ -48,8 +48,7 @@ export default async function LeadDetailPage({
       leadId: cfv.leadId as number,
       customFieldId: cfv.customFieldId as number,
       value: cfv.value as string,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      fieldName: (cfv.CustomField as any)?.name ?? "",
+      fieldName: ((cfv.CustomField ?? {}) as Record<string, string>).name ?? "",
     })),
   };
 
