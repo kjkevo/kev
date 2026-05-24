@@ -16,10 +16,29 @@ model User {
   email     String   @unique
   password  String
 
+  twoFactorSecret   String?
+  twoFactorEnabled  Boolean  @default(false)
+  twoFactorVerified Boolean  @default(false)
+
   memberships   TeamMembership[]
   notifications Notification[]
 
   @@index([email])
+}
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  createdAt  DateTime @default(now())
+  userId     Int?
+  userEmail  String?
+  action     String
+  entityType String?
+  entityId   Int?
+  meta       Json?
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([action])
 }
 
 model Lead {

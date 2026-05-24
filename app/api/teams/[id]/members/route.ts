@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 import { supabase } from "@/app/lib/supabase";
+import { logAudit } from "@/app/lib/audit";
 
 async function getCallerRole(userId: number, teamId: number): Promise<string | null> {
   const { data } = await supabase
@@ -102,6 +103,15 @@ export async function POST(
     .insert({ userId: user.id, teamId, role });
 
   if (insertError) return NextResponse.json({ error: insertError.message }, { status: 500 });
+
+  logAudit({
+    userId: callerId,
+    userEmail: session.user.email ?? undefined,
+    action: "team.member_added",
+    entityType: "Team",
+    entityId: teamId,
+    meta: { addedUserId: user.id, addedUserEmail: user.email, role },
+  });
 
   return NextResponse.json({ ok: true });
 }

@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/lib/auth";
 import { supabase } from "@/app/lib/supabase";
+import { logAudit } from "@/app/lib/audit";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -20,6 +23,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const session = await getServerSession(authOptions);
   const body = await req.json();
 
   const now = new Date().toISOString();
@@ -40,6 +44,15 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  logAudit({
+    userId: session?.user?.id ? parseInt(session.user.id, 10) : undefined,
+    userEmail: session?.user?.email ?? undefined,
+    action: "lead.created",
+    entityType: "Lead",
+    entityId: data?.id,
+    meta: { companyName: data?.companyName, contactName: data?.contactName },
+  });
 
   return NextResponse.json(data, { status: 201 });
 }

@@ -26,7 +26,12 @@ export const authOptions: NextAuthOptions = {
         );
         if (!passwordMatch) return null;
 
-        return { id: String(user.id), email: user.email, name: user.name ?? undefined };
+        return {
+          id: String(user.id),
+          email: user.email,
+          name: user.name ?? undefined,
+          twoFactorEnabled: user.twoFactorEnabled,
+        };
       },
     }),
   ],
@@ -39,11 +44,18 @@ export const authOptions: NextAuthOptions = {
 
   callbacks: {
     async jwt({ token, user }) {
-      if (user) token.id = user.id;
+      if (user) {
+        token.id = user.id;
+        if ((user as { twoFactorEnabled?: boolean }).twoFactorEnabled) {
+          token.tfPending = true;
+        }
+      }
       return token;
     },
     async session({ session, token }) {
-      if (session.user && token.id) session.user.id = token.id;
+      if (session.user && token.id) {
+        session.user.id = token.id as string;
+      }
       return session;
     },
   },

@@ -4,6 +4,7 @@ import "./globals.css";
 import ThemeProvider from "@/app/components/ThemeProvider";
 import CommandPalette from "@/app/components/CommandPalette";
 import KeyboardShortcuts from "@/app/components/KeyboardShortcuts";
+import CookieConsent from "@/app/components/CookieConsent";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -24,6 +25,7 @@ export default function RootLayout({
           {children}
           <CommandPalette />
           <KeyboardShortcuts />
+          <CookieConsent />
         </ThemeProvider>
       </body>
     </html>

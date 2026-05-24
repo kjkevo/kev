@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 import { supabase } from "@/app/lib/supabase";
+import { logAudit } from "@/app/lib/audit";
 
 export async function GET(
   _req: NextRequest,
@@ -53,6 +54,15 @@ export async function POST(
   if (activity && body.type === "Note" && body.content) {
     await processMentions(body.content, activity.id, leadId, userId);
   }
+
+  logAudit({
+    userId: userId ?? undefined,
+    userEmail: session?.user?.email ?? undefined,
+    action: "activity.logged",
+    entityType: "Activity",
+    entityId: activity?.id,
+    meta: { leadId, type: body.type },
+  });
 
   return NextResponse.json(activity, { status: 201 });
 }

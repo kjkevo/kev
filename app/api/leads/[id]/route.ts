@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/lib/auth";
 import { supabase } from "@/app/lib/supabase";
+import { logAudit } from "@/app/lib/audit";
 
 export async function GET(
   _req: NextRequest,
@@ -41,6 +44,7 @@ export async function PUT(
   const id = parseInt(params.id, 10);
   if (isNaN(id)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
 
+  const session = await getServerSession(authOptions);
   const body = await req.json();
 
   // Fetch existing lead to compare status
@@ -93,15 +97,29 @@ export async function PUT(
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  const statusChanged = existing?.status !== body.status;
+  logAudit({
+    userId: session?.user?.id ? parseInt(session.user.id, 10) : undefined,
+    userEmail: session?.user?.email ?? undefined,
+    action: "lead.updated",
+    entityType: "Lead",
+    entityId: id,
+    meta: statusChanged
+      ? { statusChange: { from: existing?.status, to: body.status } }
+      : undefined,
+  });
+
   return NextResponse.json(data);
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const id = parseInt(params.id, 10);
   if (isNaN(id)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+
+  const session = await getServerSession(authOptions);
 
   // Delete related records first (cascade)
   await supabase.from("Activity").delete().eq("leadId", id);
@@ -109,6 +127,14 @@ export async function DELETE(
 
   const { error } = await supabase.from("Lead").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  logAudit({
+    userId: session?.user?.id ? parseInt(session.user.id, 10) : undefined,
+    userEmail: session?.user?.email ?? undefined,
+    action: "lead.deleted",
+    entityType: "Lead",
+    entityId: id,
+  });
 
   return NextResponse.json({ success: true });
 }

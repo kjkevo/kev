@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 import { supabase } from "@/app/lib/supabase";
+import { logAudit } from "@/app/lib/audit";
 
 async function getCallerRole(userId: number, teamId: number): Promise<string | null> {
   const { data } = await supabase
@@ -78,6 +79,15 @@ export async function DELETE(
     .eq("teamId", teamId);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  logAudit({
+    userId: callerId,
+    userEmail: session.user.email ?? undefined,
+    action: "team.member_removed",
+    entityType: "Team",
+    entityId: teamId,
+    meta: { removedUserId: targetUserId },
+  });
 
   return NextResponse.json({ ok: true });
 }

@@ -403,6 +403,8 @@ export default function DashboardClient({
             <Link href="/team" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">Team</Link>
             <Link href="/team-feed" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">Feed</Link>
             <Link href="/pipeline" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">Pipeline</Link>
+            <Link href="/audit-log" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">Audit Log</Link>
+            <Link href="/settings" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">Security</Link>
           </nav>
 
           <div className="flex items-center gap-2 shrink-0">
@@ -453,6 +455,9 @@ export default function DashboardClient({
             <Link href="/team" className="text-sm font-medium text-gray-700 dark:text-gray-300" onClick={() => setMobileMenuOpen(false)}>Team</Link>
             <Link href="/team-feed" className="text-sm font-medium text-gray-700 dark:text-gray-300" onClick={() => setMobileMenuOpen(false)}>Feed</Link>
             <Link href="/pipeline" className="text-sm font-medium text-gray-700 dark:text-gray-300" onClick={() => setMobileMenuOpen(false)}>Pipeline</Link>
+            <Link href="/audit-log" className="text-sm font-medium text-gray-700 dark:text-gray-300" onClick={() => setMobileMenuOpen(false)}>Audit Log</Link>
+            <Link href="/settings" className="text-sm font-medium text-gray-700 dark:text-gray-300" onClick={() => setMobileMenuOpen(false)}>Security</Link>
+            <Link href="/gdpr" className="text-sm font-medium text-gray-700 dark:text-gray-300" onClick={() => setMobileMenuOpen(false)}>Your Data Rights</Link>
             <button
               onClick={() => { signOut({ callbackUrl: "/" }); setMobileMenuOpen(false); }}
               className="text-sm font-medium text-gray-500 dark:text-gray-400 text-left"
@@ -819,6 +824,19 @@ export default function DashboardClient({
           onSaved={onLeadAdded}
         />
       )}
+
+      {/* Footer */}
+      <footer className="border-t border-gray-200 dark:border-gray-800 mt-12 py-6 px-4 sm:px-6">
+        <div className="max-w-7xl mx-auto flex flex-wrap gap-4 text-xs text-gray-400 dark:text-gray-500 justify-between items-center">
+          <span>&copy; {new Date().getFullYear()} LeadIQ</span>
+          <div className="flex gap-4">
+            <Link href="/privacy" className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors">Privacy Policy</Link>
+            <Link href="/gdpr" className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors">Your Data Rights</Link>
+            <Link href="/settings" className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors">Security</Link>
+            <Link href="/audit-log" className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors">Audit Log</Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

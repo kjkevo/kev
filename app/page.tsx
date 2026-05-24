@@ -140,7 +140,8 @@ export default function HomePage() {
           <p className="font-bold text-white text-base">LeadIQ</p>
           <p>© {new Date().getFullYear()} LeadIQ. All rights reserved.</p>
           <div className="flex gap-6">
-            <Link href="#" className="hover:text-white transition-colors">Privacy</Link>
+            <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+            <Link href="/gdpr" className="hover:text-white transition-colors">Your Data Rights</Link>
             <Link href="#" className="hover:text-white transition-colors">Terms</Link>
             <Link href="#" className="hover:text-white transition-colors">Contact</Link>
           </div>
