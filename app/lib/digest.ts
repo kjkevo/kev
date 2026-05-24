@@ -1,46 +1,31 @@
-import { NextResponse } from "next/server";
 import { supabase } from "@/app/lib/supabase";
 
-export const dynamic = "force-dynamic";
-
-const STAGE_PROBABILITY: Record<string, number> = {
+export const STAGE_PROBABILITY: Record<string, number> = {
   new: 0.05, contacted: 0.10, qualified: 0.25,
   proposal: 0.50, negotiation: 0.75, won: 1.0, lost: 0,
 };
 
-export async function GET() {
+export async function computeDigest() {
   const { data: leads, error } = await supabase
     .from("Lead")
     .select("id, companyName, contactName, status, dealValue, source, wonAt, lostAt, lossReason, assignedTo, createdAt, aiScore");
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) throw new Error(error.message);
 
   const now = new Date();
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
   const allLeads = leads ?? [];
-
-  // Debug logging
-  console.log("[digest] allLeads count:", allLeads.length);
-  console.log("[digest] weekAgo:", weekAgo.toISOString());
-  allLeads.forEach(l => console.log(`[digest] lead ${l.id}: status=${l.status} dealValue=${l.dealValue} wonAt=${l.wonAt} lostAt=${l.lostAt}`));
-
   const won = allLeads.filter((l) => l.status === "won");
   const lost = allLeads.filter((l) => l.status === "lost");
-
-  console.log("[digest] won:", won.length, "lost:", lost.length);
 
   const newLeadsThisWeek = allLeads.filter((l) => new Date(l.createdAt) >= weekAgo).length;
   const dealsClosedThisWeek = won.filter((l) => l.wonAt && new Date(l.wonAt) >= weekAgo).length;
   const dealsLostThisWeek = lost.filter((l) => l.lostAt && new Date(l.lostAt) >= weekAgo).length;
 
-  console.log("[digest] dealsClosedThisWeek:", dealsClosedThisWeek, "dealsLostThisWeek:", dealsLostThisWeek);
-
-  const pipelineLeads = allLeads.filter((l) => l.dealValue != null && l.status !== "lost");
-  console.log("[digest] pipelineLeads:", pipelineLeads.map(l => ({ id: l.id, dealValue: l.dealValue, status: l.status })));
-
-  const pipelineValue = pipelineLeads.reduce((s: number, l) => s + (l.dealValue ?? 0), 0);
-  console.log("[digest] pipelineValue:", pipelineValue);
+  const pipelineValue = allLeads
+    .filter((l) => l.dealValue != null && l.status !== "lost")
+    .reduce((s: number, l) => s + (l.dealValue ?? 0), 0);
 
   const weightedPipeline = allLeads
     .filter((l) => l.dealValue != null)
@@ -56,9 +41,7 @@ export async function GET() {
     lossReasonSummary[r] = (lossReasonSummary[r] ?? 0) + 1;
   }
 
-  console.log("[digest] lossReasonSummary:", lossReasonSummary);
-
-  return NextResponse.json({
+  return {
     newLeadsThisWeek,
     dealsClosedThisWeek,
     dealsLostThisWeek,
@@ -68,5 +51,5 @@ export async function GET() {
       ? { companyName: topLead.companyName, contactName: topLead.contactName, aiScore: topLead.aiScore }
       : null,
     lossReasonSummary,
-  });
+  };
 }
