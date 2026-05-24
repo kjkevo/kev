@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import EditLeadModal from "@/app/components/EditLeadModal";
 import AddLeadModal from "@/app/components/AddLeadModal";
+import NotificationBell from "@/app/components/NotificationBell";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -386,6 +387,8 @@ export default function DashboardClient({
             <Link href="/kanban" className="hover:text-gray-900 transition-colors">Kanban</Link>
             <Link href="/leads" className="hover:text-gray-900 transition-colors">All Leads</Link>
             <Link href="/analytics" className="hover:text-gray-900 transition-colors">Analytics</Link>
+            <Link href="/team" className="hover:text-gray-900 transition-colors">Team</Link>
+            <Link href="/team-feed" className="hover:text-gray-900 transition-colors">Feed</Link>
           </nav>
 
           <div className="flex items-center gap-3 shrink-0">
@@ -397,6 +400,7 @@ export default function DashboardClient({
             <span className="text-xs text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
               {leads.length} lead{leads.length !== 1 ? "s" : ""}
             </span>
+            <NotificationBell />
             <button
               onClick={() => signOut({ callbackUrl: "/" })}
               className="text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors"

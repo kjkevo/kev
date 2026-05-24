@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 type DuplicateLead = {
@@ -67,7 +67,27 @@ function tagColor(tag: string) {
   return TAG_COLORS[Math.abs(hash) % TAG_COLORS.length];
 }
 
+type TeamMember = { userId: number; name: string | null; email: string; role: string };
+
 export default function EditLeadModal({ lead, onClose, onSaved }: Props) {
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+
+  useEffect(() => {
+    // Try to load team members to populate the assignedTo dropdown
+    fetch("/api/teams")
+      .then((r) => r.ok ? r.json() : [])
+      .then((teams: { id: number }[]) => {
+        if (teams.length === 0) return;
+        // Fetch members from the first team
+        return fetch(`/api/teams/${teams[0].id}/members`)
+          .then((r) => r.ok ? r.json() : []);
+      })
+      .then((members) => {
+        if (members) setTeamMembers(members);
+      })
+      .catch(() => {});
+  }, []);
+
   const [form, setForm] = useState({
     companyName: lead.companyName,
     website: lead.website ?? "",
@@ -303,13 +323,30 @@ export default function EditLeadModal({ lead, onClose, onSaved }: Props) {
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Assigned To</label>
-              <input
-                type="text"
-                value={form.assignedTo}
-                onChange={(e) => updateField("assignedTo", e.target.value)}
-                placeholder="Name or email"
-                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
-              />
+              {teamMembers.length > 0 ? (
+                <select
+                  value={form.assignedTo}
+                  onChange={(e) => updateField("assignedTo", e.target.value)}
+                  className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                >
+                  <option value="">— Unassigned —</option>
+                  {teamMembers.map((m) => {
+                    const label = m.name ? `${m.name} (${m.email})` : m.email;
+                    const val = m.name ?? m.email;
+                    return (
+                      <option key={m.userId} value={val}>{label}</option>
+                    );
+                  })}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={form.assignedTo}
+                  onChange={(e) => updateField("assignedTo", e.target.value)}
+                  placeholder="Name or email"
+                  className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                />
+              )}
             </div>
           </div>
 

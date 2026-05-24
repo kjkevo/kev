@@ -16,6 +16,9 @@ model User {
   email     String   @unique
   password  String
 
+  memberships   TeamMembership[]
+  notifications Notification[]
+
   @@index([email])
 }
 
@@ -39,19 +42,24 @@ model Lead {
   aiSuggestion        String?
 
   // Analytics fields
-  dealValue           Float?     // expected deal value in USD
-  source              String?    // cold_email | referral | paid_ad | linkedin | inbound | event | other
-  wonAt               DateTime?  // timestamp when status changed to "won"
-  lostAt              DateTime?  // timestamp when status changed to "lost"
-  lossReason          String?    // price | timing | competitor | product_fit | no_budget | other
-  assignedTo          String?    // name/email of the team member who owns this lead
+  dealValue           Float?
+  source              String?
+  wonAt               DateTime?
+  lostAt              DateTime?
+  lossReason          String?
+  assignedTo          String?
+
+  // Team ownership
+  teamId              Int?
 
   activities          Activity[]
   customFieldValues   CustomFieldValue[]
+  notifications       Notification[]
 
   @@index([email])
   @@index([companyName])
   @@index([status])
+  @@index([teamId])
 }
 
 model Activity {
@@ -61,7 +69,11 @@ model Activity {
   type      String
   content   String
   date      DateTime @default(now())
+  userId    Int?
+  userName  String?
   lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  notifications Notification[]
 
   @@index([leadId])
 }
@@ -81,4 +93,42 @@ model CustomFieldValue {
   lead          Lead        @relation(fields: [leadId], references: [id], onDelete: Cascade)
 
   @@unique([leadId, customFieldId])
+}
+
+model Team {
+  id        Int              @id @default(autoincrement())
+  createdAt DateTime         @default(now())
+  name      String
+  members   TeamMembership[]
+}
+
+model TeamMembership {
+  id       Int      @id @default(autoincrement())
+  userId   Int
+  teamId   Int
+  role     String   @default("rep")
+  joinedAt DateTime @default(now())
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team     Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, teamId])
+  @@index([teamId])
+  @@index([userId])
+}
+
+model Notification {
+  id         Int      @id @default(autoincrement())
+  createdAt  DateTime @default(now())
+  userId     Int
+  type       String
+  content    String
+  read       Boolean  @default(false)
+  leadId     Int?
+  activityId Int?
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lead       Lead?    @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  activity   Activity? @relation(fields: [activityId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([userId, read])
 }

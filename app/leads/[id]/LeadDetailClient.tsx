@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import WinLossModal from "@/app/components/WinLossModal";
@@ -45,6 +45,8 @@ type Lead = {
   aiScore: number | null;
   aiScoreReason: string | null;
   aiSuggestion: string | null;
+  assignedTo: string | null;
+  teamId: number | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -121,6 +123,73 @@ export default function LeadDetailClient({ lead: initialLead }: { lead: Lead }) 
   const [newActivityType, setNewActivityType] = useState("Note");
   const [newActivityContent, setNewActivityContent] = useState("");
   const [addingActivity, setAddingActivity] = useState(false);
+
+  // AssignedTo
+  const [assignedTo, setAssignedTo] = useState<string>(initialLead.assignedTo ?? "");
+  const [savingAssignment, setSavingAssignment] = useState(false);
+
+  async function saveAssignment(value: string) {
+    setSavingAssignment(true);
+    setAssignedTo(value);
+    await fetch(`/api/leads/${lead.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...lead, notes, tags, status, assignedTo: value || null }),
+    });
+    setSavingAssignment(false);
+  }
+
+  // @mention autocomplete
+  const [mentionMembers, setMentionMembers] = useState<{ userId: number; name: string | null; email: string }[]>([]);
+  const [mentionDropdown, setMentionDropdown] = useState(false);
+  const [allTeamMembers, setAllTeamMembers] = useState<{ userId: number; name: string | null; email: string }[]>([]);
+  const contentRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    // Load team members for @mention suggestions
+    fetch("/api/teams")
+      .then((r) => r.ok ? r.json() : [])
+      .then((teams: { id: number }[]) => {
+        if (teams.length === 0) return;
+        return fetch(`/api/teams/${teams[0].id}/members`).then((r) => r.ok ? r.json() : []);
+      })
+      .then((members) => { if (members) setAllTeamMembers(members); })
+      .catch(() => {});
+  }, []);
+
+  function handleContentChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    const val = e.target.value;
+    setNewActivityContent(val);
+
+    // Detect @mention in progress (last @word before cursor)
+    const cursor = e.target.selectionStart ?? val.length;
+    const textBeforeCursor = val.slice(0, cursor);
+    const mentionMatch = textBeforeCursor.match(/@([a-zA-Z0-9_.\- ]*)$/);
+    if (mentionMatch) {
+      const query = mentionMatch[1].toLowerCase();
+      const filtered = allTeamMembers.filter((m) => {
+        const name = (m.name ?? "").toLowerCase();
+        const email = m.email.toLowerCase();
+        return name.startsWith(query) || email.startsWith(query);
+      });
+      setMentionMembers(filtered);
+      setMentionDropdown(filtered.length > 0);
+    } else {
+      setMentionDropdown(false);
+    }
+  }
+
+  function insertMention(member: { name: string | null; email: string }) {
+    const display = member.name ?? member.email;
+    const cursor = contentRef.current?.selectionStart ?? newActivityContent.length;
+    const before = newActivityContent.slice(0, cursor);
+    const after = newActivityContent.slice(cursor);
+    // Replace the partial @query with @name
+    const replaced = before.replace(/@([a-zA-Z0-9_.\- ]*)$/, `@${display} `);
+    setNewActivityContent(replaced + after);
+    setMentionDropdown(false);
+    contentRef.current?.focus();
+  }
 
   // Tags state
   const [tags, setTags] = useState<string[]>(initialLead.tags);
@@ -310,6 +379,8 @@ export default function LeadDetailClient({ lead: initialLead }: { lead: Lead }) 
             <Link href="/kanban" className="hover:text-gray-900 transition-colors">Kanban</Link>
             <Link href="/leads" className="hover:text-gray-900 transition-colors">All Leads</Link>
             <Link href="/analytics" className="hover:text-gray-900 transition-colors">Analytics</Link>
+            <Link href="/team" className="hover:text-gray-900 transition-colors">Team</Link>
+            <Link href="/team-feed" className="hover:text-gray-900 transition-colors">Feed</Link>
           </nav>
           <Link
             href="/dashboard"
@@ -347,6 +418,27 @@ export default function LeadDetailClient({ lead: initialLead }: { lead: Lead }) 
             </div>
 
             <div className="flex flex-col items-end gap-3">
+              {/* Assigned To */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-gray-500">Assigned</span>
+                {allTeamMembers.length > 0 ? (
+                  <select
+                    value={assignedTo}
+                    onChange={(e) => saveAssignment(e.target.value)}
+                    disabled={savingAssignment}
+                    className="text-xs font-medium bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full border-0 cursor-pointer focus:ring-2 focus:ring-brand-500"
+                  >
+                    <option value="">Unassigned</option>
+                    {allTeamMembers.map((m) => {
+                      const val = m.name ?? m.email;
+                      return <option key={m.userId} value={val}>{val}</option>;
+                    })}
+                  </select>
+                ) : (
+                  <span className="text-xs text-gray-500">{assignedTo || "Unassigned"}</span>
+                )}
+              </div>
+
               {/* Status selector */}
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium text-gray-500">Status</span>
@@ -574,13 +666,31 @@ export default function LeadDetailClient({ lead: initialLead }: { lead: Lead }) 
                   <option key={t} value={t}>{ACTIVITY_ICONS[t]} {t}</option>
                 ))}
               </select>
-              <textarea
-                value={newActivityContent}
-                onChange={(e) => setNewActivityContent(e.target.value)}
-                placeholder="What happened?"
-                rows={3}
-                className="w-full text-sm border border-gray-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none placeholder-gray-400"
-              />
+              <div className="relative">
+                <textarea
+                  ref={contentRef}
+                  value={newActivityContent}
+                  onChange={handleContentChange}
+                  placeholder="What happened? Type @ to mention a teammate"
+                  rows={3}
+                  className="w-full text-sm border border-gray-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none placeholder-gray-400"
+                />
+                {mentionDropdown && (
+                  <div className="absolute left-0 right-0 top-full z-50 bg-white border border-gray-200 rounded-xl shadow-lg mt-1 overflow-hidden">
+                    {mentionMembers.map((m) => (
+                      <button
+                        key={m.userId}
+                        type="button"
+                        onMouseDown={(e) => { e.preventDefault(); insertMention(m); }}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-brand-50 flex items-center gap-2"
+                      >
+                        <span className="font-medium text-gray-900">{m.name ?? m.email}</span>
+                        {m.name && <span className="text-xs text-gray-400">{m.email}</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <button
                 onClick={addActivity}
                 disabled={addingActivity || !newActivityContent.trim()}

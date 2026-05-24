@@ -1,9 +1,12 @@
 import { supabase } from "@/app/lib/supabase";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/lib/auth";
 import DashboardClient from "./DashboardClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
+  const session = await getServerSession(authOptions);
   const { data: raw, error } = await supabase
     .from("Lead")
     .select("*")
@@ -30,5 +33,5 @@ export default async function DashboardPage() {
     aiSuggestion: (l.aiSuggestion ?? null) as string | null,
   }));
 
-  return <DashboardClient leads={leads} user={{ name: null, email: null }} />;
+  return <DashboardClient leads={leads} user={{ name: session?.user?.name ?? null, email: session?.user?.email ?? null }} />;
 }
