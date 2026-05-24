@@ -11,7 +11,7 @@ type FeedActivity = {
   createdAt: string;
   userName: string | null;
   leadId: number;
-  leadCompanyName: string;
+  leadCompany: string;
   userId: number | null;
 };
 
@@ -102,7 +102,7 @@ export default function FeedClient({ initialActivities }: { initialActivities: F
                     href={`/leads/${a.leadId}`}
                     className="text-sm font-semibold text-brand-600 hover:underline truncate max-w-[200px]"
                   >
-                    {a.leadCompanyName}
+                    {a.leadCompany}
                   </Link>
                 </div>
                 <p className="text-sm text-gray-700 leading-relaxed">

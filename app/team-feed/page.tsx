@@ -28,7 +28,7 @@ export default async function TeamFeedPage() {
     createdAt: string;
     userName: string | null;
     leadId: number;
-    leadCompanyName: string;
+    leadCompany: string;
     userId: number | null;
   }[] = [];
 
@@ -60,7 +60,7 @@ export default async function TeamFeedPage() {
         userName: (a.userName ?? null) as string | null,
         userId: (a.userId ?? null) as number | null,
         leadId: a.leadId as number,
-        leadCompanyName: leadMap[a.leadId as number] ?? "Unknown Lead",
+        leadCompany: leadMap[a.leadId as number] ?? "Unknown Lead",
       }));
     }
   } else {
@@ -82,7 +82,7 @@ export default async function TeamFeedPage() {
         userName: (a.userName ?? null) as string | null,
         userId: (a.userId ?? null) as number | null,
         leadId: a.leadId as number,
-        leadCompanyName: (lead?.companyName ?? "Unknown Lead") as string,
+        leadCompany: (lead?.companyName ?? "Unknown Lead") as string,
       };
     });
   }
