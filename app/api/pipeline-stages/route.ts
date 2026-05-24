@@ -19,16 +19,29 @@ export async function GET() {
     return NextResponse.json(DEFAULT_STAGES);
   }
   const userId = parseInt(session.user.id, 10);
-  const { data } = await supabase
+  const { data: custom } = await supabase
     .from("PipelineStage")
     .select("*")
     .eq("userId", userId)
     .order("position", { ascending: true });
 
-  if (!data || data.length === 0) {
+  if (!custom || custom.length === 0) {
     return NextResponse.json(DEFAULT_STAGES);
   }
-  return NextResponse.json(data);
+
+  // Merge: custom stages override defaults by key; extra custom keys are appended
+  const customByKey = Object.fromEntries(custom.map((s: Record<string, unknown>) => [s.key, s]));
+  const merged: Record<string, unknown>[] = DEFAULT_STAGES.map((d) =>
+    customByKey[d.key] ? { ...d, ...customByKey[d.key] } : d
+  );
+  // Append any custom stages whose key isn't in defaults
+  const defaultKeys = new Set(DEFAULT_STAGES.map((d) => d.key));
+  for (const s of custom) {
+    if (!defaultKeys.has(s.key as string)) merged.push(s);
+  }
+  // Sort by position
+  merged.sort((a, b) => ((a.position as number) ?? 0) - ((b.position as number) ?? 0));
+  return NextResponse.json(merged);
 }
 
 export async function POST(req: NextRequest) {

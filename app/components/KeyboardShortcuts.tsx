@@ -9,6 +9,8 @@ const SHORTCUTS = [
   { keys: ["K"], description: "Go to Kanban" },
   { keys: ["D"], description: "Go to Dashboard" },
   { keys: ["A"], description: "Go to Analytics" },
+  { keys: ["T"], description: "Go to Team" },
+  { keys: ["P"], description: "Go to Pipeline settings" },
   { keys: ["F", "/"], description: "Focus search" },
   { keys: ["?"], description: "Show this help" },
   { keys: ["Cmd", "K"], description: "Open command palette" },
@@ -63,6 +65,16 @@ export default function KeyboardShortcuts() {
         case "A":
           e.preventDefault();
           router.push("/analytics");
+          break;
+        case "t":
+        case "T":
+          e.preventDefault();
+          router.push("/team");
+          break;
+        case "p":
+        case "P":
+          e.preventDefault();
+          router.push("/pipeline");
           break;
         case "f":
         case "F":
