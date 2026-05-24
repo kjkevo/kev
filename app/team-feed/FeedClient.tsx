@@ -80,17 +80,17 @@ export default function FeedClient({ initialActivities }: { initialActivities: F
       </div>
 
       {activities.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm py-16 text-center">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm py-16 text-center">
           <p className="text-2xl mb-3">📋</p>
-          <p className="text-sm text-gray-500 font-medium">No activities logged yet.</p>
-          <p className="text-xs text-gray-400 mt-1">Activities appear here as your team logs interactions with leads.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">No activities logged yet.</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Activities appear here as your team logs interactions with leads.</p>
         </div>
       ) : (
         <div className="space-y-3">
           {activities.map((a) => (
             <div
               key={a.id}
-              className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex gap-4 items-start"
+              className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm px-5 py-4 flex gap-4 items-start"
             >
               <span className="text-xl shrink-0 mt-0.5">{ACTIVITY_ICONS[a.type] ?? "📌"}</span>
               <div className="flex-1 min-w-0 space-y-1">

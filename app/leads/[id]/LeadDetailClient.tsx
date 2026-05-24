@@ -367,24 +367,24 @@ export default function LeadDetailClient({ lead: initialLead }: { lead: Lead }) 
   // Render
   // --------------------------------------------------------------------------
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-40">
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
           <Link href="/" className="text-xl font-bold text-brand-700 shrink-0">
             LeadIQ
           </Link>
-          <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-500">
-            <Link href="/dashboard" className="hover:text-gray-900 transition-colors">Dashboard</Link>
-            <Link href="/kanban" className="hover:text-gray-900 transition-colors">Kanban</Link>
-            <Link href="/leads" className="hover:text-gray-900 transition-colors">All Leads</Link>
-            <Link href="/analytics" className="hover:text-gray-900 transition-colors">Analytics</Link>
-            <Link href="/team" className="hover:text-gray-900 transition-colors">Team</Link>
-            <Link href="/team-feed" className="hover:text-gray-900 transition-colors">Feed</Link>
+          <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-500 dark:text-gray-400">
+            <Link href="/dashboard" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">Dashboard</Link>
+            <Link href="/kanban" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">Kanban</Link>
+            <Link href="/leads" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">All Leads</Link>
+            <Link href="/analytics" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">Analytics</Link>
+            <Link href="/team" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">Team</Link>
+            <Link href="/team-feed" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">Feed</Link>
           </nav>
           <Link
             href="/dashboard"
-            className="text-sm font-medium text-gray-500 hover:text-gray-900 flex items-center gap-1.5"
+            className="text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 flex items-center gap-1.5"
           >
             ← Back to Dashboard
           </Link>
@@ -400,12 +400,12 @@ export default function LeadDetailClient({ lead: initialLead }: { lead: Lead }) 
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10 space-y-8">
         {/* Top row: identity + status */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">{lead.companyName}</h1>
-              <p className="text-gray-500 mt-1">{lead.contactName} · {lead.title}</p>
-              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm text-gray-400">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{lead.companyName}</h1>
+              <p className="text-gray-500 dark:text-gray-400 mt-1">{lead.contactName} · {lead.title}</p>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm text-gray-400 dark:text-gray-500">
                 <a href={`mailto:${lead.email}`} className="hover:text-brand-600">{lead.email}</a>
                 {lead.phone && <span>{lead.phone}</span>}
                 {lead.website && (
@@ -515,8 +515,8 @@ export default function LeadDetailClient({ lead: initialLead }: { lead: Lead }) 
           {/* Left column: notes + tags + intel */}
           <div className="lg:col-span-2 space-y-6">
             {/* Intelligence */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
-              <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Intelligence</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 space-y-4">
+              <h2 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Intelligence</h2>
               <div className="space-y-3">
                 <div className="flex gap-3 items-start">
                   <span className="shrink-0 mt-px text-xs font-bold uppercase tracking-wider text-orange-600 bg-orange-50 border border-orange-100 px-2.5 py-1 rounded-full leading-none">
@@ -576,14 +576,14 @@ export default function LeadDetailClient({ lead: initialLead }: { lead: Lead }) 
             )}
 
             {/* Notes */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-3">
-              <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Notes</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 space-y-3">
+              <h2 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Notes</h2>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Add notes about this lead…"
                 rows={5}
-                className="w-full text-sm border border-gray-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none placeholder-gray-400"
+                className="w-full text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none placeholder-gray-400 dark:placeholder-gray-500"
               />
               <div className="flex items-center justify-between">
                 <button
@@ -598,8 +598,8 @@ export default function LeadDetailClient({ lead: initialLead }: { lead: Lead }) 
             </div>
 
             {/* Tags */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-3">
-              <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Tags</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 space-y-3">
+              <h2 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Tags</h2>
               <div className="flex flex-wrap gap-2">
                 {tags.map((tag) => (
                   <span
@@ -626,7 +626,7 @@ export default function LeadDetailClient({ lead: initialLead }: { lead: Lead }) 
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && addTag()}
                   placeholder="Add tag…"
-                  className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 placeholder-gray-400"
+                  className="flex-1 text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 placeholder-gray-400 dark:placeholder-gray-500"
                 />
                 <button
                   onClick={addTag}
@@ -655,12 +655,12 @@ export default function LeadDetailClient({ lead: initialLead }: { lead: Lead }) 
 
           {/* Right column: activity log */}
           <div className="space-y-4">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
-              <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Log Activity</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 space-y-4">
+              <h2 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Log Activity</h2>
               <select
                 value={newActivityType}
                 onChange={(e) => setNewActivityType(e.target.value)}
-                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 {["Call", "Email", "Meeting", "Note"].map((t) => (
                   <option key={t} value={t}>{ACTIVITY_ICONS[t]} {t}</option>
@@ -673,7 +673,7 @@ export default function LeadDetailClient({ lead: initialLead }: { lead: Lead }) 
                   onChange={handleContentChange}
                   placeholder="What happened? Type @ to mention a teammate"
                   rows={3}
-                  className="w-full text-sm border border-gray-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none placeholder-gray-400"
+                  className="w-full text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none placeholder-gray-400 dark:placeholder-gray-500"
                 />
                 {mentionDropdown && (
                   <div className="absolute left-0 right-0 top-full z-50 bg-white border border-gray-200 rounded-xl shadow-lg mt-1 overflow-hidden">
@@ -701,12 +701,12 @@ export default function LeadDetailClient({ lead: initialLead }: { lead: Lead }) 
             </div>
 
             {/* Activity history */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
-              <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 space-y-3">
+              <h2 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                 Activity History
               </h2>
               {activities.length === 0 ? (
-                <p className="text-xs text-gray-400">No activities yet. Log your first interaction above.</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">No activities yet. Log your first interaction above.</p>
               ) : (
                 <div className="space-y-3">
                   {activities.map((a) => (

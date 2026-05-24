@@ -187,14 +187,14 @@ export default function AddLeadModal({ onClose, onSaved }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-sm">
+      <div className="bg-white dark:bg-gray-900 rounded-none sm:rounded-2xl shadow-xl w-full sm:max-w-2xl min-h-screen sm:min-h-0 sm:max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl z-10">
-          <h2 className="text-lg font-bold text-gray-900">Add New Lead</h2>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-900 rounded-t-none sm:rounded-t-2xl z-10">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">Add New Lead</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-700 text-xl leading-none font-light"
+            className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-xl leading-none font-light"
           >
             ×
           </button>
@@ -203,7 +203,7 @@ export default function AddLeadModal({ onClose, onSaved }: Props) {
         {/* Body */}
         <div className="px-6 py-5 space-y-5">
           {error && (
-            <div className="bg-rose-50 text-rose-700 text-sm px-4 py-2 rounded-xl border border-rose-200">
+            <div className="bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400 text-sm px-4 py-2 rounded-xl border border-rose-200 dark:border-rose-800">
               {error}
             </div>
           )}
@@ -217,7 +217,7 @@ export default function AddLeadModal({ onClose, onSaved }: Props) {
                 value={form.companyName}
                 onChange={(e) => { updateField("companyName", e.target.value); setCompanyDuplicate(null); }}
                 onBlur={checkCompanyDuplicate}
-                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
               {companyDuplicate && (
                 <div className="mt-1.5 flex items-start gap-1.5 bg-amber-50 border border-amber-200 text-amber-800 text-xs px-3 py-2 rounded-xl">
@@ -247,7 +247,7 @@ export default function AddLeadModal({ onClose, onSaved }: Props) {
                 value={form.website}
                 onChange={(e) => updateField("website", e.target.value)}
                 placeholder="https://example.com"
-                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
 
@@ -258,7 +258,7 @@ export default function AddLeadModal({ onClose, onSaved }: Props) {
                 type="text"
                 value={form.contactName}
                 onChange={(e) => updateField("contactName", e.target.value)}
-                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
 
@@ -269,7 +269,7 @@ export default function AddLeadModal({ onClose, onSaved }: Props) {
                 type="text"
                 value={form.title}
                 onChange={(e) => updateField("title", e.target.value)}
-                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
 
@@ -315,7 +315,7 @@ export default function AddLeadModal({ onClose, onSaved }: Props) {
                 type="text"
                 value={form.phone}
                 onChange={(e) => updateField("phone", e.target.value)}
-                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
 
@@ -325,7 +325,7 @@ export default function AddLeadModal({ onClose, onSaved }: Props) {
               <select
                 value={form.status}
                 onChange={(e) => updateField("status", e.target.value)}
-                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 {STATUS_OPTIONS.map((s) => (
                   <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
@@ -342,7 +342,7 @@ export default function AddLeadModal({ onClose, onSaved }: Props) {
               value={form.triggerEvent}
               onChange={(e) => updateField("triggerEvent", e.target.value)}
               placeholder="e.g. Raised Series B, hiring 50 engineers…"
-              className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-full text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
 
@@ -391,12 +391,12 @@ export default function AddLeadModal({ onClose, onSaved }: Props) {
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && addTag()}
                 placeholder="Add tag…"
-                className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 placeholder-gray-400"
+                className="flex-1 text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 placeholder-gray-400 dark:placeholder-gray-500"
               />
               <button
                 onClick={addTag}
                 type="button"
-                className="text-sm bg-gray-100 text-gray-700 px-4 py-2 rounded-xl hover:bg-gray-200 font-medium"
+                className="text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 font-medium"
               >
                 Add
               </button>
@@ -405,10 +405,10 @@ export default function AddLeadModal({ onClose, onSaved }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 sticky bottom-0 bg-white rounded-b-2xl">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-700 sticky bottom-0 bg-white dark:bg-gray-900 rounded-b-none sm:rounded-b-2xl">
           <button
             onClick={onClose}
-            className="text-sm font-medium text-gray-500 hover:text-gray-700 px-4 py-2"
+            className="text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-4 py-2"
           >
             Cancel
           </button>

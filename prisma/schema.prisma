@@ -116,6 +116,20 @@ model TeamMembership {
   @@index([userId])
 }
 
+model PipelineStage {
+  id        Int     @id @default(autoincrement())
+  userId    Int?
+  teamId    Int?
+  key       String
+  label     String
+  color     String  @default("gray")
+  position  Int     @default(0)
+  isDefault Boolean @default(false)
+
+  @@index([userId])
+  @@index([teamId])
+}
+
 model Notification {
   id         Int      @id @default(autoincrement())
   createdAt  DateTime @default(now())

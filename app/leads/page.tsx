@@ -12,19 +12,19 @@ export default async function LeadsDashboard() {
   const allLeads = leads ?? [];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-6 py-4 flex items-center justify-between">
         <Link href="/" className="text-xl font-bold text-brand-700">
           LeadIQ
         </Link>
-        <h1 className="text-lg font-semibold text-gray-900">Lead Dashboard</h1>
-        <span className="text-sm text-gray-500">{allLeads.length} total leads</span>
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Lead Dashboard</h1>
+        <span className="text-sm text-gray-500 dark:text-gray-400">{allLeads.length} total leads</span>
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-10 space-y-6">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="font-semibold text-gray-900">All Leads</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+            <h2 className="font-semibold text-gray-900 dark:text-white">All Leads</h2>
           </div>
 
           <div className="divide-y divide-gray-50">

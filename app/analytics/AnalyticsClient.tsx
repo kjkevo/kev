@@ -183,15 +183,15 @@ export default function AnalyticsClient({ leads }: { leads: Lead[] }) {
   const topLead = [...leads].filter((l) => l.aiScore != null).sort((a, b) => (b.aiScore ?? 0) - (a.aiScore ?? 0))[0] ?? null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-40">
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
           <Link href="/" className="text-xl font-bold text-brand-700 shrink-0">LeadIQ</Link>
-          <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-500">
-            <Link href="/dashboard" className="hover:text-gray-900 transition-colors">Dashboard</Link>
-            <Link href="/kanban" className="hover:text-gray-900 transition-colors">Kanban</Link>
-            <Link href="/leads" className="hover:text-gray-900 transition-colors">All Leads</Link>
+          <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-500 dark:text-gray-400">
+            <Link href="/dashboard" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">Dashboard</Link>
+            <Link href="/kanban" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">Kanban</Link>
+            <Link href="/leads" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">All Leads</Link>
             <Link href="/analytics" className="text-brand-600 font-semibold">Analytics</Link>
           </nav>
         </div>
@@ -199,23 +199,23 @@ export default function AnalyticsClient({ leads }: { leads: Lead[] }) {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-10 space-y-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Pipeline Analytics</h1>
-          <p className="text-sm text-gray-500 mt-1">Revenue forecast, conversion analysis, and team performance</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Pipeline Analytics</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Revenue forecast, conversion analysis, and team performance</p>
         </div>
 
         {/* ── Top stat cards ── */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {[
-            { label: "Total Leads", value: leads.length.toString(), color: "text-gray-900" },
-            { label: "Won", value: won.length.toString(), color: "text-emerald-700" },
-            { label: "Lost", value: lost.length.toString(), color: "text-rose-600" },
-            { label: "Win Rate", value: `${winRate}%`, color: winRate >= 50 ? "text-emerald-700" : "text-amber-600" },
-            { label: "Weighted Pipeline", value: fmt$(weightedPipeline), color: "text-brand-700" },
-            { label: "Avg Deal Cycle", value: avgCycle != null ? `${avgCycle}d` : "—", color: "text-gray-900" },
+            { label: "Total Leads", value: leads.length.toString(), color: "text-gray-900 dark:text-white" },
+            { label: "Won", value: won.length.toString(), color: "text-emerald-700 dark:text-emerald-400" },
+            { label: "Lost", value: lost.length.toString(), color: "text-rose-600 dark:text-rose-400" },
+            { label: "Win Rate", value: `${winRate}%`, color: winRate >= 50 ? "text-emerald-700 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400" },
+            { label: "Weighted Pipeline", value: fmt$(weightedPipeline), color: "text-brand-700 dark:text-brand-400" },
+            { label: "Avg Deal Cycle", value: avgCycle != null ? `${avgCycle}d` : "—", color: "text-gray-900 dark:text-white" },
           ].map((s) => (
-            <div key={s.label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+            <div key={s.label} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
               <p className={`text-2xl font-extrabold ${s.color}`}>{s.value}</p>
-              <p className="text-xs text-gray-500 mt-1 font-medium">{s.label}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-medium">{s.label}</p>
             </div>
           ))}
         </div>
@@ -224,8 +224,8 @@ export default function AnalyticsClient({ leads }: { leads: Lead[] }) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
           {/* Revenue Forecast */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
-            <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Revenue Forecast</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 space-y-5">
+            <h2 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Revenue Forecast</h2>
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-brand-50 rounded-xl p-3 text-center">
                 <p className="text-lg font-extrabold text-brand-700">{fmt$(weightedPipeline)}</p>
@@ -268,8 +268,8 @@ export default function AnalyticsClient({ leads }: { leads: Lead[] }) {
           </div>
 
           {/* Conversion by Source */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
-            <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Conversion Rate by Source</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 space-y-4">
+            <h2 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Conversion Rate by Source</h2>
             {sourceRows.length === 0 ? (
               <p className="text-sm text-gray-400 italic">No leads yet.</p>
             ) : (
@@ -297,10 +297,10 @@ export default function AnalyticsClient({ leads }: { leads: Lead[] }) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
           {/* Deal Cycle */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
-            <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Average Deal Cycle</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 space-y-4">
+            <h2 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Average Deal Cycle</h2>
             {cycleDays.length === 0 ? (
-              <p className="text-sm text-gray-400 italic">No closed deals yet — data will appear here once you close your first deal.</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500 italic">No closed deals yet — data will appear here once you close your first deal.</p>
             ) : (
               <div className="grid grid-cols-2 gap-3">
                 {[
@@ -309,9 +309,9 @@ export default function AnalyticsClient({ leads }: { leads: Lead[] }) {
                   { label: "Slowest Close", value: `${slowestClose}d` },
                   { label: "Median", value: `${medianCycle}d` },
                 ].map((s) => (
-                  <div key={s.label} className="bg-gray-50 rounded-xl p-4">
-                    <p className="text-xl font-extrabold text-gray-900">{s.value}</p>
-                    <p className="text-xs text-gray-500 mt-0.5 font-medium">{s.label}</p>
+                  <div key={s.label} className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+                    <p className="text-xl font-extrabold text-gray-900 dark:text-white">{s.value}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 font-medium">{s.label}</p>
                   </div>
                 ))}
               </div>
@@ -319,8 +319,8 @@ export default function AnalyticsClient({ leads }: { leads: Lead[] }) {
           </div>
 
           {/* Team Leaderboard */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
-            <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Team Leaderboard</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 space-y-4">
+            <h2 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Team Leaderboard</h2>
             {leaderboard.length === 0 ? (
               <p className="text-sm text-gray-400 italic">No leads yet.</p>
             ) : (
@@ -394,7 +394,7 @@ export default function AnalyticsClient({ leads }: { leads: Lead[] }) {
         </div>
 
         {/* ── Loss Reasons ── */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 space-y-5">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Loss Reasons</h2>
             <div className="flex items-center gap-2">

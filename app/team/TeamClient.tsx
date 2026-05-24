@@ -168,12 +168,12 @@ export default function TeamClient({ currentUserId }: { currentUserId: number })
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10 space-y-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Team Workspaces</h1>
-            <p className="text-sm text-gray-500 mt-1">Manage your teams and collaborate on leads</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Team Workspaces</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage your teams and collaborate on leads</p>
           </div>
           <button
             onClick={() => setShowCreateForm(!showCreateForm)}
@@ -185,8 +185,8 @@ export default function TeamClient({ currentUserId }: { currentUserId: number })
 
         {/* Create team form */}
         {showCreateForm && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
-            <h2 className="text-sm font-bold text-gray-700">New Team</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 space-y-4">
+            <h2 className="text-sm font-bold text-gray-700 dark:text-gray-300">New Team</h2>
             {createError && (
               <div className="bg-rose-50 text-rose-700 text-sm px-3 py-2 rounded-xl border border-rose-200">
                 {createError}

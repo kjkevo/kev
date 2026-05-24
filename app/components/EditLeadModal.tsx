@@ -179,14 +179,14 @@ export default function EditLeadModal({ lead, onClose, onSaved }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-sm">
+      <div className="bg-white dark:bg-gray-900 rounded-none sm:rounded-2xl shadow-xl w-full sm:max-w-2xl min-h-screen sm:min-h-0 sm:max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl z-10">
-          <h2 className="text-lg font-bold text-gray-900">Edit Lead</h2>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-900 rounded-t-none sm:rounded-t-2xl z-10">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">Edit Lead</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-700 text-xl leading-none font-light"
+            className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-xl leading-none font-light"
           >
             ×
           </button>
@@ -195,20 +195,20 @@ export default function EditLeadModal({ lead, onClose, onSaved }: Props) {
         {/* Body */}
         <div className="px-6 py-5 space-y-5">
           {error && (
-            <div className="bg-rose-50 text-rose-700 text-sm px-4 py-2 rounded-xl border border-rose-200">
+            <div className="bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400 text-sm px-4 py-2 rounded-xl border border-rose-200 dark:border-rose-800">
               {error}
             </div>
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Company Name *</label>
+              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Company Name *</label>
               <input
                 type="text"
                 value={form.companyName}
                 onChange={(e) => { updateField("companyName", e.target.value); setCompanyDuplicate(null); }}
                 onBlur={checkCompanyDuplicate}
-                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
               {companyDuplicate && (
                 <div className="mt-1.5 flex items-start gap-1.5 bg-amber-50 border border-amber-200 text-amber-800 text-xs px-3 py-2 rounded-xl">
@@ -223,41 +223,41 @@ export default function EditLeadModal({ lead, onClose, onSaved }: Props) {
               )}
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Website</label>
+              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Website</label>
               <input
                 type="text"
                 value={form.website}
                 onChange={(e) => updateField("website", e.target.value)}
                 placeholder="https://example.com"
-                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Contact Name *</label>
+              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Contact Name *</label>
               <input
                 type="text"
                 value={form.contactName}
                 onChange={(e) => updateField("contactName", e.target.value)}
-                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Title</label>
+              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Title</label>
               <input
                 type="text"
                 value={form.title}
                 onChange={(e) => updateField("title", e.target.value)}
-                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Email *</label>
+              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Email *</label>
               <input
                 type="email"
                 value={form.email}
                 onChange={(e) => { updateField("email", e.target.value); setEmailDuplicate(null); }}
                 onBlur={checkEmailDuplicate}
-                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
               {emailDuplicate && (
                 <div className="mt-1.5 flex items-start gap-1.5 bg-amber-50 border border-amber-200 text-amber-800 text-xs px-3 py-2 rounded-xl">
@@ -272,22 +272,22 @@ export default function EditLeadModal({ lead, onClose, onSaved }: Props) {
               )}
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Phone</label>
+              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Phone</label>
               <input
                 type="text"
                 value={form.phone}
                 onChange={(e) => updateField("phone", e.target.value)}
-                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Status</label>
+            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Status</label>
             <select
               value={form.status}
               onChange={(e) => updateField("status", e.target.value)}
-              className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-full text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
             >
               {STATUS_OPTIONS.map((s) => (
                 <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
@@ -297,7 +297,7 @@ export default function EditLeadModal({ lead, onClose, onSaved }: Props) {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Deal Value ($)</label>
+              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Deal Value ($)</label>
               <input
                 type="number"
                 min="0"
@@ -305,15 +305,15 @@ export default function EditLeadModal({ lead, onClose, onSaved }: Props) {
                 value={form.dealValue}
                 onChange={(e) => updateField("dealValue", e.target.value)}
                 placeholder="e.g. 25000"
-                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Source</label>
+              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Source</label>
               <select
                 value={form.source}
                 onChange={(e) => updateField("source", e.target.value)}
-                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 <option value="">— Select source —</option>
                 {SOURCE_OPTIONS.map((s) => (
@@ -322,12 +322,12 @@ export default function EditLeadModal({ lead, onClose, onSaved }: Props) {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Assigned To</label>
+              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Assigned To</label>
               {teamMembers.length > 0 ? (
                 <select
                   value={form.assignedTo}
                   onChange={(e) => updateField("assignedTo", e.target.value)}
-                  className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
                 >
                   <option value="">— Unassigned —</option>
                   {teamMembers.map((m) => {
@@ -344,46 +344,46 @@ export default function EditLeadModal({ lead, onClose, onSaved }: Props) {
                   value={form.assignedTo}
                   onChange={(e) => updateField("assignedTo", e.target.value)}
                   placeholder="Name or email"
-                  className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               )}
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Trigger Event</label>
+            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Trigger Event</label>
             <input
               type="text"
               value={form.triggerEvent}
               onChange={(e) => updateField("triggerEvent", e.target.value)}
-              className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-full text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Intelligence Summary</label>
+            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Intelligence Summary</label>
             <textarea
               value={form.intelligenceSummary}
               onChange={(e) => updateField("intelligenceSummary", e.target.value)}
               rows={3}
-              className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+              className="w-full text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Notes</label>
+            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Notes</label>
             <textarea
               value={form.notes}
               onChange={(e) => updateField("notes", e.target.value)}
               rows={3}
               placeholder="Internal notes…"
-              className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+              className="w-full text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none placeholder-gray-400 dark:placeholder-gray-500"
             />
           </div>
 
           {/* Tags */}
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-2">Tags</label>
+            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">Tags</label>
             <div className="flex flex-wrap gap-2 mb-2">
               {tags.map((tag) => (
                 <span
@@ -402,12 +402,12 @@ export default function EditLeadModal({ lead, onClose, onSaved }: Props) {
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && addTag()}
                 placeholder="Add tag…"
-                className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 placeholder-gray-400"
+                className="flex-1 text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 placeholder-gray-400 dark:placeholder-gray-500"
               />
               <button
                 onClick={addTag}
                 type="button"
-                className="text-sm bg-gray-100 text-gray-700 px-4 py-2 rounded-xl hover:bg-gray-200 font-medium"
+                className="text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 font-medium"
               >
                 Add
               </button>
@@ -416,10 +416,10 @@ export default function EditLeadModal({ lead, onClose, onSaved }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 sticky bottom-0 bg-white rounded-b-2xl">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-700 sticky bottom-0 bg-white dark:bg-gray-900 rounded-b-none sm:rounded-b-2xl">
           <button
             onClick={onClose}
-            className="text-sm font-medium text-gray-500 hover:text-gray-700 px-4 py-2"
+            className="text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-4 py-2"
           >
             Cancel
           </button>

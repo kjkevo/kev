@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import EditLeadModal from "@/app/components/EditLeadModal";
 import AddLeadModal from "@/app/components/AddLeadModal";
 import NotificationBell from "@/app/components/NotificationBell";
+import ThemeToggle from "@/app/components/ThemeToggle";
+import OnboardingChecklist from "@/app/components/OnboardingChecklist";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -61,42 +63,42 @@ type TriggerConfig = {
 
 const TRIGGER_CONFIG: Record<TriggerType, TriggerConfig> = {
   Funding: {
-    badge: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+    badge: "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800",
     filterActive: "bg-emerald-600 text-white border-emerald-600",
     dot: "bg-emerald-400",
     icon: "💰",
     label: "Funding",
   },
   Hiring: {
-    badge: "bg-blue-50 text-blue-700 border border-blue-200",
+    badge: "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800",
     filterActive: "bg-blue-600 text-white border-blue-600",
     dot: "bg-blue-400",
     icon: "🧑‍💻",
     label: "Hiring",
   },
   Competitor: {
-    badge: "bg-rose-50 text-rose-700 border border-rose-200",
+    badge: "bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-800",
     filterActive: "bg-rose-600 text-white border-rose-600",
     dot: "bg-rose-400",
     icon: "⚔️",
     label: "Competitor",
   },
   Engagement: {
-    badge: "bg-amber-50 text-amber-700 border border-amber-200",
+    badge: "bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800",
     filterActive: "bg-amber-500 text-white border-amber-500",
     dot: "bg-amber-400",
     icon: "🎯",
     label: "Engagement",
   },
   Content: {
-    badge: "bg-violet-50 text-violet-700 border border-violet-200",
+    badge: "bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-900/20 dark:text-violet-400 dark:border-violet-800",
     filterActive: "bg-violet-600 text-white border-violet-600",
     dot: "bg-violet-400",
     icon: "📝",
     label: "Content",
   },
   Other: {
-    badge: "bg-gray-50 text-gray-600 border border-gray-200",
+    badge: "bg-gray-50 text-gray-600 border border-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600",
     filterActive: "bg-gray-600 text-white border-gray-600",
     dot: "bg-gray-400",
     icon: "📌",
@@ -129,14 +131,14 @@ const AVATAR_COLORS = [
 ];
 
 const TAG_COLORS = [
-  "bg-blue-100 text-blue-700",
-  "bg-violet-100 text-violet-700",
-  "bg-emerald-100 text-emerald-700",
-  "bg-amber-100 text-amber-700",
-  "bg-rose-100 text-rose-700",
-  "bg-cyan-100 text-cyan-700",
-  "bg-pink-100 text-pink-700",
-  "bg-indigo-100 text-indigo-700",
+  "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+  "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300",
+  "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+  "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+  "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
+  "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300",
+  "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300",
+  "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300",
 ];
 
 function tagColor(tag: string) {
@@ -249,7 +251,17 @@ export default function DashboardClient({
   const [importMsg, setImportMsg] = useState("");
   const [showAddLead, setShowAddLead] = useState(false);
   const [scoringId, setScoringId] = useState<number | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Listen for openAddLeadModal events from CommandPalette / KeyboardShortcuts
+  useEffect(() => {
+    function handleOpenAddLead() {
+      setShowAddLead(true);
+    }
+    window.addEventListener("shortcut-open-add-lead", handleOpenAddLead);
+    return () => window.removeEventListener("shortcut-open-add-lead", handleOpenAddLead);
+  }, []);
 
   const enriched = useMemo(
     () => leads.map((l) => ({ ...l, triggerType: classifyTrigger(l.triggerEvent) })),
@@ -373,51 +385,94 @@ export default function DashboardClient({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* ── Sticky header ── */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-40">
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
           <Link href="/" className="text-xl font-bold text-brand-700 shrink-0">
             LeadIQ
           </Link>
 
-          <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-500">
-            <Link href="/" className="hover:text-gray-900 transition-colors">Home</Link>
+          {/* Desktop nav */}
+          <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-500 dark:text-gray-400">
+            <Link href="/" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">Home</Link>
             <Link href="/dashboard" className="text-brand-600 font-semibold">Dashboard</Link>
-            <Link href="/kanban" className="hover:text-gray-900 transition-colors">Kanban</Link>
-            <Link href="/leads" className="hover:text-gray-900 transition-colors">All Leads</Link>
-            <Link href="/analytics" className="hover:text-gray-900 transition-colors">Analytics</Link>
-            <Link href="/team" className="hover:text-gray-900 transition-colors">Team</Link>
-            <Link href="/team-feed" className="hover:text-gray-900 transition-colors">Feed</Link>
+            <Link href="/kanban" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">Kanban</Link>
+            <Link href="/leads" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">All Leads</Link>
+            <Link href="/analytics" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">Analytics</Link>
+            <Link href="/team" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">Team</Link>
+            <Link href="/team-feed" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">Feed</Link>
+            <Link href="/pipeline" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">Pipeline</Link>
           </nav>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
+            {/* ⌘K trigger chip — desktop only */}
+            <button
+              onClick={() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }))}
+              className="hidden md:flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            >
+              <span>⌘K</span>
+            </button>
+
             {(user.name || user.email) && (
-              <span className="hidden sm:block text-xs text-gray-400 max-w-[180px] truncate">
+              <span className="hidden sm:block text-xs text-gray-400 dark:text-gray-500 max-w-[180px] truncate">
                 {user.name ?? user.email}
               </span>
             )}
-            <span className="text-xs text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
+            <span className="text-xs text-gray-400 bg-gray-100 dark:bg-gray-800 dark:text-gray-400 px-3 py-1 rounded-full">
               {leads.length} lead{leads.length !== 1 ? "s" : ""}
             </span>
             <NotificationBell />
+            <ThemeToggle />
             <button
               onClick={() => signOut({ callbackUrl: "/" })}
-              className="text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors"
+              className="hidden sm:block text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+            >
+              Sign out
+            </button>
+
+            {/* Hamburger — mobile only */}
+            <button
+              onClick={() => setMobileMenuOpen((prev) => !prev)}
+              className="md:hidden p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? "✕" : "☰"}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden absolute top-16 left-0 right-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex flex-col gap-4 z-50 shadow-lg">
+            <Link href="/" className="text-sm font-medium text-gray-700 dark:text-gray-300" onClick={() => setMobileMenuOpen(false)}>Home</Link>
+            <Link href="/dashboard" className="text-sm font-semibold text-brand-600" onClick={() => setMobileMenuOpen(false)}>Dashboard</Link>
+            <Link href="/kanban" className="text-sm font-medium text-gray-700 dark:text-gray-300" onClick={() => setMobileMenuOpen(false)}>Kanban</Link>
+            <Link href="/leads" className="text-sm font-medium text-gray-700 dark:text-gray-300" onClick={() => setMobileMenuOpen(false)}>All Leads</Link>
+            <Link href="/analytics" className="text-sm font-medium text-gray-700 dark:text-gray-300" onClick={() => setMobileMenuOpen(false)}>Analytics</Link>
+            <Link href="/team" className="text-sm font-medium text-gray-700 dark:text-gray-300" onClick={() => setMobileMenuOpen(false)}>Team</Link>
+            <Link href="/team-feed" className="text-sm font-medium text-gray-700 dark:text-gray-300" onClick={() => setMobileMenuOpen(false)}>Feed</Link>
+            <Link href="/pipeline" className="text-sm font-medium text-gray-700 dark:text-gray-300" onClick={() => setMobileMenuOpen(false)}>Pipeline</Link>
+            <button
+              onClick={() => { signOut({ callbackUrl: "/" }); setMobileMenuOpen(false); }}
+              className="text-sm font-medium text-gray-500 dark:text-gray-400 text-left"
             >
               Sign out
             </button>
           </div>
-        </div>
+        )}
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-10 space-y-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10 space-y-6 sm:space-y-8">
+
+        {/* ── Onboarding checklist ── */}
+        <OnboardingChecklist />
 
         {/* ── Page heading ── */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Lead Intelligence Dashboard</h1>
-            <p className="text-sm text-gray-500 mt-1">AI-enriched prospects, classified by buying signal</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Lead Intelligence Dashboard</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">AI-enriched prospects, classified by buying signal</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             {/* Add Lead */}
@@ -438,7 +493,7 @@ export default function DashboardClient({
             />
             <label
               htmlFor="csv-import"
-              className={`cursor-pointer inline-flex items-center gap-1.5 text-xs font-medium border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 px-3 py-2 rounded-xl transition-colors ${importing ? "opacity-60 pointer-events-none" : ""}`}
+              className={`cursor-pointer inline-flex items-center gap-1.5 text-xs font-medium border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 px-3 py-2 rounded-xl transition-colors ${importing ? "opacity-60 pointer-events-none" : ""}`}
             >
               <UploadIcon />
               {importing ? "Importing…" : "Import CSV"}
@@ -446,7 +501,7 @@ export default function DashboardClient({
             {/* CSV export */}
             <button
               onClick={exportCSV}
-              className="inline-flex items-center gap-1.5 text-xs font-medium border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 px-3 py-2 rounded-xl transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs font-medium border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 px-3 py-2 rounded-xl transition-colors"
             >
               <DownloadIcon />
               Export CSV
@@ -462,13 +517,13 @@ export default function DashboardClient({
 
         {/* Import status message */}
         {importMsg && (
-          <div className="bg-brand-50 text-brand-700 text-sm px-4 py-2 rounded-xl border border-brand-100">
+          <div className="bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-300 text-sm px-4 py-2 rounded-xl border border-brand-100 dark:border-brand-800">
             {importMsg}
           </div>
         )}
 
         {/* ── Signal-type stat cards ── */}
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
           {ALL_TYPES.map((type) => {
             const cfg = TRIGGER_CONFIG[type];
             const isActive = activeFilter === type;
@@ -479,13 +534,13 @@ export default function DashboardClient({
                 className={`rounded-xl border p-3 sm:p-4 text-left transition-all focus:outline-none focus:ring-2 focus:ring-brand-500 ${
                   isActive
                     ? `${cfg.badge} shadow-sm scale-[1.02]`
-                    : "bg-white border-gray-100 hover:border-gray-200 hover:shadow-sm"
+                    : "bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 hover:shadow-sm"
                 }`}
               >
-                <p className="text-2xl font-extrabold text-gray-900">{counts[type]}</p>
+                <p className="text-2xl font-extrabold text-gray-900 dark:text-white">{counts[type]}</p>
                 <div className="flex items-center gap-1.5 mt-1">
                   <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
-                  <p className="text-xs font-medium text-gray-500 leading-none">{cfg.label}</p>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 leading-none">{cfg.label}</p>
                 </div>
               </button>
             );
@@ -493,22 +548,23 @@ export default function DashboardClient({
         </div>
 
         {/* ── Search + filter bar ── */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col sm:flex-row gap-3">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
               <SearchIcon />
             </span>
             <input
               type="text"
+              data-search
               placeholder="Search company, contact, or keyword…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent placeholder-gray-400 transition"
+              className="w-full pl-9 pr-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent placeholder-gray-400 dark:placeholder-gray-500 transition"
             />
             {query && (
               <button
                 onClick={() => setQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
               >
                 <XIcon />
               </button>
@@ -521,7 +577,7 @@ export default function DashboardClient({
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-brand-500 ${
                 activeFilter === "all"
                   ? "bg-brand-600 text-white border-brand-600 shadow-sm"
-                  : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
+                  : "bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500"
               }`}
             >
               All signals
@@ -536,7 +592,7 @@ export default function DashboardClient({
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-brand-500 ${
                     isActive
                       ? cfg.filterActive + " shadow-sm"
-                      : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
+                      : "bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500"
                   }`}
                 >
                   {cfg.icon} {cfg.label}
@@ -548,11 +604,11 @@ export default function DashboardClient({
 
         {/* ── Results count + clear ── */}
         <div className="flex items-center justify-between -mt-4">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             Showing{" "}
-            <span className="font-semibold text-gray-900">{filtered.length}</span>{" "}
+            <span className="font-semibold text-gray-900 dark:text-white">{filtered.length}</span>{" "}
             of{" "}
-            <span className="font-semibold text-gray-900">{leads.length}</span>{" "}
+            <span className="font-semibold text-gray-900 dark:text-white">{leads.length}</span>{" "}
             leads
           </p>
           {hasActiveFilters && (
@@ -568,9 +624,9 @@ export default function DashboardClient({
 
         {/* ── Lead cards ── */}
         {filtered.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm py-20 text-center">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm py-20 text-center">
             <p className="text-2xl mb-3">🔍</p>
-            <p className="text-gray-500 text-sm font-medium">No leads match your search.</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">No leads match your search.</p>
             <button
               onClick={clearFilters}
               className="mt-3 text-xs text-brand-600 hover:text-brand-700 font-medium hover:underline"
@@ -587,7 +643,7 @@ export default function DashboardClient({
               return (
                 <article
                   key={lead.id}
-                  className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden"
+                  className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all overflow-hidden"
                 >
                   {/* ── Contact row ── */}
                   <div className="px-5 sm:px-6 py-5 flex items-start justify-between gap-4">
@@ -602,40 +658,32 @@ export default function DashboardClient({
                       {/* Name / title / company */}
                       <div>
                         <div className="flex items-center gap-2 flex-wrap leading-snug">
-                          <span className="font-semibold text-gray-900 text-sm sm:text-base">
+                          <span className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">
                             {lead.contactName}
                           </span>
-                          <span className="text-gray-300 text-xs hidden sm:inline">·</span>
-                          <span className="text-gray-500 text-sm hidden sm:inline">{lead.title}</span>
-                          <span className="text-gray-300 text-xs hidden sm:inline">·</span>
-                          {lead.website ? (
-                            <Link
-                              href={`/leads/${lead.id}`}
-                              className="text-brand-600 font-semibold text-sm hover:underline underline-offset-2 flex items-center gap-1"
-                            >
-                              {lead.companyName}
-                            </Link>
-                          ) : (
-                            <Link
-                              href={`/leads/${lead.id}`}
-                              className="text-brand-600 font-semibold text-sm hover:underline underline-offset-2"
-                            >
-                              {lead.companyName}
-                            </Link>
-                          )}
+                          <span className="text-gray-300 dark:text-gray-600 text-xs hidden sm:inline">·</span>
+                          <span className="text-gray-500 dark:text-gray-400 text-sm hidden sm:inline">{lead.title}</span>
+                          <span className="text-gray-300 dark:text-gray-600 text-xs hidden sm:inline">·</span>
+                          <Link
+                            href={`/leads/${lead.id}`}
+                            className="text-brand-600 font-semibold text-sm hover:underline underline-offset-2 flex items-center gap-1"
+                          >
+                            {lead.companyName}
+                            {lead.website && <ExternalLinkIcon />}
+                          </Link>
                         </div>
 
-                        <p className="text-gray-500 text-xs mt-0.5 sm:hidden">{lead.title}</p>
+                        <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5 sm:hidden">{lead.title}</p>
 
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 mt-1.5">
                           <a
                             href={`mailto:${lead.email}`}
-                            className="text-xs text-gray-400 hover:text-brand-600 transition-colors"
+                            className="text-xs text-gray-400 dark:text-gray-500 hover:text-brand-600 transition-colors"
                           >
                             {lead.email}
                           </a>
                           {lead.phone && (
-                            <span className="text-xs text-gray-400">{lead.phone}</span>
+                            <span className="text-xs text-gray-400 dark:text-gray-500">{lead.phone}</span>
                           )}
                         </div>
 
@@ -670,17 +718,17 @@ export default function DashboardClient({
                           title={lead.aiScoreReason ?? ""}
                           className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
                             lead.aiScore >= 70
-                              ? "bg-emerald-100 text-emerald-700"
+                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
                               : lead.aiScore >= 40
-                              ? "bg-amber-100 text-amber-700"
-                              : "bg-rose-100 text-rose-700"
+                              ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                              : "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400"
                           }`}
                         >
                           AI {lead.aiScore}
                         </span>
                       ) : null}
 
-                      <time className="text-xs text-gray-400">{formatDate(lead.createdAt)}</time>
+                      <time className="text-xs text-gray-400 dark:text-gray-500">{formatDate(lead.createdAt)}</time>
 
                       {/* Edit / Delete / Score buttons */}
                       <div className="flex items-center gap-1.5">
@@ -690,28 +738,28 @@ export default function DashboardClient({
                               onClick={(e) => scoreWithAI(lead.id, e)}
                               disabled={scoringId === lead.id}
                               title="Score with AI"
-                              className="p-1.5 text-gray-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors text-xs font-medium disabled:opacity-60"
+                              className="p-1.5 text-gray-400 hover:text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-900/30 rounded-lg transition-colors text-xs font-medium disabled:opacity-60"
                             >
                               {scoringId === lead.id ? "…" : "✨"}
                             </button>
                             <button
                               onClick={() => setEditingLead(lead)}
                               title="Edit lead"
-                              className="p-1.5 text-gray-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
+                              className="p-1.5 text-gray-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/30 rounded-lg transition-colors"
                             >
                               <PencilIcon />
                             </button>
                             <button
                               onClick={() => setConfirmDeleteId(lead.id)}
                               title="Delete lead"
-                              className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                              className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors"
                             >
                               <TrashIcon />
                             </button>
                           </>
                         ) : (
                           <div className="flex items-center gap-1.5">
-                            <span className="text-xs text-gray-500">Delete?</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">Delete?</span>
                             <button
                               onClick={() => deleteLead(lead.id)}
                               className="text-xs bg-rose-600 text-white px-2 py-1 rounded-lg hover:bg-rose-700 font-medium"
@@ -720,7 +768,7 @@ export default function DashboardClient({
                             </button>
                             <button
                               onClick={() => setConfirmDeleteId(null)}
-                              className="text-xs text-gray-500 hover:text-gray-700 font-medium"
+                              className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 font-medium"
                             >
                               No
                             </button>
@@ -731,19 +779,19 @@ export default function DashboardClient({
                   </div>
 
                   {/* ── Intelligence panel ── */}
-                  <div className="border-t border-gray-50 bg-gray-50/60 px-5 sm:px-6 py-4 space-y-3">
+                  <div className="border-t border-gray-50 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-800/60 px-5 sm:px-6 py-4 space-y-3">
                     <div className="flex gap-3 items-start">
-                      <span className="shrink-0 mt-px text-xs font-bold uppercase tracking-wider text-orange-600 bg-orange-50 border border-orange-100 px-2.5 py-1 rounded-full leading-none">
+                      <span className="shrink-0 mt-px text-xs font-bold uppercase tracking-wider text-orange-600 bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-800 px-2.5 py-1 rounded-full leading-none">
                         Trigger
                       </span>
-                      <p className="text-sm text-gray-800 leading-relaxed">{lead.triggerEvent}</p>
+                      <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">{lead.triggerEvent}</p>
                     </div>
 
                     <div className="flex gap-3 items-start">
-                      <span className="shrink-0 mt-px text-xs font-bold uppercase tracking-wider text-brand-600 bg-brand-50 border border-brand-100 px-2.5 py-1 rounded-full leading-none">
+                      <span className="shrink-0 mt-px text-xs font-bold uppercase tracking-wider text-brand-600 bg-brand-50 dark:bg-brand-900/20 border border-brand-100 dark:border-brand-800 px-2.5 py-1 rounded-full leading-none">
                         Intel
                       </span>
-                      <p className="text-sm text-gray-500 leading-relaxed">{lead.intelligenceSummary}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{lead.intelligenceSummary}</p>
                     </div>
                   </div>
                 </article>

@@ -76,7 +76,7 @@ export default function NotificationBell() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setOpen((prev) => !prev)}
-        className="relative p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+        className="relative p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
         title="Notifications"
       >
         {/* Bell icon */}
@@ -96,9 +96,9 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-lg border border-gray-100 z-50 overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-            <h3 className="text-sm font-semibold text-gray-900">Notifications</h3>
+        <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 z-50 overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Notifications</h3>
             {unreadCount > 0 && (
               <button
                 onClick={markAllRead}
@@ -109,15 +109,15 @@ export default function NotificationBell() {
             )}
           </div>
 
-          <div className="max-h-80 overflow-y-auto divide-y divide-gray-50">
+          <div className="max-h-80 overflow-y-auto divide-y divide-gray-50 dark:divide-gray-800">
             {notifications.length === 0 ? (
-              <p className="text-xs text-gray-400 px-4 py-6 text-center">No notifications yet.</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 px-4 py-6 text-center">No notifications yet.</p>
             ) : (
               notifications.slice(0, 10).map((n) => (
                 <div
                   key={n.id}
-                  className={`px-4 py-3 flex gap-3 items-start hover:bg-gray-50 transition-colors cursor-pointer ${
-                    !n.read ? "bg-blue-50/40" : ""
+                  className={`px-4 py-3 flex gap-3 items-start hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer ${
+                    !n.read ? "bg-blue-50/40 dark:bg-blue-900/10" : ""
                   }`}
                   onClick={() => markRead(n.id)}
                 >
@@ -125,7 +125,7 @@ export default function NotificationBell() {
                     <span className={`w-2 h-2 rounded-full block mt-1.5 ${!n.read ? "bg-blue-500" : "bg-transparent"}`} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-800 leading-snug">{n.content}</p>
+                    <p className="text-xs text-gray-800 dark:text-gray-200 leading-snug">{n.content}</p>
                     {n.leadId && (
                       <Link
                         href={`/leads/${n.leadId}`}
@@ -135,7 +135,7 @@ export default function NotificationBell() {
                         View lead →
                       </Link>
                     )}
-                    <time className="text-[10px] text-gray-400 mt-0.5 block">
+                    <time className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 block">
                       {relativeTime(n.createdAt)}
                     </time>
                   </div>
