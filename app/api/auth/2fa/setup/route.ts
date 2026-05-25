@@ -28,7 +28,7 @@ export async function GET(_req: NextRequest) {
   }
 
   // Generate the OTP auth URL
-  const otpAuthUrl = generateURI({ issuer: "LeadIQ", label: email, secret, type: "totp" });
+  const otpAuthUrl = generateURI({ issuer: "LeadIQ", label: email, secret });
 
   // Generate QR code as data URL
   const qrCode = await QRCode.toDataURL(otpAuthUrl);

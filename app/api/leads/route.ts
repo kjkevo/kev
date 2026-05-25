@@ -33,11 +33,15 @@ export async function POST(req: NextRequest) {
       companyName: body.companyName,
       website: body.website ?? null,
       contactName: body.contactName,
-      title: body.title,
+      title: body.title ?? "",
       email: body.email,
       phone: body.phone ?? null,
-      triggerEvent: body.triggerEvent,
-      intelligenceSummary: body.intelligenceSummary,
+      triggerEvent: body.triggerEvent ?? "",
+      intelligenceSummary: body.intelligenceSummary ?? "",
+      status: body.status ?? "new",
+      source: body.source ?? null,
+      dealValue: body.dealValue ?? null,
+      assignedTo: body.assignedTo ?? null,
       updatedAt: now,
     })
     .select()

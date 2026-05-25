@@ -133,9 +133,9 @@ export default function CommandPalette() {
         href: `/leads/${l.id}`,
       }));
 
-    const actionCommands: ActionCommand[] = [
+    const actionCommands: ActionCommand[] = ([
       {
-        kind: "action",
+        kind: "action" as const,
         id: "action-add",
         label: "Add new lead",
         hint: "N",
@@ -145,7 +145,7 @@ export default function CommandPalette() {
         },
       },
       {
-        kind: "action",
+        kind: "action" as const,
         id: "action-export",
         label: "Export leads (CSV)",
         hint: "",
@@ -154,7 +154,7 @@ export default function CommandPalette() {
           window.location.href = "/api/leads/export";
         },
       },
-    ].filter((c) => !q || c.label.toLowerCase().includes(q));
+    ] as ActionCommand[]).filter((c) => !q || c.label.toLowerCase().includes(q));
 
     return [
       ...navFiltered,

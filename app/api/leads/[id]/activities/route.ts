@@ -70,10 +70,13 @@ export async function POST(
 async function processMentions(content: string, activityId: number, leadId: number, authorId: number | null) {
   // Extract @name tokens (e.g. @John, @John Doe handled as @John)
   const mentionRegex = /@([a-zA-Z][a-zA-Z0-9_\-. ]*?)(?=\s|$|[^a-zA-Z0-9_\-. ])/g;
-  const matches = [...content.matchAll(mentionRegex)];
+  const matches: RegExpExecArray[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = mentionRegex.exec(content)) !== null) matches.push(m);
   if (matches.length === 0) return;
 
-  const names = [...new Set(matches.map((m) => m[1].trim()))];
+  const nameSet = new Set(matches.map((match) => match[1].trim()));
+  const names: string[] = Array.from(nameSet);
 
   for (const name of names) {
     // Find user(s) whose name starts with or matches this mention token

@@ -28,9 +28,9 @@ type Lead = {
   notes: string | null;
   tags: string[];
   createdAt: string;
-  aiScore: number | null;
-  aiScoreReason: string | null;
-  aiSuggestion: string | null;
+  aiScore?: number | null;
+  aiScoreReason?: string | null;
+  aiSuggestion?: string | null;
 };
 
 type TriggerType = "Funding" | "Hiring" | "Competitor" | "Engagement" | "Content" | "Other";
