@@ -252,6 +252,7 @@ export default function DashboardClient({
   const [showAddLead, setShowAddLead] = useState(false);
   const [scoringId, setScoringId] = useState<number | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [seeding, setSeeding] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Listen for openAddLeadModal events from CommandPalette / KeyboardShortcuts
@@ -262,6 +263,48 @@ export default function DashboardClient({
     window.addEventListener("shortcut-open-add-lead", handleOpenAddLead);
     return () => window.removeEventListener("shortcut-open-add-lead", handleOpenAddLead);
   }, []);
+
+  // Industry-based lead seeding on first dashboard visit after onboarding
+  useEffect(() => {
+    const alreadySeeded = localStorage.getItem("leadflow_leads_seeded");
+    if (alreadySeeded === "1") return;
+
+    const onboardingRaw = localStorage.getItem("leadflow_onboarding_data");
+    if (!onboardingRaw) return;
+
+    let industry = "other";
+    try {
+      const parsed = JSON.parse(onboardingRaw);
+      if (parsed?.industry) industry = parsed.industry;
+    } catch {
+      // malformed JSON — fall back to "other"
+    }
+
+    setSeeding(true);
+
+    fetch("/api/leads/seed", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ industry }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.seeded || data.reason === "leads_exist") {
+          localStorage.setItem("leadflow_leads_seeded", "1");
+        }
+        if (data.seeded) {
+          setTimeout(() => {
+            setSeeding(false);
+            router.refresh();
+          }, 1500);
+        } else {
+          setSeeding(false);
+        }
+      })
+      .catch(() => {
+        setSeeding(false);
+      });
+  }, [router]);
 
   const enriched = useMemo(
     () => leads.map((l) => ({ ...l, triggerType: classifyTrigger(l.triggerEvent) })),
@@ -467,6 +510,17 @@ export default function DashboardClient({
           </div>
         )}
       </header>
+
+      {/* ── Seeding banner ── */}
+      {seeding && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-brand-700 text-white text-sm font-medium px-5 py-3 rounded-2xl shadow-xl animate-pulse">
+          <svg className="w-4 h-4 shrink-0 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+          </svg>
+          Personalising your dashboard…
+        </div>
+      )}
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10 space-y-6 sm:space-y-8">
 
