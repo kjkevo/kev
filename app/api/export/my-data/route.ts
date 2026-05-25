@@ -21,11 +21,32 @@ export async function GET(_req: NextRequest) {
     .eq("id", userId)
     .single();
 
-  // Fetch leads where userId matches (no userId on Lead, so filter by assignedTo = user name/email)
-  const { data: leads } = await supabase
-    .from("Lead")
-    .select("*")
+  // Fetch user's team IDs
+  const { data: memberships } = await supabase
+    .from("TeamMembership")
+    .select("teamId")
+    .eq("userId", userId);
+  const teamIds = (memberships ?? []).map((m: Record<string, unknown>) => m.teamId as number);
+
+  // Collect leads: team-scoped + assigned to user. Fall back to all leads if none found
+  const seen = new Set<number>();
+  let leads: Record<string, unknown>[] = [];
+
+  if (teamIds.length > 0) {
+    const { data: teamLeads } = await supabase.from("Lead").select("*").in("teamId", teamIds);
+    for (const l of teamLeads ?? []) { seen.add(l.id as number); leads.push(l); }
+  }
+  // Always include leads assigned to this user by name or email
+  const { data: assignedLeads } = await supabase.from("Lead").select("*")
     .or(`assignedTo.eq.${userName},assignedTo.eq.${userEmail}`);
+  for (const l of assignedLeads ?? []) {
+    if (!seen.has(l.id as number)) { seen.add(l.id as number); leads.push(l); }
+  }
+  // If still nothing, export all (solo user with unscoped leads)
+  if (leads.length === 0) {
+    const { data: allLeads } = await supabase.from("Lead").select("*");
+    leads = allLeads ?? [];
+  }
 
   // Fetch activities
   const { data: activities } = await supabase
@@ -62,10 +83,13 @@ export async function GET(_req: NextRequest) {
     entityId: userId,
   });
 
-  return new Response(JSON.stringify(exportData, null, 2), {
+  const filename = `leadiq-data-export-${Date.now()}.json`;
+  return new NextResponse(JSON.stringify(exportData, null, 2), {
+    status: 200,
     headers: {
-      "Content-Type": "application/json",
-      "Content-Disposition": `attachment; filename="leadiq-data-export-${Date.now()}.json"`,
+      "Content-Type": "application/json; charset=utf-8",
+      "Content-Disposition": `attachment; filename="${filename}"`,
+      "X-Content-Type-Options": "nosniff",
     },
   });
 }

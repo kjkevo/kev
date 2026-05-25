@@ -15,7 +15,9 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/auth") ||
-    pathname.startsWith("/api/auth/verify-2fa");
+    pathname.startsWith("/privacy") ||
+    pathname.startsWith("/gdpr") ||
+    pathname === "/";
 
   const tfDone = req.cookies.get("tf_done")?.value;
 

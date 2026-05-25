@@ -1,6 +1,3 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import GdprClient from "./GdprClient";
 
@@ -10,8 +7,6 @@ export const metadata = {
 };
 
 export default async function GdprPage() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) redirect("/auth/login");
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 px-4 py-12">
