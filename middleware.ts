@@ -17,6 +17,7 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith("/auth") ||
     pathname.startsWith("/privacy") ||
     pathname.startsWith("/gdpr") ||
+    pathname.startsWith("/onboarding") ||
     pathname === "/";
 
   const tfDone = req.cookies.get("tf_done")?.value;

@@ -47,7 +47,8 @@ export default function RegisterPage() {
       return;
     }
 
-    router.push("/dashboard");
+    // New users always go through onboarding
+    router.push("/onboarding");
     router.refresh();
   }
 

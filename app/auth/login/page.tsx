@@ -36,7 +36,16 @@ function LoginForm() {
       return;
     }
 
-    router.push(callbackUrl);
+    // Send first-time users through onboarding
+    const onboardingDone = typeof window !== "undefined"
+      ? localStorage.getItem("leadflow_onboarding_complete")
+      : "1";
+
+    if (!onboardingDone) {
+      router.push("/onboarding");
+    } else {
+      router.push(callbackUrl);
+    }
     router.refresh();
   }
 
