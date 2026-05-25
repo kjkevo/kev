@@ -68,7 +68,7 @@ export default function HomePage() {
           </p>
           <div className="flex justify-center">
             <Link
-              href="/dashboard"
+              href="/auth/register"
               className="px-8 py-4 bg-brand-600 text-white font-semibold rounded-xl hover:bg-brand-700 transition-colors shadow-lg shadow-brand-100"
             >
               Start free trial
@@ -126,7 +126,7 @@ export default function HomePage() {
             No credit card required.
           </p>
           <Link
-            href="/dashboard"
+            href="/auth/register"
             className="px-8 py-4 bg-white text-brand-700 font-semibold rounded-xl hover:bg-brand-50 transition-colors"
           >
             Start free trial
