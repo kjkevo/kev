@@ -26,6 +26,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@prisma/client": "^5.14.0",
     "@supabase/supabase-js": "^2.106.1",
+    "airtable": "^0.12.2",
     "bcryptjs": "^2.4.3",
     "lucide-react": "^1.16.0",
     "next": "14.2.3",
@@ -34,7 +35,9 @@
     "papaparse": "^5.5.3",
     "qrcode": "^1.5.4",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "resend": "^3.0.0",
+    "twilio": "^4.7.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

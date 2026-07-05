@@ -165,3 +165,72 @@ model Notification {
   @@index([userId])
   @@index([userId, read])
 }
+
+model ReviewClient {
+  id                      Int               @id @default(autoincrement())
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+  name                    String            // Business name
+  businessEmail           String            // Owner email for private feedback
+  businessPhone           String?
+  delayHours              Int               @default(3)
+  messageTemplate         String            // Email/SMS message template with {link} placeholder
+  googleReviewUrl         String?           // Public review links
+  yelpReviewUrl           String?
+  airtableBaseId          String?           // For logging
+  airtableApiKey          String?           // Encrypted in production
+  webhookSecret           String            // For webhook verification
+  enabled                 Boolean           @default(true)
+  contactName             String?
+
+  requests                ReviewRequest[]
+
+  @@index([name])
+}
+
+model ReviewRequest {
+  id                      Int               @id @default(autoincrement())
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+  clientId                Int
+  client                  ReviewClient      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  customerName            String
+  customerEmail           String?
+  customerPhone           String?
+  jobCompletedAt          DateTime
+  sendAfter               DateTime          // When to send the review request
+  sent                    Boolean           @default(false)
+  sentAt                  DateTime?
+
+  airtableRecordId        String?           // For updating logging
+
+  response                ReviewResponse?
+
+  @@index([clientId])
+  @@index([sendAfter])
+  @@index([sent])
+  @@index([customerEmail])
+}
+
+model ReviewResponse {
+  id                      Int               @id @default(autoincrement())
+  createdAt               DateTime          @default(now())
+  requestId               Int               @unique
+  request                 ReviewRequest     @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  rating                  Int               // 1-5
+  feedbackText            String?
+  respondedAt             DateTime          @default(now())
+
+  // Routing info
+  redirectedToPublic      Boolean           // true if 4-5 stars -> public review
+  redirectedUrl           String?           // Which URL they were sent to
+  sentToPrivate           Boolean           // true if 1-3 stars -> private feedback
+  privateEmailSentAt      DateTime?
+
+  airtableLoggedAt        DateTime?
+
+  @@index([requestId])
+  @@index([rating])
+}
