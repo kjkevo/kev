@@ -11,6 +11,7 @@ export default function RatePage() {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
+  const [redirectingToReview, setRedirectingToReview] = useState(false);
 
   const handleSubmit = async () => {
     if (!selectedRating) {
@@ -37,7 +38,18 @@ export default function RatePage() {
         throw new Error(data.error || 'Failed to submit rating');
       }
 
-      setSubmitted(true);
+      // If positive rating and redirect URL exists, redirect to public review site
+      if (data.redirectedToPublic && data.redirectUrl) {
+        // Show thank you briefly, then redirect
+        setSubmitted(true);
+        setRedirectingToReview(true);
+        setTimeout(() => {
+          window.location.href = data.redirectUrl;
+        }, 2500);
+      } else {
+        // Otherwise just show thank you page
+        setSubmitted(true);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
@@ -51,7 +63,14 @@ export default function RatePage() {
         <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
           <div className="text-5xl mb-4">✓</div>
           <h1 className="text-2xl font-bold text-gray-800 mb-2">Thank You!</h1>
-          <p className="text-gray-600">Your feedback has been received and will help us improve our service.</p>
+          {redirectingToReview ? (
+            <>
+              <p className="text-gray-600 mb-4">Your feedback is greatly appreciated!</p>
+              <p className="text-sm text-indigo-600 animate-pulse">Redirecting to review site...</p>
+            </>
+          ) : (
+            <p className="text-gray-600">Your feedback has been received. The business owner will review it shortly and reach out if needed.</p>
+          )}
         </div>
       </div>
     );
