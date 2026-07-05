@@ -14,7 +14,10 @@
     "db:generate": "prisma generate",
     "db:seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts",
     "enrich": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/enrichLeads.ts",
-    "test:prod": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/testProduction.ts"
+    "test:prod": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/testProduction.ts",
+    "seed:test-businesses": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/seed-test-businesses.ts",
+    "test:config": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/test-config-loading.ts",
+    "test:multitenant": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/test-multitenant-flow.ts"
   },
   "prisma": {
     "seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts"
