@@ -1,5 +1,8 @@
 # Local-only scripts (not part of the web app)
+# EXCEPT: test and seed scripts for configuration testing
 scripts/
+!scripts/test-*.ts
+!scripts/seed-*.ts
 
 # Dependencies
 node_modules/
