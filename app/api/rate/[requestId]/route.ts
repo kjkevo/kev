@@ -3,6 +3,41 @@ import { prisma } from '@/app/lib/prisma';
 import { logToAirtable } from '@/app/lib/airtable';
 import { sendPrivateFeedbackEmail } from '@/app/lib/email';
 
+// GET endpoint to fetch client info for rating page
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { requestId: string } }
+) {
+  try {
+    const reviewRequest = await prisma.reviewRequest.findUnique({
+      where: { id: parseInt(params.requestId) },
+      include: { client: true },
+    });
+
+    if (!reviewRequest) {
+      return NextResponse.json(
+        { error: 'Review request not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        businessName: reviewRequest.client.name,
+        businessEmail: reviewRequest.client.businessEmail,
+        customerName: reviewRequest.customerName,
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error('Error fetching review request info:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: { requestId: string } }

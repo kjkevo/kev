@@ -1,7 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
+
+interface ClientInfo {
+  businessName: string;
+  businessEmail: string;
+  customerName: string;
+}
 
 export default function RatePage() {
   const params = useParams();
@@ -12,6 +18,30 @@ export default function RatePage() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [redirectingToReview, setRedirectingToReview] = useState(false);
+  const [clientInfo, setClientInfo] = useState<ClientInfo | null>(null);
+  const [loadingInfo, setLoadingInfo] = useState(true);
+
+  // Fetch business name and branding on page load
+  useEffect(() => {
+    const fetchClientInfo = async () => {
+      try {
+        const response = await fetch(`/api/rate/${requestId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setClientInfo(data);
+        } else {
+          setError('Review request not found');
+        }
+      } catch (err) {
+        setError('Failed to load review form');
+        console.error(err);
+      } finally {
+        setLoadingInfo(false);
+      }
+    };
+
+    fetchClientInfo();
+  }, [requestId]);
 
   const handleSubmit = async () => {
     if (!selectedRating) {
@@ -57,6 +87,16 @@ export default function RatePage() {
     }
   };
 
+  if (loadingInfo) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (submitted) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
@@ -79,6 +119,12 @@ export default function RatePage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
+        {clientInfo && (
+          <div className="mb-6 pb-4 border-b-2 border-indigo-100">
+            <p className="text-sm text-gray-500 text-center">Rating for</p>
+            <h2 className="text-xl font-semibold text-indigo-600 text-center">{clientInfo.businessName}</h2>
+          </div>
+        )}
         <h1 className="text-3xl font-bold text-gray-800 mb-2 text-center">How was your service?</h1>
         <p className="text-gray-600 text-center mb-8">We'd love your feedback</p>
 
