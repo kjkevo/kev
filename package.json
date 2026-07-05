@@ -14,7 +14,9 @@
     "db:generate": "prisma generate",
     "db:seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts",
     "enrich": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/enrichLeads.ts",
-    "test:prod": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/testProduction.ts"
+    "test:prod": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/testProduction.ts",
+    "reminders:start": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' lib/reminder-service.ts",
+    "reminders:dev": "nodemon --watch lib --exec 'ts-node --compiler-options \\'{\\'module\\':\\'CommonJS\\'}\\'' lib/reminder-service.ts"
   },
   "prisma": {
     "seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts"
@@ -27,14 +29,19 @@
     "@prisma/client": "^5.14.0",
     "@supabase/supabase-js": "^2.106.1",
     "bcryptjs": "^2.4.3",
+    "dotenv": "^16.3.1",
+    "google-spreadsheet": "^4.1.1",
     "lucide-react": "^1.16.0",
+    "moment-timezone": "^0.5.45",
     "next": "14.2.3",
     "next-auth": "^4.24.7",
+    "node-cron": "^3.0.2",
     "otplib": "^13.4.0",
     "papaparse": "^5.5.3",
     "qrcode": "^1.5.4",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "twilio": "^4.10.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
