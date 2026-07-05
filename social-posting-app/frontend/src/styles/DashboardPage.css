@@ -1,0 +1,288 @@
+.dashboard-container {
+  display: flex;
+  height: 100vh;
+}
+
+.sidebar {
+  width: 250px;
+  background-color: #1f1f1f;
+  color: white;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.logo {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #444;
+}
+
+.nav-menu {
+  list-style: none;
+  flex: 1;
+}
+
+.nav-link {
+  color: #ccc;
+  text-decoration: none;
+  padding: 12px 15px;
+  border-radius: 5px;
+  display: block;
+  margin: 8px 0;
+  transition: all 0.3s;
+}
+
+.nav-link:hover,
+.nav-link.active {
+  background-color: #0066cc;
+  color: white;
+}
+
+.user-section {
+  padding-top: 20px;
+  border-top: 1px solid #444;
+}
+
+.user-info {
+  margin-bottom: 15px;
+}
+
+.user-info p {
+  font-size: 13px;
+  color: #999;
+  margin: 0;
+  word-break: break-word;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  background-color: #f5f5f5;
+}
+
+.page-header {
+  background: white;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.page-header h1 {
+  font-size: 28px;
+  color: #1f1f1f;
+  margin-bottom: 5px;
+}
+
+.page-header p {
+  color: #666;
+  font-size: 14px;
+}
+
+.content-section {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.filter-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 8px 16px;
+  border: 2px solid #ddd;
+  background: white;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-weight: 500;
+}
+
+.filter-btn:hover {
+  border-color: #0066cc;
+  color: #0066cc;
+}
+
+.filter-btn.active {
+  background-color: #0066cc;
+  color: white;
+  border-color: #0066cc;
+}
+
+.posts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.post-item {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid #0066cc;
+}
+
+.post-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.post-item-title {
+  font-weight: 600;
+  color: #1f1f1f;
+  font-size: 16px;
+  margin-bottom: 5px;
+}
+
+.post-item-meta {
+  font-size: 12px;
+  color: #666;
+}
+
+.post-item-status {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.status-draft {
+  background-color: #e0e0e0;
+  color: #666;
+}
+
+.status-scheduled {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.status-posted {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-failed {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.post-item-platforms {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.platform-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  background-color: #f0f0f0;
+  color: #666;
+  text-transform: uppercase;
+}
+
+.error-text {
+  color: #dc3545;
+  font-size: 12px;
+  margin: 10px 0;
+  padding: 8px;
+  background-color: #f8d7da;
+  border-radius: 4px;
+}
+
+.post-item-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.post-item-actions .button {
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 8px;
+}
+
+.empty-state h2 {
+  color: #1f1f1f;
+  margin-bottom: 10px;
+}
+
+.empty-state p {
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.loading-message {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+@media (max-width: 768px) {
+  .dashboard-container {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+  }
+
+  .logo {
+    margin-bottom: 0;
+    border-bottom: none;
+    border-right: 1px solid #444;
+    padding: 0 15px 0 0;
+  }
+
+  .nav-menu {
+    display: flex;
+    gap: 10px;
+    margin: 0;
+  }
+
+  .nav-link {
+    margin: 0;
+    padding: 8px 10px;
+  }
+
+  .user-section {
+    border: none;
+    padding-top: 0;
+  }
+
+  .main-content {
+    height: calc(100vh - 60px);
+  }
+
+  .filter-bar {
+    flex-direction: column;
+  }
+
+  .filter-btn {
+    width: 100%;
+  }
+}

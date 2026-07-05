@@ -1,0 +1,66 @@
+{
+  "name": "social-posting-desktop",
+  "version": "1.0.0",
+  "main": "public/electron.js",
+  "homepage": "./",
+  "author": "Social Posting Team",
+  "description": "Multi-platform social media posting desktop app",
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.18.0",
+    "axios": "^1.6.0",
+    "date-fns": "^2.30.0",
+    "lucide-react": "^0.293.0"
+  },
+  "devDependencies": {
+    "react-scripts": "5.0.1",
+    "electron": "^27.0.0",
+    "electron-builder": "^24.6.4",
+    "electron-is-dev": "^2.0.0",
+    "concurrently": "^8.2.2",
+    "wait-on": "^7.0.1"
+  },
+  "scripts": {
+    "react-start": "react-scripts start",
+    "react-build": "react-scripts build",
+    "electron-start": "wait-on http://localhost:3000 && electron .",
+    "start": "concurrently \"npm run react-start\" \"npm run electron-start\"",
+    "build": "npm run react-build && electron-builder --publish never",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "build": {
+    "appId": "com.socialposter.app",
+    "productName": "Social Posting",
+    "files": [
+      "build/**/*",
+      "node_modules/**/*",
+      "public/electron.js",
+      "public/preload.js"
+    ],
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.utilities"
+    }
+  }
+}
