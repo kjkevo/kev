@@ -165,3 +165,63 @@ model Notification {
   @@index([userId])
   @@index([userId, read])
 }
+
+model BusinessConfig {
+  id                  Int       @id @default(autoincrement())
+  createdAt           DateTime  @default(now())
+  businessName        String
+  businessPhone       String
+  ownerPhone          String
+  ownerEmail          String
+  missedCallMessage   String    @default("Sorry we missed your call! {BUSINESS_NAME} will call you back shortly. Reply here if you'd like to send details now.")
+  leadSubmissionMsg   String    @default("Hi {NAME}! Thanks for reaching out to {BUSINESS_NAME}. We got your message and will reply shortly.")
+  airtableApiKey      String?
+  airtableBaseId      String?
+  airtableMissedTable String?
+  airtableLeadsTable  String?
+
+  missedCalls      MissedCall[]
+  leadSubmissions  LeadSubmission[]
+
+  @@index([businessName])
+}
+
+model MissedCall {
+  id              Int       @id @default(autoincrement())
+  createdAt       DateTime  @default(now())
+  businessId      Int
+  callerPhone     String
+  callerName      String?
+  missedAt        DateTime
+  textSentAt      DateTime?
+  textStatus      String    @default("pending")
+  textResponse    String?
+  twilio_call_sid String?
+  airtableId      String?
+
+  business        BusinessConfig @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@index([callerPhone])
+  @@index([createdAt])
+}
+
+model LeadSubmission {
+  id                 Int       @id @default(autoincrement())
+  createdAt          DateTime  @default(now())
+  businessId         Int
+  name               String
+  phone              String
+  serviceRequested   String
+  textSentAt         DateTime?
+  textStatus         String    @default("pending")
+  textResponse       String?
+  emailSentToOwner   Boolean   @default(false)
+  airtableId         String?
+
+  business           BusinessConfig @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@index([phone])
+  @@index([createdAt])
+}
