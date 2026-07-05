@@ -28,7 +28,7 @@ export const logMissedCallToAirtable = async (
       {
         fields: {
           'Timestamp': new Date().toISOString(),
-          'Phone': config.callerPhone,
+          'Phone': data.callerPhone,
           'Name': data.callerName || 'Unknown',
           'Business': data.businessName,
           'Type': 'Missed Call',

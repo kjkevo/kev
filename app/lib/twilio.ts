@@ -40,6 +40,8 @@ export const generateMissedCallTwiML = () => {
   twiml.record({
     maxLength: 120,
   });
+  twiml.say("Thank you for your message. We'll get back to you shortly.");
+  twiml.hangup();
   return twiml.toString();
 };
 
