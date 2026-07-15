@@ -4,9 +4,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "splite"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
 model User {
