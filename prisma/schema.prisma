@@ -33,7 +33,7 @@ model AuditLog {
   action     String
   entityType String?
   entityId   Int?
-  meta       Json?
+  meta       String?
 
   @@index([userId])
   @@index([createdAt])
@@ -53,7 +53,7 @@ model Lead {
   intelligenceSummary String
   notes               String?
   status              String             @default("new")
-  tags                String[]
+  tags                String?
   updatedAt           DateTime           @updatedAt
   aiScore             Int?
   aiScoreReason       String?
