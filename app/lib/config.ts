@@ -19,12 +19,8 @@ const defaultConfig: Omit<BusinessConfig, 'id'> = {
   businessPhone: process.env.TWILIO_PHONE_NUMBER || '',
   ownerPhone: process.env.BUSINESS_OWNER_PHONE || '',
   ownerEmail: process.env.BUSINESS_OWNER_EMAIL || '',
-  missedCallMessage:
-    process.env.MISSED_CALL_MESSAGE ||
-    'Sorry we missed your call! {BUSINESS_NAME} will call you back shortly. Reply here if you'd like to send details now.',
-  leadSubmissionMsg:
-    process.env.LEAD_SUBMISSION_MESSAGE ||
-    'Hi {NAME}! Thanks for reaching out to {BUSINESS_NAME}. We got your message and will reply shortly.',
+  missedCallMessage: process.env.MISSED_CALL_MESSAGE || 'Sorry we missed your call! {BUSINESS_NAME} will call you back shortly. Reply here if you\'d like to send details now.',
+  leadSubmissionMsg: process.env.LEAD_SUBMISSION_MESSAGE || 'Hi {NAME}! Thanks for reaching out to {BUSINESS_NAME}. We got your message and will reply shortly.',
   airtableApiKey: process.env.AIRTABLE_API_KEY,
   airtableBaseId: process.env.AIRTABLE_BASE_ID,
   airtableMissedTable: process.env.AIRTABLE_MISSED_CALLS_TABLE_ID,
