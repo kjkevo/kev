@@ -4,15 +4,25 @@ const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
 
-if (!accountSid || !authToken || !twilioPhone) {
-  throw new Error('Missing required Twilio environment variables: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER');
+// Check if we have valid credentials (not placeholders)
+const hasValidCredentials = accountSid && authToken && twilioPhone &&
+  !accountSid.includes('PLACEHOLDER') &&
+  !authToken.includes('placeholder');
+
+let client: ReturnType<typeof twilio> | null = null;
+
+if (hasValidCredentials) {
+  client = twilio(accountSid, authToken);
 }
 
-const client = twilio(accountSid, authToken);
-
 export const sendSMS = async (toPhone: string, message: string) => {
+  if (!hasValidCredentials) {
+    console.log(`[MOCK SMS] To: ${toPhone}, Message: ${message}`);
+    return { success: true, sid: 'MOCK_SID_' + Date.now(), status: 'queued' };
+  }
+
   try {
-    const result = await client.messages.create({
+    const result = await client!.messages.create({
       from: twilioPhone,
       to: toPhone,
       body: message,

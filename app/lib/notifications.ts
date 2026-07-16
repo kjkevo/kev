@@ -11,8 +11,13 @@ const initializeEmailTransporter = () => {
   const emailUser = process.env.EMAIL_USER;
   const emailPassword = process.env.EMAIL_PASSWORD;
 
-  if (!emailUser || !emailPassword) {
-    console.warn('Email not configured - owner notifications will be skipped');
+  // Check if credentials are placeholders or missing
+  const hasValidCredentials = emailUser && emailPassword &&
+    !emailUser.includes('your-email') &&
+    !emailPassword.includes('your-app-password');
+
+  if (!emailUser || !emailPassword || !hasValidCredentials) {
+    console.warn('Email not configured (using placeholders) - owner notifications will be mocked');
     return null;
   }
 
