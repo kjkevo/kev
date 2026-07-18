@@ -21,7 +21,8 @@ function requireEnv(name: string): string {
 
 export const env = {
   databaseUrl: requireEnv("DATABASE_URL"),
-  nextAuthSecret: requireEnv("NEXTAUTH_SECRET"),
+  // NEXTAUTH_SECRET is optional - only needed if NextAuth is used
+  nextAuthSecret: process.env.NEXTAUTH_SECRET ?? "dev-secret",
   // NEXTAUTH_URL is required in production; falls back gracefully in local dev.
   nextAuthUrl: process.env.NEXTAUTH_URL ?? "http://localhost:3000",
 } as const;
