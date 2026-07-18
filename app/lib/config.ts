@@ -36,16 +36,16 @@ export const loadBusinessConfig = async (businessId?: number): Promise<BusinessC
       if (config) {
         return {
           id: config.id,
-          businessName: config.businessName,
-          businessPhone: config.businessPhone,
-          ownerPhone: config.ownerPhone,
-          ownerEmail: config.ownerEmail,
-          missedCallMessage: config.missedCallMessage,
-          leadSubmissionMsg: config.leadSubmissionMsg,
-          airtableApiKey: config.airtableApiKey || undefined,
-          airtableBaseId: config.airtableBaseId || undefined,
-          airtableMissedTable: config.airtableMissedTable || undefined,
-          airtableLeadsTable: config.airtableLeadsTable || undefined,
+          businessName: config.businessName || defaultConfig.businessName,
+          businessPhone: config.businessPhone || defaultConfig.businessPhone,
+          ownerPhone: config.ownerPhone || defaultConfig.ownerPhone,
+          ownerEmail: config.ownerEmail || defaultConfig.ownerEmail,
+          missedCallMessage: config.missedCallMessage || defaultConfig.missedCallMessage,
+          leadSubmissionMsg: config.leadSubmissionMsg || defaultConfig.leadSubmissionMsg,
+          airtableApiKey: config.airtableApiKey || defaultConfig.airtableApiKey,
+          airtableBaseId: config.airtableBaseId || defaultConfig.airtableBaseId,
+          airtableMissedTable: config.airtableMissedTable || defaultConfig.airtableMissedTable,
+          airtableLeadsTable: config.airtableLeadsTable || defaultConfig.airtableLeadsTable,
         };
       }
     } catch (error) {
