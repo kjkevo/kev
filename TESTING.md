@@ -1,20 +1,37 @@
-# Testing the Missed Call Text-Back Automation
+# Testing Guide - Missed Call Text-Back Automation
 
-This guide shows how to test the missed call automation system locally and in production.
+Complete guide for testing the system locally and in production.
+
+## Pre-Testing: Validate Your Setup
+
+**Always do this first** to catch configuration issues early:
+
+```bash
+npm run validate:setup
+```
+
+This checks:
+- ✅ All required environment variables are set
+- ✅ Values are in correct format  
+- ✅ Warnings for optional features (Airtable, Email)
+
+If this fails, follow SETUP.md to configure missing variables.
 
 ## Local Testing Setup
 
 ### 1. Start the Development Server
 
 ```bash
-npm install
-npm run db:migrate  # Run database migration
+npm install --legacy-peer-deps
+export DATABASE_URL="file:./prisma/dev.db"
+npm run db:migrate
+npx ts-node --compiler-options '{"module":"CommonJS"}' prisma/seed-direct.ts
 npm run dev
 ```
 
-The server will start at `http://localhost:3000`
+Server starts at `http://localhost:3000`
 
-### 2. Test Health Endpoint
+### 2. Verify Server is Running
 
 ```bash
 curl http://localhost:3000/api/health
@@ -24,24 +41,32 @@ Expected response:
 ```json
 {
   "status": "ok",
-  "timestamp": "2024-01-15T10:30:00Z",
+  "timestamp": "2026-07-19T00:11:18.549Z",
   "version": "1.0.0"
 }
 ```
 
+**In the dev server logs, you should see:**
+```
+✓ Compiled successfully
+```
+
 ### 3. Test Lead Submission
+
+Send a new lead to the system:
 
 ```bash
 curl -X POST http://localhost:3000/api/webhooks/lead-submission \
   -H "Content-Type: application/json" \
   -d '{
     "name": "John Smith",
-    "phone": "+15551234567",
-    "serviceRequested": "Emergency AC Repair"
+    "phone": "+1234567890",
+    "serviceRequested": "Emergency AC Repair",
+    "businessId": 1
   }'
 ```
 
-Expected response:
+**Expected Response:**
 ```json
 {
   "success": true,
@@ -50,14 +75,44 @@ Expected response:
 }
 ```
 
-### 4. Test Call Status Webhook (Missed Call)
+**Check in dev server logs for:**
+```
+New lead received: John Smith (+1234567890) for Emergency AC Repair
+[MOCK SMS] To: +1234567890, Message: Hi John Smith! Thanks for reaching out to...
+```
+
+### 4. Test Incoming Call Webhook
+
+Test what caller hears when they call your number:
+
+```bash
+curl -X POST http://localhost:3000/api/webhooks/twilio/incoming-call \
+  -d "From=%2B1234567890&CallSid=CA1234567890" \
+  -H "Content-Type: application/x-www-form-urlencoded"
+```
+
+**Expected Response:** TwiML XML (voicemail greeting)
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say>Thank you for calling. We're not available right now. Please leave a message after the beep.</Say>
+  <Record maxLength="120"/>
+  <Say>Thank you for your message. We'll get back to you shortly.</Say>
+  <Hangup/>
+</Response>
+```
+
+### 5. Test Missed Call Detection
+
+Simulate what happens when someone calls and you don't answer:
 
 ```bash
 curl -X POST http://localhost:3000/api/webhooks/twilio/call-status \
-  -d "CallStatus=no-answer&From=%2B15551234567&CallSid=CA1234567890&CallDuration=5"
+  -d "CallStatus=no-answer&From=%2B1234567890&CallSid=CA1234567890&CallDuration=5" \
+  -H "Content-Type: application/x-www-form-urlencoded"
 ```
 
-Expected response:
+**Expected Response:**
 ```json
 {
   "success": true,
@@ -65,20 +120,37 @@ Expected response:
 }
 ```
 
-### 5. Test Incoming Call Webhook
-
-```bash
-curl -X POST http://localhost:3000/api/webhooks/twilio/incoming-call \
-  -d "From=%2B15551234567&CallSid=CA1234567890"
+**Check in dev server logs for:**
+```
+Call CA1234567890 status: no-answer, duration: 5s, from: +1234567890
+[MOCK SMS] To: +1234567890, Message: Sorry we missed your call! Your Service Business...
 ```
 
-Expected response: XML (TwiML)
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Say>Thank you for calling. We're not available right now. Please leave a message after the beep.</Say>
-  <Record maxLength="120"/>
-</Response>
+**When is a call "missed"?**
+- CallStatus is "no-answer" (went to voicemail)
+- OR CallDuration < 20 seconds and CallStatus is "completed"
+
+### 6. Test SMS Inbound (Customer Response)
+
+When a customer replies to your SMS:
+
+```bash
+curl -X POST http://localhost:3000/api/webhooks/twilio/sms-inbound \
+  -d "From=%2B1234567890&Body=Yes%20I%20need%20help&MessageSid=SM123456" \
+  -H "Content-Type: application/x-www-form-urlencoded"
+```
+
+**Expected Response:**
+```json
+{
+  "success": true,
+  "message": "SMS received"
+}
+```
+
+**Check in dev server logs for:**
+```
+Incoming SMS from +1234567890: Yes I need help
 ```
 
 ## Production Testing (After Vercel Deployment)
