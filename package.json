@@ -17,7 +17,8 @@
     "test:prod": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/testProduction.ts",
     "seed:test-businesses": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/seed-test-businesses.ts",
     "test:config": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/test-config-loading.ts",
-    "test:multitenant": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/test-multitenant-flow.ts"
+    "test:multitenant": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/test-multitenant-flow.ts",
+    "validate:setup": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/validate-setup.ts"
   },
   "prisma": {
     "seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts"
