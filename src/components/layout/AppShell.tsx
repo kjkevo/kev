@@ -28,6 +28,7 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   const showShell = useShellVisible();
+  const pageTitle = usePageTitle();
   const [collapsed, setCollapsed] = React.useState(false);
 
   /* ── No shell — render children full-screen (landing page, auth pages) ── */
@@ -55,7 +56,7 @@ export function AppShell({ children }: AppShellProps) {
 
         {/* TopBar — fixed, tracks sidebar width */}
         <TopBar
-          title={usePageTitle()}
+          title={pageTitle}
           sidebarCollapsed={collapsed}
           notificationCount={3}
         />
