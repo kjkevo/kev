@@ -60,32 +60,34 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Log to Airtable
+    // Log to Airtable (async, don't fail if it errors)
     const airtableConfig = {
       apiKey: config.airtableApiKey || '',
       baseId: config.airtableBaseId || '',
       tableId: config.airtableMissedTable || '',
     };
 
-    const airtableId = await logMissedCallToAirtable(airtableConfig, {
+    logMissedCallToAirtable(airtableConfig, {
       businessName: config.businessName,
       callerPhone: from,
       missedAt: new Date().toISOString(),
       textSent: textResult.success,
-    });
-
-    if (airtableId) {
-      await prisma.missedCall.update({
-        where: { id: missedCall.id },
-        data: { airtableId },
-      });
-    }
+    })
+      .then((airtableId) => {
+        if (airtableId) {
+          prisma.missedCall.update({
+            where: { id: missedCall.id },
+            data: { airtableId },
+          }).catch(console.error);
+        }
+      })
+      .catch(console.error);
 
     // Send email alert to owner (optional, don't fail if it errors)
-    await sendMissedCallAlertToOwner(config.ownerEmail, config.businessName, {
+    sendMissedCallAlertToOwner(config.ownerEmail, config.businessName, {
       phone: from,
       time: new Date(),
-    });
+    }).catch(console.error);
 
     console.log(`Processed missed call ${callSid}, text status: ${textResult.success ? 'sent' : 'failed'}`);
 
