@@ -1,31 +1,35 @@
 -- CreateTable
 CREATE TABLE "User" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "id" SERIAL NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "name" TEXT,
     "email" TEXT NOT NULL,
     "password" TEXT NOT NULL,
     "twoFactorSecret" TEXT,
     "twoFactorEnabled" BOOLEAN NOT NULL DEFAULT false,
-    "twoFactorVerified" BOOLEAN NOT NULL DEFAULT false
+    "twoFactorVerified" BOOLEAN NOT NULL DEFAULT false,
+
+    CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "AuditLog" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "id" SERIAL NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "userId" INTEGER,
     "userEmail" TEXT,
     "action" TEXT NOT NULL,
     "entityType" TEXT,
     "entityId" INTEGER,
-    "meta" TEXT
+    "meta" TEXT,
+
+    CONSTRAINT "AuditLog_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Lead" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "id" SERIAL NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "companyName" TEXT NOT NULL,
     "website" TEXT,
     "contactName" TEXT NOT NULL,
@@ -37,97 +41,105 @@ CREATE TABLE "Lead" (
     "notes" TEXT,
     "status" TEXT NOT NULL DEFAULT 'new',
     "tags" TEXT,
-    "updatedAt" DATETIME NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
     "aiScore" INTEGER,
     "aiScoreReason" TEXT,
     "aiSuggestion" TEXT,
-    "dealValue" REAL,
+    "dealValue" DOUBLE PRECISION,
     "source" TEXT,
-    "wonAt" DATETIME,
-    "lostAt" DATETIME,
+    "wonAt" TIMESTAMP(3),
+    "lostAt" TIMESTAMP(3),
     "lossReason" TEXT,
     "assignedTo" TEXT,
-    "teamId" INTEGER
+    "teamId" INTEGER,
+
+    CONSTRAINT "Lead_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Activity" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "id" SERIAL NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "leadId" INTEGER NOT NULL,
     "type" TEXT NOT NULL,
     "content" TEXT NOT NULL,
-    "date" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "userId" INTEGER,
     "userName" TEXT,
-    CONSTRAINT "Activity_leadId_fkey" FOREIGN KEY ("leadId") REFERENCES "Lead" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+
+    CONSTRAINT "Activity_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "CustomField" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    "name" TEXT NOT NULL
+    "id" SERIAL NOT NULL,
+    "name" TEXT NOT NULL,
+
+    CONSTRAINT "CustomField_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "CustomFieldValue" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "id" SERIAL NOT NULL,
     "leadId" INTEGER NOT NULL,
     "customFieldId" INTEGER NOT NULL,
     "value" TEXT NOT NULL,
-    CONSTRAINT "CustomFieldValue_customFieldId_fkey" FOREIGN KEY ("customFieldId") REFERENCES "CustomField" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "CustomFieldValue_leadId_fkey" FOREIGN KEY ("leadId") REFERENCES "Lead" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+
+    CONSTRAINT "CustomFieldValue_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Team" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "name" TEXT NOT NULL
+    "id" SERIAL NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "name" TEXT NOT NULL,
+
+    CONSTRAINT "Team_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "TeamMembership" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "id" SERIAL NOT NULL,
     "userId" INTEGER NOT NULL,
     "teamId" INTEGER NOT NULL,
     "role" TEXT NOT NULL DEFAULT 'rep',
-    "joinedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "TeamMembership_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "TeamMembership_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "Team" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    "joinedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "TeamMembership_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "PipelineStage" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "id" SERIAL NOT NULL,
     "userId" INTEGER,
     "teamId" INTEGER,
     "key" TEXT NOT NULL,
     "label" TEXT NOT NULL,
     "color" TEXT NOT NULL DEFAULT 'gray',
     "position" INTEGER NOT NULL DEFAULT 0,
-    "isDefault" BOOLEAN NOT NULL DEFAULT false
+    "isDefault" BOOLEAN NOT NULL DEFAULT false,
+
+    CONSTRAINT "PipelineStage_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Notification" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "id" SERIAL NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "userId" INTEGER NOT NULL,
     "type" TEXT NOT NULL,
     "content" TEXT NOT NULL,
     "read" BOOLEAN NOT NULL DEFAULT false,
     "leadId" INTEGER,
     "activityId" INTEGER,
-    CONSTRAINT "Notification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "Notification_leadId_fkey" FOREIGN KEY ("leadId") REFERENCES "Lead" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
-    CONSTRAINT "Notification_activityId_fkey" FOREIGN KEY ("activityId") REFERENCES "Activity" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+
+    CONSTRAINT "Notification_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "BusinessConfig" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "id" SERIAL NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "businessName" TEXT NOT NULL,
     "businessPhone" TEXT NOT NULL,
     "ownerPhone" TEXT NOT NULL,
@@ -137,39 +149,43 @@ CREATE TABLE "BusinessConfig" (
     "airtableApiKey" TEXT,
     "airtableBaseId" TEXT,
     "airtableMissedTable" TEXT,
-    "airtableLeadsTable" TEXT
+    "airtableLeadsTable" TEXT,
+
+    CONSTRAINT "BusinessConfig_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "MissedCall" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "id" SERIAL NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "businessId" INTEGER NOT NULL,
     "callerPhone" TEXT NOT NULL,
     "callerName" TEXT,
-    "missedAt" DATETIME NOT NULL,
-    "textSentAt" DATETIME,
+    "missedAt" TIMESTAMP(3) NOT NULL,
+    "textSentAt" TIMESTAMP(3),
     "textStatus" TEXT NOT NULL DEFAULT 'pending',
     "textResponse" TEXT,
     "twilio_call_sid" TEXT,
     "airtableId" TEXT,
-    CONSTRAINT "MissedCall_businessId_fkey" FOREIGN KEY ("businessId") REFERENCES "BusinessConfig" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+
+    CONSTRAINT "MissedCall_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "LeadSubmission" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "id" SERIAL NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "businessId" INTEGER NOT NULL,
     "name" TEXT NOT NULL,
     "phone" TEXT NOT NULL,
     "serviceRequested" TEXT NOT NULL,
-    "textSentAt" DATETIME,
+    "textSentAt" TIMESTAMP(3),
     "textStatus" TEXT NOT NULL DEFAULT 'pending',
     "textResponse" TEXT,
     "emailSentToOwner" BOOLEAN NOT NULL DEFAULT false,
     "airtableId" TEXT,
-    CONSTRAINT "LeadSubmission_businessId_fkey" FOREIGN KEY ("businessId") REFERENCES "BusinessConfig" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+
+    CONSTRAINT "LeadSubmission_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -252,3 +268,34 @@ CREATE INDEX "LeadSubmission_phone_idx" ON "LeadSubmission"("phone");
 
 -- CreateIndex
 CREATE INDEX "LeadSubmission_createdAt_idx" ON "LeadSubmission"("createdAt");
+
+-- AddForeignKey
+ALTER TABLE "Activity" ADD CONSTRAINT "Activity_leadId_fkey" FOREIGN KEY ("leadId") REFERENCES "Lead"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CustomFieldValue" ADD CONSTRAINT "CustomFieldValue_customFieldId_fkey" FOREIGN KEY ("customFieldId") REFERENCES "CustomField"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CustomFieldValue" ADD CONSTRAINT "CustomFieldValue_leadId_fkey" FOREIGN KEY ("leadId") REFERENCES "Lead"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TeamMembership" ADD CONSTRAINT "TeamMembership_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TeamMembership" ADD CONSTRAINT "TeamMembership_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "Team"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Notification" ADD CONSTRAINT "Notification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Notification" ADD CONSTRAINT "Notification_leadId_fkey" FOREIGN KEY ("leadId") REFERENCES "Lead"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Notification" ADD CONSTRAINT "Notification_activityId_fkey" FOREIGN KEY ("activityId") REFERENCES "Activity"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "MissedCall" ADD CONSTRAINT "MissedCall_businessId_fkey" FOREIGN KEY ("businessId") REFERENCES "BusinessConfig"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "LeadSubmission" ADD CONSTRAINT "LeadSubmission_businessId_fkey" FOREIGN KEY ("businessId") REFERENCES "BusinessConfig"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
