@@ -7,7 +7,7 @@ import { TopBar } from "./TopBar";
 
 /* ─── Pages that render WITHOUT the app shell ────────────────────────────── */
 
-const SHELL_EXCLUDED = ["/", "/login", "/signup", "/onboarding"];
+const SHELL_EXCLUDED = ["/", "/login", "/signup", "/onboarding", "/admin"];
 
 function useShellVisible() {
   const pathname = usePathname();
