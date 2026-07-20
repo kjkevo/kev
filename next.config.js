@@ -26,6 +26,11 @@ const nextConfig = {
     // enrichLeads.ts is a local-only script — its type errors don't affect the web app
     ignoreBuildErrors: true,
   },
+  eslint: {
+    // Lint locally/in CI, not during the production build — a lint rule
+    // should never block a deploy of otherwise-valid code.
+    ignoreDuringBuilds: true,
+  },
   poweredByHeader: false,
   reactStrictMode: true,
   compress: true,
