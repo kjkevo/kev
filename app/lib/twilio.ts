@@ -15,15 +15,20 @@ if (hasValidCredentials) {
   client = twilio(accountSid, authToken);
 }
 
-export const sendSMS = async (toPhone: string, message: string) => {
+// Send an SMS. In a multi-tenant setup each business texts back from its own
+// Twilio number, so `fromPhone` should be the business's number; it falls back
+// to the single-tenant env number when omitted.
+export const sendSMS = async (toPhone: string, message: string, fromPhone?: string) => {
+  const from = fromPhone || twilioPhone;
+
   if (!hasValidCredentials) {
-    console.log(`[MOCK SMS] To: ${toPhone}, Message: ${message}`);
+    console.log(`[MOCK SMS] From: ${from}, To: ${toPhone}, Message: ${message}`);
     return { success: true, sid: 'MOCK_SID_' + Date.now(), status: 'queued' };
   }
 
   try {
     const result = await client!.messages.create({
-      from: twilioPhone,
+      from,
       to: toPhone,
       body: message,
     });
@@ -44,13 +49,30 @@ export const generateCallResponse = (message: string) => {
   return twiml.toString();
 };
 
-export const generateMissedCallTwiML = () => {
+interface MissedCallTwiMLOptions {
+  greeting?: string;
+  recordVoicemail?: boolean;
+}
+
+// Voice response for businesses that have voice enabled: speak the business's
+// custom greeting and optionally let the caller leave a voicemail.
+export const generateMissedCallTwiML = (options: MissedCallTwiMLOptions = {}) => {
+  const greeting = options.greeting || "Thank you for calling. We're not available right now, but we'll text you shortly.";
   const twiml = new twilio.twiml.VoiceResponse();
-  twiml.say("Thank you for calling. We're not available right now. Please leave a message after the beep.");
-  twiml.record({
-    maxLength: 120,
-  });
-  twiml.say("Thank you for your message. We'll get back to you shortly.");
+  twiml.say(greeting);
+  if (options.recordVoicemail) {
+    twiml.say("Please leave a message after the beep.");
+    twiml.record({ maxLength: 120 });
+    twiml.say("Thank you for your message. We'll get back to you shortly.");
+  }
+  twiml.hangup();
+  return twiml.toString();
+};
+
+// Response for text-only businesses: end the call immediately (no spoken
+// message) so the call-status webhook fires and the text-back is sent.
+export const generateTextOnlyTwiML = () => {
+  const twiml = new twilio.twiml.VoiceResponse();
   twiml.hangup();
   return twiml.toString();
 };

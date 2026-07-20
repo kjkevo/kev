@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateMissedCallTwiML, verifyTwilioSignature } from '@/app/lib/twilio';
-import { loadBusinessConfig } from '@/app/lib/config';
+import { generateMissedCallTwiML, generateTextOnlyTwiML, verifyTwilioSignature } from '@/app/lib/twilio';
+import { loadBusinessConfigByPhone } from '@/app/lib/config';
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,20 +18,28 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Load business config (in multi-tenant setup, could extract businessId from query param)
-    const config = await loadBusinessConfig();
-
-    // Extract caller info
+    // Extract call info
     const from = paramsObj.From || '';
+    const to = paramsObj.To || '';
     const callSid = paramsObj.CallSid || '';
 
-    console.log(`Incoming call from ${from}, CallSid: ${callSid}`);
+    // Multi-tenant routing: identify the business by the number that was dialed
+    const config = await loadBusinessConfigByPhone(to);
 
-    // Generate TwiML response with voicemail
-    const twiml = generateMissedCallTwiML();
+    console.log(`Incoming call from ${from} to ${to} (${config?.businessName ?? 'unknown business'}), CallSid: ${callSid}`);
 
-    // Set webhook for call completion
-    // (Twilio will POST to /api/webhooks/twilio/call-status when call completes)
+    // Choose the voice response based on the business's channel settings.
+    // Voice enabled -> speak the custom greeting (and optionally take a voicemail).
+    // Text-only / unknown -> end the call so the status webhook triggers the text-back.
+    const twiml = config?.voiceEnabled
+      ? generateMissedCallTwiML({
+          greeting: config.voiceGreeting,
+          recordVoicemail: config.recordVoicemail,
+        })
+      : generateTextOnlyTwiML();
+
+    // Twilio will POST to /api/webhooks/twilio/call-status when the call ends,
+    // where the text-back is sent.
 
     return new NextResponse(twiml, {
       status: 200,

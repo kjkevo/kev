@@ -35,11 +35,12 @@ const initializeEmailTransporter = () => {
 export const sendMissedCallText = async (
   callerPhone: string,
   businessName: string,
-  template: string
+  template: string,
+  fromPhone?: string
 ): Promise<{ success: boolean; sid?: string; error?: string }> => {
   try {
     const message = renderTemplate(template, { BUSINESS_NAME: businessName });
-    const result = await sendSMS(callerPhone, message);
+    const result = await sendSMS(callerPhone, message, fromPhone);
     return { success: true, sid: result.sid };
   } catch (error) {
     console.error('Error sending missed call text:', error);
@@ -51,14 +52,15 @@ export const sendLeadConfirmationText = async (
   leadPhone: string,
   businessName: string,
   leadName: string,
-  template: string
+  template: string,
+  fromPhone?: string
 ): Promise<{ success: boolean; sid?: string; error?: string }> => {
   try {
     const message = renderTemplate(template, {
       BUSINESS_NAME: businessName,
       NAME: leadName,
     });
-    const result = await sendSMS(leadPhone, message);
+    const result = await sendSMS(leadPhone, message, fromPhone);
     return { success: true, sid: result.sid };
   } catch (error) {
     console.error('Error sending lead confirmation text:', error);
