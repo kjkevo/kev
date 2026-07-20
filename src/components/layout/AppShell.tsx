@@ -29,7 +29,7 @@ interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   const showShell = useShellVisible();
   const pageTitle = usePageTitle();
-  const [collapsed, setCollapsed] = React.useState(false);
+  const [collapsed, setCollapsed] = React.useState(false); // Hooks called at top before early return
 
   /* ── No shell — render children full-screen (landing page, auth pages) ── */
   if (!showShell) {
