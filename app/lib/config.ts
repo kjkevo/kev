@@ -8,6 +8,11 @@ export interface BusinessConfig {
   ownerEmail: string;
   missedCallMessage: string;
   leadSubmissionMsg: string;
+  // Per-business channel behavior ("voice, text, or both")
+  smsEnabled: boolean;
+  voiceEnabled: boolean;
+  recordVoicemail: boolean;
+  voiceGreeting: string;
   airtableApiKey?: string;
   airtableBaseId?: string;
   airtableMissedTable?: string;
@@ -21,11 +26,40 @@ const defaultConfig: Omit<BusinessConfig, 'id'> = {
   ownerEmail: process.env.BUSINESS_OWNER_EMAIL || '',
   missedCallMessage: process.env.MISSED_CALL_MESSAGE || 'Sorry we missed your call! {BUSINESS_NAME} will call you back shortly. Reply here if you\'d like to send details now.',
   leadSubmissionMsg: process.env.LEAD_SUBMISSION_MESSAGE || 'Hi {NAME}! Thanks for reaching out to {BUSINESS_NAME}. We got your message and will reply shortly.',
+  smsEnabled: true,
+  voiceEnabled: false,
+  recordVoicemail: false,
+  voiceGreeting: 'Thank you for calling. We\'re not available right now, but we\'ll text you shortly.',
   airtableApiKey: process.env.AIRTABLE_API_KEY,
   airtableBaseId: process.env.AIRTABLE_BASE_ID,
   airtableMissedTable: process.env.AIRTABLE_MISSED_CALLS_TABLE_ID,
   airtableLeadsTable: process.env.AIRTABLE_LEADS_TABLE_ID,
 };
+
+// Map a Prisma BusinessConfig row onto our config shape, falling back to
+// environment defaults for empty string fields. Booleans use ?? so an
+// explicit `false` is respected.
+type BusinessConfigRow = NonNullable<Awaited<ReturnType<typeof prisma.businessConfig.findFirst>>>;
+
+function mapRow(config: BusinessConfigRow): BusinessConfig {
+  return {
+    id: config.id,
+    businessName: config.businessName || defaultConfig.businessName,
+    businessPhone: config.businessPhone || defaultConfig.businessPhone,
+    ownerPhone: config.ownerPhone || defaultConfig.ownerPhone,
+    ownerEmail: config.ownerEmail || defaultConfig.ownerEmail,
+    missedCallMessage: config.missedCallMessage || defaultConfig.missedCallMessage,
+    leadSubmissionMsg: config.leadSubmissionMsg || defaultConfig.leadSubmissionMsg,
+    smsEnabled: config.smsEnabled ?? defaultConfig.smsEnabled,
+    voiceEnabled: config.voiceEnabled ?? defaultConfig.voiceEnabled,
+    recordVoicemail: config.recordVoicemail ?? defaultConfig.recordVoicemail,
+    voiceGreeting: config.voiceGreeting || defaultConfig.voiceGreeting,
+    airtableApiKey: config.airtableApiKey || defaultConfig.airtableApiKey,
+    airtableBaseId: config.airtableBaseId || defaultConfig.airtableBaseId,
+    airtableMissedTable: config.airtableMissedTable || defaultConfig.airtableMissedTable,
+    airtableLeadsTable: config.airtableLeadsTable || defaultConfig.airtableLeadsTable,
+  };
+}
 
 export const loadBusinessConfig = async (businessId?: number): Promise<BusinessConfig> => {
   if (businessId) {
@@ -34,19 +68,7 @@ export const loadBusinessConfig = async (businessId?: number): Promise<BusinessC
         where: { id: businessId },
       });
       if (config) {
-        return {
-          id: config.id,
-          businessName: config.businessName || defaultConfig.businessName,
-          businessPhone: config.businessPhone || defaultConfig.businessPhone,
-          ownerPhone: config.ownerPhone || defaultConfig.ownerPhone,
-          ownerEmail: config.ownerEmail || defaultConfig.ownerEmail,
-          missedCallMessage: config.missedCallMessage || defaultConfig.missedCallMessage,
-          leadSubmissionMsg: config.leadSubmissionMsg || defaultConfig.leadSubmissionMsg,
-          airtableApiKey: config.airtableApiKey || defaultConfig.airtableApiKey,
-          airtableBaseId: config.airtableBaseId || defaultConfig.airtableBaseId,
-          airtableMissedTable: config.airtableMissedTable || defaultConfig.airtableMissedTable,
-          airtableLeadsTable: config.airtableLeadsTable || defaultConfig.airtableLeadsTable,
-        };
+        return mapRow(config);
       }
     } catch (error) {
       console.error(`Error loading business config for ID ${businessId}:`, error);
@@ -54,7 +76,23 @@ export const loadBusinessConfig = async (businessId?: number): Promise<BusinessC
   }
 
   // Fallback to environment variables
-  return { id: 1, ...defaultConfig };
+  return { id: 0, ...defaultConfig };
+};
+
+// Multi-tenant lookup: find the business that owns the number that was dialed
+// (Twilio's `To` field on an incoming call/status webhook). Returns null when
+// no business matches, so the caller can decide how to handle unknown numbers.
+export const loadBusinessConfigByPhone = async (phone: string): Promise<BusinessConfig | null> => {
+  if (!phone) return null;
+  try {
+    const config = await prisma.businessConfig.findUnique({
+      where: { businessPhone: phone },
+    });
+    return config ? mapRow(config) : null;
+  } catch (error) {
+    console.error(`Error loading business config for phone ${phone}:`, error);
+    return null;
+  }
 };
 
 export const renderTemplate = (template: string, values: Record<string, string>): string => {

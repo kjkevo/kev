@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyTwilioSignature } from '@/app/lib/twilio';
-import { loadBusinessConfig, validateConfig } from '@/app/lib/config';
+import { loadBusinessConfigByPhone, validateConfig } from '@/app/lib/config';
 import { sendMissedCallText, sendMissedCallAlertToOwner } from '@/app/lib/notifications';
 import { logMissedCallToAirtable } from '@/app/lib/airtable';
 import { prisma } from '@/app/lib/db';
@@ -22,10 +22,11 @@ export async function POST(request: NextRequest) {
 
     const callStatus = paramsObj.CallStatus || '';
     const from = paramsObj.From || '';
+    const to = paramsObj.To || '';
     const callSid = paramsObj.CallSid || '';
     const duration = parseInt(paramsObj.CallDuration || '0', 10);
 
-    console.log(`Call ${callSid} status: ${callStatus}, duration: ${duration}s, from: ${from}`);
+    console.log(`Call ${callSid} status: ${callStatus}, duration: ${duration}s, from: ${from}, to: ${to}`);
 
     // Only process if call was not answered (missed) or went to voicemail
     if (callStatus !== 'completed' && callStatus !== 'no-answer') {
@@ -37,16 +38,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true });
     }
 
-    // Load business config
-    const config = await loadBusinessConfig();
+    // Multi-tenant routing: find the business by the number that was dialed
+    const config = await loadBusinessConfigByPhone(to);
+    if (!config) {
+      console.warn(`No business configured for number ${to}; skipping.`);
+      return NextResponse.json({ success: true, skipped: 'no business for number' });
+    }
     const configErrors = validateConfig(config);
     if (configErrors.length > 0) {
       console.error('Invalid config:', configErrors);
       return NextResponse.json({ error: 'Invalid config' }, { status: 500 });
     }
 
-    // Send automatic text to caller
-    const textResult = await sendMissedCallText(from, config.businessName, config.missedCallMessage);
+    // Send automatic text to caller (from the business's own number), if enabled
+    const textResult = config.smsEnabled
+      ? await sendMissedCallText(from, config.businessName, config.missedCallMessage, config.businessPhone)
+      : { success: false as const };
 
     // Log to database
     const missedCall = await prisma.missedCall.create({
@@ -55,7 +62,7 @@ export async function POST(request: NextRequest) {
         callerPhone: from,
         missedAt: new Date(),
         textSentAt: textResult.success ? new Date() : undefined,
-        textStatus: textResult.success ? 'sent' : 'failed',
+        textStatus: config.smsEnabled ? (textResult.success ? 'sent' : 'failed') : 'skipped',
         twilio_call_sid: callSid,
       },
     });
