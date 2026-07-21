@@ -26,6 +26,7 @@ export async function GET() {
       pipelineGroups,
       revenueTotalAgg,
       revenueMonthAgg,
+      metricRows,
     ] = await Promise.all([
       prisma.businessConfig.findMany({ orderBy: { id: 'asc' } }),
       prisma.missedCall.findMany({ orderBy: { createdAt: 'desc' }, take: 40 }),
@@ -36,6 +37,11 @@ export async function GET() {
       prisma.missedCall.groupBy({ by: ['status'], _count: { _all: true } }),
       prisma.missedCall.aggregate({ _sum: { dealValue: true }, where: { status: { in: REVENUE_STATUSES } } }),
       prisma.missedCall.aggregate({ _sum: { dealValue: true }, where: { status: { in: REVENUE_STATUSES }, createdAt: { gte: monthStart } } }),
+      // Lightweight rows for response-time + conversion math
+      prisma.missedCall.findMany({
+        select: { missedAt: true, textSentAt: true, textStatus: true, status: true, textResponse: true },
+        take: 2000,
+      }),
     ]);
 
     const nameById = new Map(businesses.map((b) => [b.id, b.businessName]));
@@ -50,6 +56,26 @@ export async function GET() {
     }
     const bookedWon = pipeline.booked + pipeline.won;
 
+    // Response time (automation) + conversion, computed from lightweight rows.
+    const responseTimes: number[] = [];
+    let repliedForConv = 0;
+    let converted = 0;
+    for (const r of metricRows) {
+      if (r.textStatus === 'sent') {
+        repliedForConv += 1;
+        if (r.textSentAt) {
+          const sec = (r.textSentAt.getTime() - r.missedAt.getTime()) / 1000;
+          if (sec >= 0 && sec < 3600) responseTimes.push(sec);
+        }
+        const booked = r.status === 'booked' || r.status === 'won';
+        if (booked || (r.textResponse && r.textResponse.length > 0)) converted += 1;
+      }
+    }
+    const avgResponseSec = responseTimes.length
+      ? Math.round((responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length) * 10) / 10
+      : null;
+    const conversionRate = repliedForConv > 0 ? Math.round((converted / repliedForConv) * 100) : 0;
+
     const metrics = {
       totalMissed,
       missedThisMonth,
@@ -58,6 +84,8 @@ export async function GET() {
       won: pipeline.won,
       recoveredRevenueTotal: revenueTotalAgg._sum.dealValue ?? 0,
       recoveredRevenueMonth: revenueMonthAgg._sum.dealValue ?? 0,
+      avgResponseSec,        // automation avg time to first response (seconds)
+      conversionRate,        // % of replied that booked/won or got a customer reply
       pipeline,
     };
 
