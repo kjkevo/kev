@@ -207,11 +207,17 @@ model MissedCall {
   twilio_call_sid String?
   airtableId      String?
 
+  // Mini-CRM pipeline fields
+  status          String    @default("new") // new | contacted | booked | won | lost | no_response | spam
+  dealValue       Float?    // recovered revenue when booked/won
+  notes           String?
+
   business        BusinessConfig @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
   @@index([businessId])
   @@index([callerPhone])
   @@index([createdAt])
+  @@index([status])
 }
 
 model LeadSubmission {
