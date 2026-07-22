@@ -12,7 +12,24 @@ export default function PrivacyPage() {
         <p style={p}>
           This policy explains how Simplicity Pleasing (&ldquo;we,&rdquo; &ldquo;us&rdquo;) handles
           information in connection with our text-message (SMS) program. This program sends an
-          automated text reply to people who call our business phone number and do not reach us.
+          automated text reply to people who call our business phone number (+1&nbsp;847&nbsp;613&nbsp;1968)
+          and do not reach us.
+        </p>
+
+        <h2 style={h2}>How you consent (opt-in)</h2>
+        <p style={p}>
+          You provide express consent to receive an automated text message from Simplicity Pleasing when
+          you <strong>call our business phone number and the call is not answered</strong>. By calling us,
+          you agree to receive a reply text about the service you were calling about. This is the only way
+          consent is obtained — we do not add numbers from any purchased list, website form, or third party.
+          Consent to receive texts is not a condition of any purchase.
+        </p>
+
+        <h2 style={h2}>What messages you&apos;ll receive</h2>
+        <p style={p}>
+          You will receive a customer-care/conversational text asking what service you need (for example:
+          DJing, photo booth, or party decoration) so we can follow up. We do not send marketing or
+          promotional blasts through this program.
         </p>
 
         <h2 style={h2}>How we collect your number</h2>

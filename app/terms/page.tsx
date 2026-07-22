@@ -16,15 +16,19 @@ export default function TermsPage() {
 
         <h2 style={h2}>Program description</h2>
         <p style={p}>
-          When you call our business phone number and we miss your call, we send a one-time automated
-          text message to that number so we can continue the conversation about the service you
-          requested and follow up to help book your event.
+          When you call our business phone number (+1&nbsp;847&nbsp;613&nbsp;1968) and we miss your call,
+          we send a one-time automated text message to that number so we can continue the conversation
+          about the service you requested (such as DJing, photo booth, or party decoration) and follow up
+          to help book your event. This is a customer-care / conversational program, not marketing.
         </p>
 
-        <h2 style={h2}>Consent</h2>
+        <h2 style={h2}>Consent (how you opt in)</h2>
         <p style={p}>
-          You provide consent to receive these messages by calling our business phone number. Consent to
-          receive text messages is not a condition of any purchase.
+          You provide express consent to receive these messages <strong>by calling our business phone
+          number</strong>. When your call is not answered, you agree to receive a reply text about your
+          inquiry. We do not obtain numbers from purchased lists, web forms, or third parties. Consent to
+          receive text messages is not a condition of any purchase, and we never sell or share your mobile
+          number with third parties for marketing.
         </p>
 
         <h2 style={h2}>Message frequency &amp; cost</h2>
