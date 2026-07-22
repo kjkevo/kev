@@ -25,10 +25,11 @@ export default function TermsPage() {
         <h2 style={h2}>Consent (how you opt in)</h2>
         <p style={p}>
           You provide express consent to receive these messages <strong>by calling our business phone
-          number</strong>. When your call is not answered, you agree to receive a reply text about your
-          inquiry. We do not obtain numbers from purchased lists, web forms, or third parties. Consent to
-          receive text messages is not a condition of any purchase, and we never sell or share your mobile
-          number with third parties for marketing.
+          number</strong>, or by submitting our web form at <a style={link} href="/opt-in">/opt-in</a> and
+          checking the consent box. When your call is not answered, you agree to receive a reply text about
+          your inquiry. We do not obtain numbers from purchased lists or third parties. Consent to receive
+          text messages is not a condition of any purchase, and we never sell or share your mobile number
+          with third parties for marketing.
         </p>
 
         <h2 style={h2}>Message frequency &amp; cost</h2>
