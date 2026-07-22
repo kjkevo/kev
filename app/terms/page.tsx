@@ -10,8 +10,8 @@ export default function TermsPage() {
         <p style={muted}>Last updated: {new Date().getFullYear()}</p>
 
         <p style={p}>
-          By calling Simplicity Pleasing and receiving our automated text reply, you agree to these
-          terms for our SMS program.
+          By calling Simplicity Pleasing, operating under the registered brand <strong>Slimpse</strong>,
+          and receiving our automated text reply, you agree to these terms for our SMS program.
         </p>
 
         <h2 style={h2}>Program description</h2>
@@ -28,8 +28,9 @@ export default function TermsPage() {
           number</strong>, or by submitting our web form at <a style={link} href="/opt-in">/opt-in</a> and
           checking the consent box. When your call is not answered, you agree to receive a reply text about
           your inquiry. We do not obtain numbers from purchased lists or third parties. Consent to receive
-          text messages is not a condition of any purchase, and we never sell or share your mobile number
-          with third parties for marketing.
+          text messages is not a condition of any purchase. <strong>No mobile information, opt-in data, or
+          messaging consent will be shared with third parties or affiliates for marketing or promotional
+          purposes.</strong>
         </p>
 
         <h2 style={h2}>Message frequency &amp; cost</h2>

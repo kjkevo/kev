@@ -10,10 +10,10 @@ export default function PrivacyPage() {
         <p style={muted}>Last updated: {new Date().getFullYear()}</p>
 
         <p style={p}>
-          This policy explains how Simplicity Pleasing (&ldquo;we,&rdquo; &ldquo;us&rdquo;) handles
-          information in connection with our text-message (SMS) program. This program sends an
-          automated text reply to people who call our business phone number (+1&nbsp;847&nbsp;613&nbsp;1968)
-          and do not reach us.
+          This policy explains how Simplicity Pleasing, operating under the registered brand
+          <strong> Slimpse</strong> (&ldquo;we,&rdquo; &ldquo;us&rdquo;), handles information in connection
+          with our text-message (SMS) program. This program sends an automated text reply to people who call
+          our business phone number (+1&nbsp;847&nbsp;613&nbsp;1968) and do not reach us.
         </p>
 
         <h2 style={h2}>How you consent (opt-in)</h2>
@@ -42,9 +42,10 @@ export default function PrivacyPage() {
 
         <h2 style={h2}>We do not sell or share your number</h2>
         <p style={p}>
-          <strong>We do not sell, rent, or share your mobile phone number or SMS consent with any third
-          parties for marketing purposes.</strong> Numbers are used solely to respond to your inquiry.
-          Information may be processed by our messaging provider (Twilio) only to deliver these messages.
+          <strong>No mobile information, opt-in data, or messaging consent will be shared with third parties
+          or affiliates for marketing or promotional purposes.</strong> We do not sell, rent, or share your
+          mobile phone number or SMS opt-in data with any third party. Your number is used solely to respond
+          to your inquiry, and is processed only by our messaging provider (Twilio) to deliver these messages.
         </p>
 
         <h2 style={h2}>Message frequency &amp; rates</h2>
