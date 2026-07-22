@@ -20,9 +20,10 @@ export default function PrivacyPage() {
         <p style={p}>
           You provide express consent to receive an automated text message from Simplicity Pleasing when
           you <strong>call our business phone number and the call is not answered</strong>. By calling us,
-          you agree to receive a reply text about the service you were calling about. This is the only way
-          consent is obtained — we do not add numbers from any purchased list, website form, or third party.
-          Consent to receive texts is not a condition of any purchase.
+          you agree to receive a reply text about the service you were calling about. You may also opt in
+          directly through our web form at <a style={link} href="/opt-in">/opt-in</a>, where you enter your
+          mobile number and check a box agreeing to receive texts. We never add numbers from purchased lists
+          or third parties. Consent to receive texts is not a condition of any purchase.
         </p>
 
         <h2 style={h2}>What messages you&apos;ll receive</h2>
