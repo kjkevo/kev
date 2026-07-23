@@ -61,7 +61,8 @@ export const generateMissedCallTwiML = (options: MissedCallTwiMLOptions = {}) =>
   const twiml = new twilio.twiml.VoiceResponse();
   twiml.say(greeting);
   if (options.recordVoicemail) {
-    twiml.say("Please leave a message after the beep.");
+    // Recording disclosure — required for consent in two-party-consent states.
+    twiml.say("Please leave a message after the beep. Your message will be recorded.");
     twiml.record({ maxLength: 120 });
     twiml.say("Thank you for your message. We'll get back to you shortly.");
   }

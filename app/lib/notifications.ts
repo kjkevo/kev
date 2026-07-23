@@ -32,6 +32,18 @@ const initializeEmailTransporter = () => {
   return emailTransporter;
 };
 
+// Ensures every outbound message identifies the sender and offers opt-out
+// (TCPA/CTIA best practice), without duplicating it if the business already
+// wrote "STOP" into their own message.
+function withComplianceFooter(message: string, businessName: string): string {
+  const trimmed = message.trim();
+  if (/\bSTOP\b/i.test(trimmed)) return trimmed;
+  const namePrefix = trimmed.toLowerCase().includes(businessName.toLowerCase())
+    ? ''
+    : `${businessName}: `;
+  return `${trimmed}\n\n${namePrefix}Reply STOP to opt out, HELP for help.`;
+}
+
 export const sendMissedCallText = async (
   callerPhone: string,
   businessName: string,
@@ -39,7 +51,10 @@ export const sendMissedCallText = async (
   fromPhone?: string
 ): Promise<{ success: boolean; sid?: string; error?: string }> => {
   try {
-    const message = renderTemplate(template, { BUSINESS_NAME: businessName });
+    const message = withComplianceFooter(
+      renderTemplate(template, { BUSINESS_NAME: businessName }),
+      businessName,
+    );
     const result = await sendSMS(callerPhone, message, fromPhone);
     return { success: true, sid: result.sid };
   } catch (error) {
@@ -56,10 +71,10 @@ export const sendLeadConfirmationText = async (
   fromPhone?: string
 ): Promise<{ success: boolean; sid?: string; error?: string }> => {
   try {
-    const message = renderTemplate(template, {
-      BUSINESS_NAME: businessName,
-      NAME: leadName,
-    });
+    const message = withComplianceFooter(
+      renderTemplate(template, { BUSINESS_NAME: businessName, NAME: leadName }),
+      businessName,
+    );
     const result = await sendSMS(leadPhone, message, fromPhone);
     return { success: true, sid: result.sid };
   } catch (error) {

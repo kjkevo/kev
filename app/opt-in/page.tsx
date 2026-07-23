@@ -79,10 +79,11 @@ export default function OptInPage() {
             <label style={s.consentRow}>
               <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} style={s.checkbox} />
               <span style={s.consentText}>
-                I agree to receive automated text messages from <strong>Simplicity Pleasing</strong> at the
-                mobile number provided about my inquiry. Consent is not a condition of purchase. Message
-                frequency varies; message &amp; data rates may apply. Reply <strong>STOP</strong> to opt out
-                or <strong>HELP</strong> for help. See our{" "}
+                By checking this box, I agree to receive automated text messages from
+                <strong> Simplicity Pleasing</strong> at the mobile number I provide, about my inquiry.
+                Consent is not a condition of any purchase. Message frequency varies; message and data
+                rates may apply. Reply <strong>STOP</strong> to opt out or <strong>HELP</strong> for help.
+                See our{" "}
                 <a style={s.link} href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>{" "}
                 and{" "}
                 <a style={s.link} href="/terms" target="_blank" rel="noopener noreferrer">Terms &amp; Conditions</a>.
