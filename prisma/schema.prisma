@@ -204,7 +204,7 @@ model MissedCall {
   textSentAt      DateTime?
   textStatus      String    @default("pending")
   textResponse    String?
-  twilio_call_sid String?
+  twilio_call_sid String?   @unique
   airtableId      String?
 
   // Mini-CRM pipeline fields

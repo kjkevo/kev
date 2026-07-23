@@ -4,6 +4,7 @@ import { loadBusinessConfigByPhone, validateConfig } from '@/app/lib/config';
 import { sendMissedCallText, sendMissedCallAlertToOwner, sendTextFailureAlertToOwner } from '@/app/lib/notifications';
 import { logMissedCallToAirtable } from '@/app/lib/airtable';
 import { prisma } from '@/app/lib/db';
+import { Prisma } from '@prisma/client';
 
 export async function POST(request: NextRequest) {
   try {
@@ -50,22 +51,45 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid config' }, { status: 500 });
     }
 
-    // Send automatic text to caller (from the business's own number), if enabled
+    // Idempotency: a Twilio CallSid uniquely identifies a call. Claim it by
+    // creating the record FIRST — before sending any text. If Twilio re-delivers
+    // this webhook, the unique constraint on twilio_call_sid makes the second
+    // create fail, and we bail out without sending a duplicate text-back.
+    let missedCall;
+    try {
+      missedCall = await prisma.missedCall.create({
+        data: {
+          businessId: config.id,
+          callerPhone: from,
+          missedAt: new Date(),
+          textStatus: config.smsEnabled ? 'pending' : 'skipped',
+          twilio_call_sid: callSid || undefined,
+        },
+      });
+    } catch (err) {
+      // P2002 = unique constraint violation -> this call was already processed.
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        console.log(`Call ${callSid} already processed; skipping duplicate webhook.`);
+        return NextResponse.json({ success: true, deduped: true });
+      }
+      throw err;
+    }
+
+    // Now send the automatic text to the caller exactly once, if enabled.
     const textResult = config.smsEnabled
       ? await sendMissedCallText(from, config.businessName, config.missedCallMessage, config.businessPhone, config.recordVoicemail)
       : { success: false as const, error: undefined as string | undefined };
 
-    // Log to database
-    const missedCall = await prisma.missedCall.create({
-      data: {
-        businessId: config.id,
-        callerPhone: from,
-        missedAt: new Date(),
-        textSentAt: textResult.success ? new Date() : undefined,
-        textStatus: config.smsEnabled ? (textResult.success ? 'sent' : 'failed') : 'skipped',
-        twilio_call_sid: callSid,
-      },
-    });
+    // Record the delivery outcome.
+    if (config.smsEnabled) {
+      await prisma.missedCall.update({
+        where: { id: missedCall.id },
+        data: {
+          textSentAt: textResult.success ? new Date() : null,
+          textStatus: textResult.success ? 'sent' : 'failed',
+        },
+      });
+    }
 
     // Log to Airtable (async, don't fail if it errors)
     const airtableConfig = {
