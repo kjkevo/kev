@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyTwilioSignature } from '@/app/lib/twilio';
 import { loadBusinessConfigByPhone, validateConfig } from '@/app/lib/config';
-import { sendMissedCallText, sendMissedCallAlertToOwner } from '@/app/lib/notifications';
+import { sendMissedCallText, sendMissedCallAlertToOwner, sendTextFailureAlertToOwner } from '@/app/lib/notifications';
 import { logMissedCallToAirtable } from '@/app/lib/airtable';
 import { prisma } from '@/app/lib/db';
 
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     // Send automatic text to caller (from the business's own number), if enabled
     const textResult = config.smsEnabled
       ? await sendMissedCallText(from, config.businessName, config.missedCallMessage, config.businessPhone)
-      : { success: false as const };
+      : { success: false as const, error: undefined as string | undefined };
 
     // Log to database
     const missedCall = await prisma.missedCall.create({
@@ -90,11 +90,21 @@ export async function POST(request: NextRequest) {
       })
       .catch(console.error);
 
-    // Send email alert to owner (optional, don't fail if it errors)
-    sendMissedCallAlertToOwner(config.ownerEmail, config.businessName, {
-      phone: from,
-      time: new Date(),
-    }).catch(console.error);
+    // If the text-back failed, alert the owner so they can call the customer
+    // back manually (fallback handling — never silently drop a missed lead).
+    if (config.smsEnabled && !textResult.success) {
+      sendTextFailureAlertToOwner(
+        { email: config.ownerEmail, phone: config.ownerPhone },
+        config.businessName,
+        { customerPhone: from, kind: 'missed_call', error: textResult.error },
+      ).catch(console.error);
+    } else {
+      // Otherwise send the normal missed-call notice (optional, best-effort)
+      sendMissedCallAlertToOwner(config.ownerEmail, config.businessName, {
+        phone: from,
+        time: new Date(),
+      }).catch(console.error);
+    }
 
     console.log(`Processed missed call ${callSid}, text status: ${textResult.success ? 'sent' : 'failed'}`);
 

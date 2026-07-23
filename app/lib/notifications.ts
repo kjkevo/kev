@@ -123,6 +123,66 @@ export const sendLeadAlertToOwner = async (
   }
 };
 
+// Alert the business owner when an automatic text-back could NOT be sent, so a
+// missed customer never falls through the cracks. Email is the primary channel
+// because it works even when Twilio itself is the thing that's failing; a best-
+// effort SMS to the owner is also attempted for immediacy. Optionally copies a
+// platform-level ALERT_EMAIL so the operator sees failures across all clients.
+export const sendTextFailureAlertToOwner = async (
+  owner: { email: string; phone?: string },
+  businessName: string,
+  detail: { customerPhone: string; kind: 'missed_call' | 'lead'; error?: string }
+): Promise<{ emailSent: boolean; smsSent: boolean }> => {
+  const when = new Date().toLocaleString();
+  const what = detail.kind === 'lead' ? 'lead confirmation text' : 'missed-call text';
+  let emailSent = false;
+  let smsSent = false;
+
+  // Primary: email (independent of Twilio, so it survives a Twilio outage)
+  try {
+    const transporter = initializeEmailTransporter();
+    if (transporter) {
+      const recipients = [owner.email];
+      if (process.env.ALERT_EMAIL && process.env.ALERT_EMAIL !== owner.email) {
+        recipients.push(process.env.ALERT_EMAIL);
+      }
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: recipients.join(', '),
+        subject: `⚠️ Text-back FAILED for ${businessName} — call ${detail.customerPhone} back`,
+        html: `
+          <h2 style="color:#b00020">Automatic text did not send</h2>
+          <p>We could not deliver the ${what} for <strong>${businessName}</strong>.
+          Please reach out to this customer manually so the lead isn't lost.</p>
+          <p><strong>Customer phone:</strong> <a href="tel:${detail.customerPhone}">${detail.customerPhone}</a></p>
+          <p><strong>Time:</strong> ${when}</p>
+          ${detail.error ? `<p><strong>Reason:</strong> ${detail.error}</p>` : ''}
+          <hr />
+          <p>This is an automatic reliability alert from your missed-call system.</p>
+        `,
+      });
+      emailSent = true;
+    }
+  } catch (error) {
+    console.error('Error sending text-failure alert email:', error);
+  }
+
+  // Best-effort: SMS the owner (may also fail if Twilio is the root cause)
+  if (owner.phone) {
+    try {
+      await sendSMS(
+        owner.phone,
+        `${businessName}: we could NOT auto-text ${detail.customerPhone} after a ${detail.kind === 'lead' ? 'new lead' : 'missed call'}. Please contact them manually.`
+      );
+      smsSent = true;
+    } catch (error) {
+      console.error('Error sending text-failure alert SMS:', error);
+    }
+  }
+
+  return { emailSent, smsSent };
+};
+
 export const sendMissedCallAlertToOwner = async (
   ownerEmail: string,
   businessName: string,

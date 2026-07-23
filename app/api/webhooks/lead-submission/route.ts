@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { loadBusinessConfig, validateConfig } from '@/app/lib/config';
-import { sendLeadConfirmationText, sendLeadAlertToOwner } from '@/app/lib/notifications';
+import { sendLeadConfirmationText, sendLeadAlertToOwner, sendTextFailureAlertToOwner } from '@/app/lib/notifications';
 import { logLeadToAirtable } from '@/app/lib/airtable';
 import { prisma } from '@/app/lib/db';
 
@@ -70,6 +70,15 @@ export async function POST(request: NextRequest) {
         }
       })
       .catch(console.error);
+
+    // If the confirmation text failed, alert the owner to follow up manually.
+    if (!textResult.success) {
+      sendTextFailureAlertToOwner(
+        { email: config.ownerEmail, phone: config.ownerPhone },
+        config.businessName,
+        { customerPhone: phone, kind: 'lead', error: textResult.error },
+      ).catch(console.error);
+    }
 
     // Send email alert to owner (async, don't wait for response)
     sendLeadAlertToOwner(config.ownerEmail, config.businessName, {
