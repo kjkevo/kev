@@ -41,15 +41,9 @@ const EMPTY_FORM: FormState = {
   recordVoicemail: false,
 };
 
-const KEY_STORAGE = "admin_api_key";
-
 /* ─── Page ───────────────────────────────────────────────────────────────── */
 
 export default function AdminBusinessesPage() {
-  const [adminKey, setAdminKey] = React.useState("");
-  const [authed, setAuthed] = React.useState(false);
-  const [keyInput, setKeyInput] = React.useState("");
-
   const [businesses, setBusinesses] = React.useState<Business[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -59,25 +53,13 @@ export default function AdminBusinessesPage() {
   const [form, setForm] = React.useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = React.useState(false);
 
-  // Load a saved key on first render
-  React.useEffect(() => {
-    const saved = typeof window !== "undefined" ? window.localStorage.getItem(KEY_STORAGE) : null;
-    if (saved) {
-      setAdminKey(saved);
-      setAuthed(true);
-    }
-  }, []);
-
-  const fetchBusinesses = React.useCallback(async (key: string) => {
+  const fetchBusinesses = React.useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/admin/businesses", { headers: { "x-admin-key": key } });
+      const res = await fetch("/api/admin/businesses");
       if (res.status === 401) {
-        setAuthed(false);
-        setAdminKey("");
-        window.localStorage.removeItem(KEY_STORAGE);
-        setError("Invalid admin key.");
+        window.location.href = "/login?next=/admin";
         return;
       }
       if (!res.ok) {
@@ -95,17 +77,8 @@ export default function AdminBusinessesPage() {
   }, []);
 
   React.useEffect(() => {
-    if (authed && adminKey) fetchBusinesses(adminKey);
-  }, [authed, adminKey, fetchBusinesses]);
-
-  function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
-    const k = keyInput.trim();
-    if (!k) return;
-    window.localStorage.setItem(KEY_STORAGE, k);
-    setAdminKey(k);
-    setAuthed(true);
-  }
+    fetchBusinesses();
+  }, [fetchBusinesses]);
 
   function startCreate() {
     setEditingId(null);
@@ -142,7 +115,7 @@ export default function AdminBusinessesPage() {
       const method = editingId ? "PATCH" : "POST";
       const res = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
       const j = await res.json().catch(() => ({}));
@@ -153,7 +126,7 @@ export default function AdminBusinessesPage() {
       setNotice(editingId ? "Business updated." : "Business created.");
       setForm(EMPTY_FORM);
       setEditingId(null);
-      fetchBusinesses(adminKey);
+      fetchBusinesses();
     } catch (err) {
       setError(String(err));
     } finally {
@@ -168,7 +141,6 @@ export default function AdminBusinessesPage() {
     try {
       const res = await fetch(`/api/admin/businesses/${id}`, {
         method: "DELETE",
-        headers: { "x-admin-key": adminKey },
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -180,42 +152,19 @@ export default function AdminBusinessesPage() {
         setEditingId(null);
         setForm(EMPTY_FORM);
       }
-      fetchBusinesses(adminKey);
+      fetchBusinesses();
     } catch (err) {
       setError(String(err));
     }
   }
 
-  function logout() {
-    window.localStorage.removeItem(KEY_STORAGE);
-    setAdminKey("");
-    setAuthed(false);
-    setBusinesses([]);
-    setKeyInput("");
-  }
-
-  /* ── Login gate ── */
-  if (!authed) {
-    return (
-      <div style={styles.page}>
-        <div style={styles.card}>
-          <h1 style={styles.h1}>Business Admin</h1>
-          <p style={styles.muted}>Enter your admin key to manage businesses.</p>
-          <form onSubmit={handleLogin}>
-            <input
-              type="password"
-              value={keyInput}
-              onChange={(e) => setKeyInput(e.target.value)}
-              placeholder="Admin API key"
-              style={styles.input}
-              autoFocus
-            />
-            <button type="submit" style={styles.primaryBtn}>Continue</button>
-          </form>
-          {error && <p style={styles.error}>{error}</p>}
-        </div>
-      </div>
-    );
+  async function signOut() {
+    try {
+      await fetch("/api/auth/owner-logout", { method: "POST" });
+    } catch {
+      /* ignore */
+    }
+    window.location.href = "/login";
   }
 
   /* ── Main admin ── */
@@ -227,7 +176,7 @@ export default function AdminBusinessesPage() {
             <h1 style={styles.h1}>Business Admin</h1>
             <p style={styles.muted}>Add and configure businesses in the missed-call system.</p>
           </div>
-          <button onClick={logout} style={styles.ghostBtn}>Sign out</button>
+          <button onClick={signOut} style={styles.ghostBtn}>Sign out</button>
         </header>
 
         {error && <div style={styles.errorBanner}>{error}</div>}

@@ -44,7 +44,6 @@ interface Metrics {
 }
 
 const REFRESH_MS = 5000;
-const KEY_STORAGE = "admin_api_key";
 const STATUSES = ["new", "contacted", "booked", "won", "lost", "no_response", "spam"] as const;
 const STATUS_META: Record<string, { label: string; bg: string; fg: string }> = {
   new: { label: "New", bg: "#1B2740", fg: "#9FC2FF" },
@@ -78,19 +77,15 @@ export default function DashboardPage() {
   const [lastUpdated, setLastUpdated] = React.useState<Date | null>(null);
   const [connected, setConnected] = React.useState(false);
 
-  const [ownerKey, setOwnerKey] = React.useState("");
-  const [showKeyInput, setShowKeyInput] = React.useState(false);
-  const [keyInput, setKeyInput] = React.useState("");
   const [drafts, setDrafts] = React.useState<Record<number, { dealValue: string; notes: string }>>({});
   const [savingId, setSavingId] = React.useState<number | null>(null);
   const [saveError, setSaveError] = React.useState<string | null>(null);
 
   const [tickets, setTickets] = React.useState<SupportTicket[]>([]);
 
-  React.useEffect(() => {
-    const saved = typeof window !== "undefined" ? window.localStorage.getItem(KEY_STORAGE) : null;
-    if (saved) setOwnerKey(saved);
-  }, []);
+  // Access is gated by the owner login (middleware), so the dashboard is always
+  // in owner mode and admin calls rely on the session cookie (sent automatically).
+  const ownerMode = true;
 
   const load = React.useCallback(async () => {
     try {
@@ -113,11 +108,9 @@ export default function DashboardPage() {
     return () => clearInterval(timer);
   }, [load]);
 
-  const ownerMode = ownerKey.length > 0;
-
-  const loadTickets = React.useCallback(async (key: string) => {
+  const loadTickets = React.useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/support", { headers: { "x-admin-key": key }, cache: "no-store" });
+      const res = await fetch("/api/admin/support", { cache: "no-store" });
       if (!res.ok) return;
       const data = await res.json();
       setTickets(data.tickets ?? []);
@@ -127,34 +120,29 @@ export default function DashboardPage() {
   }, []);
 
   React.useEffect(() => {
-    if (ownerMode && tab === "support") loadTickets(ownerKey);
-  }, [ownerMode, tab, ownerKey, loadTickets]);
+    if (tab === "support") loadTickets();
+  }, [tab, loadTickets]);
 
   async function resolveTicket(id: number, status: "open" | "resolved") {
     try {
       const res = await fetch(`/api/admin/support/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", "x-admin-key": ownerKey },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
       });
-      if (res.ok) loadTickets(ownerKey);
+      if (res.ok) loadTickets();
     } catch {
       /* ignore */
     }
   }
 
-  function saveKey(e: React.FormEvent) {
-    e.preventDefault();
-    const k = keyInput.trim();
-    if (!k) return;
-    window.localStorage.setItem(KEY_STORAGE, k);
-    setOwnerKey(k);
-    setShowKeyInput(false);
-    setKeyInput("");
-  }
-  function exitOwner() {
-    window.localStorage.removeItem(KEY_STORAGE);
-    setOwnerKey("");
+  async function signOut() {
+    try {
+      await fetch("/api/auth/owner-logout", { method: "POST" });
+    } catch {
+      /* ignore */
+    }
+    window.location.href = "/login";
   }
 
   async function patchCall(dbId: number, payload: Record<string, unknown>) {
@@ -163,7 +151,7 @@ export default function DashboardPage() {
     try {
       const res = await fetch(`/api/admin/missed-calls/${dbId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", "x-admin-key": ownerKey },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       const j = await res.json().catch(() => ({}));
@@ -201,21 +189,9 @@ export default function DashboardPage() {
               <span style={{ ...s.dot, background: connected ? "#34D399" : "#6B7280" }} />
               <span style={s.liveText}>{connected ? "LIVE" : "connecting…"}</span>
             </div>
-            {ownerMode ? (
-              <button style={s.ownerBtnActive} onClick={exitOwner}>Owner mode ✓</button>
-            ) : (
-              <button style={s.ownerBtn} onClick={() => setShowKeyInput((v) => !v)}>Owner mode</button>
-            )}
+            <button style={s.ownerBtn} onClick={signOut}>Sign out</button>
           </div>
         </header>
-
-        {showKeyInput && !ownerMode && (
-          <form onSubmit={saveKey} style={s.keyForm}>
-            <input type="password" value={keyInput} placeholder="Admin key"
-              onChange={(e) => setKeyInput(e.target.value)} style={s.keyInput} autoFocus />
-            <button type="submit" style={s.smallPrimary}>Unlock editing</button>
-          </form>
-        )}
 
         {/* Tabs */}
         <nav style={s.tabs}>
@@ -234,10 +210,7 @@ export default function DashboardPage() {
           />
         )}
         {tab === "support" && (
-          <SupportTab
-            ownerMode={ownerMode} tickets={tickets}
-            onUnlock={() => setShowKeyInput(true)} resolveTicket={resolveTicket}
-          />
+          <SupportTab tickets={tickets} resolveTicket={resolveTicket} />
         )}
 
         <footer style={s.footer}>
@@ -377,25 +350,11 @@ function ActivityTab({
 }
 
 function SupportTab({
-  ownerMode, tickets, onUnlock, resolveTicket,
+  tickets, resolveTicket,
 }: {
-  ownerMode: boolean;
   tickets: SupportTicket[];
-  onUnlock: () => void;
   resolveTicket: (id: number, status: "open" | "resolved") => void;
 }) {
-  if (!ownerMode) {
-    return (
-      <div style={s.tabBody}>
-        <div style={s.roiCaption}>Support tickets are private. Enter owner mode to view them.</div>
-        <button style={s.addBtn} onClick={onUnlock}>Enter owner mode</button>
-        <div style={s.empty}>
-          Your public support form is at <a href="/support" style={s.footLink}>/support</a> — share or embed it so
-          clients can reach you.
-        </div>
-      </div>
-    );
-  }
   const open = tickets.filter((t) => t.status !== "resolved");
   const resolved = tickets.filter((t) => t.status === "resolved");
   return (
