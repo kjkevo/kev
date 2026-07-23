@@ -56,7 +56,17 @@ const STATUS_META: Record<string, { label: string; bg: string; fg: string }> = {
   spam: { label: "Spam", bg: "#2A2020", fg: "#D69A9A" },
 };
 
-type Tab = "clients" | "metrics" | "activity";
+type Tab = "clients" | "metrics" | "activity" | "support";
+
+interface SupportTicket {
+  id: number;
+  createdAt: string;
+  name: string;
+  email: string;
+  subject: string | null;
+  message: string;
+  status: string;
+}
 
 /* ─── Page ───────────────────────────────────────────────────────────────── */
 
@@ -74,6 +84,8 @@ export default function DashboardPage() {
   const [drafts, setDrafts] = React.useState<Record<number, { dealValue: string; notes: string }>>({});
   const [savingId, setSavingId] = React.useState<number | null>(null);
   const [saveError, setSaveError] = React.useState<string | null>(null);
+
+  const [tickets, setTickets] = React.useState<SupportTicket[]>([]);
 
   React.useEffect(() => {
     const saved = typeof window !== "undefined" ? window.localStorage.getItem(KEY_STORAGE) : null;
@@ -102,6 +114,34 @@ export default function DashboardPage() {
   }, [load]);
 
   const ownerMode = ownerKey.length > 0;
+
+  const loadTickets = React.useCallback(async (key: string) => {
+    try {
+      const res = await fetch("/api/admin/support", { headers: { "x-admin-key": key }, cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json();
+      setTickets(data.tickets ?? []);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (ownerMode && tab === "support") loadTickets(ownerKey);
+  }, [ownerMode, tab, ownerKey, loadTickets]);
+
+  async function resolveTicket(id: number, status: "open" | "resolved") {
+    try {
+      const res = await fetch(`/api/admin/support/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "x-admin-key": ownerKey },
+        body: JSON.stringify({ status }),
+      });
+      if (res.ok) loadTickets(ownerKey);
+    } catch {
+      /* ignore */
+    }
+  }
 
   function saveKey(e: React.FormEvent) {
     e.preventDefault();
@@ -182,6 +222,7 @@ export default function DashboardPage() {
           <TabButton active={tab === "metrics"} onClick={() => setTab("metrics")} label="Metrics" />
           <TabButton active={tab === "clients"} onClick={() => setTab("clients")} label={`Clients${businesses.length ? ` (${businesses.length})` : ""}`} />
           <TabButton active={tab === "activity"} onClick={() => setTab("activity")} label="Activity" />
+          <TabButton active={tab === "support"} onClick={() => setTab("support")} label="Support" />
         </nav>
 
         {tab === "metrics" && <MetricsTab metrics={metrics} />}
@@ -190,6 +231,12 @@ export default function DashboardPage() {
           <ActivityTab
             events={events} ownerMode={ownerMode} saveError={saveError}
             savingId={savingId} patchCall={patchCall} draftFor={draftFor} setDraft={setDraft}
+          />
+        )}
+        {tab === "support" && (
+          <SupportTab
+            ownerMode={ownerMode} tickets={tickets}
+            onUnlock={() => setShowKeyInput(true)} resolveTicket={resolveTicket}
           />
         )}
 
@@ -329,6 +376,65 @@ function ActivityTab({
   );
 }
 
+function SupportTab({
+  ownerMode, tickets, onUnlock, resolveTicket,
+}: {
+  ownerMode: boolean;
+  tickets: SupportTicket[];
+  onUnlock: () => void;
+  resolveTicket: (id: number, status: "open" | "resolved") => void;
+}) {
+  if (!ownerMode) {
+    return (
+      <div style={s.tabBody}>
+        <div style={s.roiCaption}>Support tickets are private. Enter owner mode to view them.</div>
+        <button style={s.addBtn} onClick={onUnlock}>Enter owner mode</button>
+        <div style={s.empty}>
+          Your public support form is at <a href="/support" style={s.footLink}>/support</a> — share or embed it so
+          clients can reach you.
+        </div>
+      </div>
+    );
+  }
+  const open = tickets.filter((t) => t.status !== "resolved");
+  const resolved = tickets.filter((t) => t.status === "resolved");
+  return (
+    <div style={s.tabBody}>
+      <div style={s.clientsHead}>
+        <div style={s.roiCaption}>{open.length} open · {resolved.length} resolved</div>
+        <a href="/support" target="_blank" rel="noopener noreferrer" style={s.addBtn}>View public form ↗</a>
+      </div>
+      {tickets.length === 0 && <div style={s.empty}>No tickets yet.</div>}
+      <div style={s.feed}>
+        {[...open, ...resolved].map((t) => (
+          <div key={t.id} style={s.event}>
+            <div style={s.eventTop}>
+              <span style={s.eventKind}>✉️ {t.subject || "(no subject)"}</span>
+              <span style={{ ...s.pill, ...(t.status === "resolved" ? { background: "#12301F", color: "#8FE3B0" } : { background: "#2A2333", color: "#C9B8F0" }) }}>
+                {t.status}
+              </span>
+              <span style={s.eventTime}>{timeAgo(t.createdAt)}</span>
+            </div>
+            <div style={s.eventRow}>
+              <span style={s.eventCaller}>{t.name}</span>
+              <a href={`mailto:${t.email}`} style={s.footLink}>{t.email}</a>
+            </div>
+            <div style={s.bubbleOut}>{t.message}</div>
+            <div style={s.controls}>
+              {t.status === "resolved" ? (
+                <button style={s.smallBtn} onClick={() => resolveTicket(t.id, "open")}>Reopen</button>
+              ) : (
+                <button style={s.saveBtn} onClick={() => resolveTicket(t.id, "resolved")}>Mark resolved</button>
+              )}
+              <a href={`mailto:${t.email}?subject=Re: ${encodeURIComponent(t.subject || "your message")}`} style={s.smallBtn}>Reply by email</a>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ─── Small components ───────────────────────────────────────────────────── */
 
 function Stat({ label, value, sub, accent, big }: { label: string; value: string; sub?: string; accent?: string; big?: boolean }) {
@@ -435,6 +541,7 @@ const s: Record<string, React.CSSProperties> = {
   moneyInput: { background: "transparent", border: "none", padding: "7px 4px", color: "#E5E9F0", fontSize: 13, width: 90, outline: "none" },
   noteInput: { background: "#0A0F1E", border: "1px solid #24324F", borderRadius: 8, padding: "7px 10px", color: "#E5E9F0", fontSize: 13, flex: 1, minWidth: 120 },
   saveBtn: { background: "#3B82F6", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer" },
+  smallBtn: { background: "#1B2740", color: "#E5E9F0", border: "none", borderRadius: 8, padding: "7px 12px", fontSize: 13, fontWeight: 600, cursor: "pointer", textDecoration: "none" },
   saveError: { background: "#3A1620", color: "#F7A8B8", padding: "8px 12px", borderRadius: 8, fontSize: 13 },
 
   empty: { color: "#6B7484", fontSize: 14, padding: "16px 0" },
