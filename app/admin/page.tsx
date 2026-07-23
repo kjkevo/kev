@@ -231,6 +231,13 @@ export default function AdminBusinessesPage() {
                   onChange={(e) => setForm({ ...form, recordVoicemail: e.target.checked })} /> Record voicemail
               </label>
             </div>
+            {form.recordVoicemail && (
+              <p style={styles.muted}>
+                When recording is on, callers automatically hear a spoken recording notice before the
+                beep (with the option to hang up and text instead), and the text-back includes a written
+                recording notice — no extra setup needed.
+              </p>
+            )}
 
             <div style={styles.formActions}>
               <button type="submit" style={styles.primaryBtn} disabled={saving}>

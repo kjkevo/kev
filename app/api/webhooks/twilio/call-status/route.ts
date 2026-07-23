@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
 
     // Send automatic text to caller (from the business's own number), if enabled
     const textResult = config.smsEnabled
-      ? await sendMissedCallText(from, config.businessName, config.missedCallMessage, config.businessPhone)
+      ? await sendMissedCallText(from, config.businessName, config.missedCallMessage, config.businessPhone, config.recordVoicemail)
       : { success: false as const, error: undefined as string | undefined };
 
     // Log to database

@@ -61,9 +61,15 @@ export const generateMissedCallTwiML = (options: MissedCallTwiMLOptions = {}) =>
   const twiml = new twilio.twiml.VoiceResponse();
   twiml.say(greeting);
   if (options.recordVoicemail) {
-    // Recording disclosure — required for consent in two-party-consent states.
-    twiml.say("Please leave a message after the beep. Your message will be recorded.");
-    twiml.record({ maxLength: 120 });
+    // Spoken recording disclosure, played BEFORE any audio is captured so the
+    // caller can consent (or opt out) first — required in two-party-consent
+    // states. The caller is given a clear way to avoid being recorded.
+    twiml.say(
+      "Please note: your voicemail will be recorded so we can follow up. " +
+      "If you do not wish to be recorded, you can hang up now and text us instead. " +
+      "To leave a recorded message, please speak after the beep."
+    );
+    twiml.record({ maxLength: 120, playBeep: true });
     twiml.say("Thank you for your message. We'll get back to you shortly.");
   }
   twiml.hangup();

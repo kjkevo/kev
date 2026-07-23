@@ -48,6 +48,15 @@ export default function PrivacyPage() {
           to your inquiry, and is processed only by our messaging provider (Twilio) to deliver these messages.
         </p>
 
+        <h2 style={h2}>Call recording</h2>
+        <p style={p}>
+          If you choose to leave a voicemail after a missed call, <strong>your message may be
+          recorded</strong> so we can follow up on your request. Before any recording begins, you will
+          hear a spoken notice; if you do not wish to be recorded, you may hang up and text us instead.
+          Recordings are used solely to respond to your inquiry, are processed only by our telephony
+          provider (Twilio), and are never sold or shared with third parties for marketing purposes.
+        </p>
+
         <h2 style={h2}>Message frequency &amp; rates</h2>
         <p style={p}>
           Message frequency is low — typically 1&ndash;2 messages per inquiry. <strong>Message and data
