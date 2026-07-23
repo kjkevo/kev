@@ -55,7 +55,19 @@ const STATUS_META: Record<string, { label: string; bg: string; fg: string }> = {
   spam: { label: "Spam", bg: "#2A2020", fg: "#D69A9A" },
 };
 
-type Tab = "clients" | "metrics" | "activity" | "support";
+type Tab = "clients" | "metrics" | "activity" | "support" | "health";
+
+interface HealthData {
+  status: string;
+  checks: {
+    database?: { status: string; error?: string };
+    twilio?: { status: string; note?: string };
+    email?: { status: string };
+    textFailuresLast24h?: number | { status: string; error?: string };
+  };
+  timestamp: string;
+  version?: string;
+}
 
 interface SupportTicket {
   id: number;
@@ -83,6 +95,9 @@ export default function DashboardPage() {
 
   const [tickets, setTickets] = React.useState<SupportTicket[]>([]);
   const [ticketsError, setTicketsError] = React.useState<string | null>(null);
+
+  const [health, setHealth] = React.useState<HealthData | null>(null);
+  const [healthError, setHealthError] = React.useState<string | null>(null);
 
   // Access is gated by the owner login (middleware), so the dashboard is always
   // in owner mode and admin calls rely on the session cookie (sent automatically).
@@ -132,6 +147,28 @@ export default function DashboardPage() {
   React.useEffect(() => {
     if (tab === "support") loadTickets();
   }, [tab, loadTickets]);
+
+  const loadHealth = React.useCallback(async () => {
+    try {
+      const res = await fetch("/api/health", { cache: "no-store" });
+      const data = await res.json().catch(() => null);
+      if (!data) {
+        setHealthError(`Couldn't read health status (error ${res.status}).`);
+        return;
+      }
+      setHealth(data);
+      setHealthError(null);
+    } catch {
+      setHealthError("Couldn't reach the server to check system health.");
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (tab !== "health") return;
+    loadHealth();
+    const timer = setInterval(loadHealth, REFRESH_MS);
+    return () => clearInterval(timer);
+  }, [tab, loadHealth]);
 
   async function resolveTicket(id: number, status: "open" | "resolved") {
     try {
@@ -209,6 +246,7 @@ export default function DashboardPage() {
           <TabButton active={tab === "clients"} onClick={() => setTab("clients")} label={`Clients${businesses.length ? ` (${businesses.length})` : ""}`} />
           <TabButton active={tab === "activity"} onClick={() => setTab("activity")} label="Activity" />
           <TabButton active={tab === "support"} onClick={() => setTab("support")} label="Support" />
+          <TabButton active={tab === "health"} onClick={() => setTab("health")} label="Health" />
         </nav>
 
         {tab === "metrics" && <MetricsTab metrics={metrics} />}
@@ -221,6 +259,9 @@ export default function DashboardPage() {
         )}
         {tab === "support" && (
           <SupportTab tickets={tickets} resolveTicket={resolveTicket} error={ticketsError} />
+        )}
+        {tab === "health" && (
+          <HealthTab health={health} error={healthError} events={events} onRefresh={loadHealth} />
         )}
 
         <footer style={s.footer}>
@@ -406,6 +447,132 @@ function SupportTab({
   );
 }
 
+function HealthTab({
+  health, error, events, onRefresh,
+}: {
+  health: HealthData | null;
+  error?: string | null;
+  events: ActivityEvent[];
+  onRefresh: () => void;
+}) {
+  // Recent failed text-backs pulled from the activity feed.
+  const failures = events.filter((e) => e.delivery === "failed");
+
+  const c = health?.checks;
+  const failCount =
+    typeof c?.textFailuresLast24h === "number" ? c.textFailuresLast24h : undefined;
+
+  // Build a plain-language row per check: { level, label, detail, hint? }
+  type Level = "ok" | "warn" | "bad";
+  const rows: { level: Level; label: string; detail: string; hint?: string }[] = [];
+
+  if (c?.database) {
+    const ok = c.database.status === "ok";
+    rows.push({
+      level: ok ? "ok" : "bad",
+      label: "Database",
+      detail: ok ? "Connected — calls and messages are being saved." : "Cannot reach the database.",
+      hint: ok ? undefined : "Check DATABASE_URL / DIRECT_URL in Vercel, then redeploy.",
+    });
+  }
+  if (c?.twilio) {
+    const live = c.twilio.status === "ok";
+    rows.push({
+      level: live ? "ok" : "warn",
+      label: "Texting (Twilio)",
+      detail: live ? "Live — real text messages are being sent." : "Mock mode — NO real texts are going out.",
+      hint: live ? undefined : "Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_PHONE_NUMBER in Vercel, then redeploy.",
+    });
+  }
+  if (c?.email) {
+    const ok = c.email.status === "ok";
+    rows.push({
+      level: ok ? "ok" : "warn",
+      label: "Email alerts",
+      detail: ok ? "Configured — failure alerts will reach your inbox." : "Not set up — you won't be emailed when a text fails.",
+      hint: ok ? undefined : "Add EMAIL_USER and EMAIL_PASSWORD (a Gmail app password) in Vercel.",
+    });
+  }
+  if (failCount !== undefined) {
+    rows.push({
+      level: failCount === 0 ? "ok" : "bad",
+      label: "Text delivery (24h)",
+      detail: failCount === 0 ? "No failed text-backs in the last 24 hours." : `${failCount} text-back${failCount === 1 ? "" : "s"} failed in the last 24 hours.`,
+      hint: failCount === 0 ? undefined : "See the failed calls below and reach out to those customers manually.",
+    });
+  }
+
+  const allGood = health != null && !error && rows.every((r) => r.level === "ok");
+  const anyBad = rows.some((r) => r.level === "bad") || !!error;
+
+  const levelColor: Record<Level, { bg: string; fg: string }> = {
+    ok: { bg: "#12301F", fg: "#8FE3B0" },
+    warn: { bg: "#33280F", fg: "#F2C879" },
+    bad: { bg: "#3A1620", fg: "#F7A8B8" },
+  };
+
+  return (
+    <div style={s.tabBody}>
+      <div style={s.clientsHead}>
+        <div style={s.roiCaption}>
+          {health?.timestamp ? `Checked ${new Date(health.timestamp).toLocaleTimeString()}` : "Checking…"}
+        </div>
+        <button style={s.addBtn} onClick={onRefresh}>Refresh</button>
+      </div>
+
+      {error && <div style={s.errorBanner}>{error}</div>}
+
+      {!error && (
+        <div
+          style={{
+            ...s.healthBanner,
+            background: allGood ? "#12301F" : anyBad ? "#3A1620" : "#33280F",
+            color: allGood ? "#8FE3B0" : anyBad ? "#F7A8B8" : "#F2C879",
+          }}
+        >
+          {health == null ? "Loading system status…" : allGood ? "✓ All systems normal" : anyBad ? "✗ Attention needed" : "⚠ Minor issues"}
+        </div>
+      )}
+
+      <div style={s.healthGrid}>
+        {rows.map((r) => (
+          <div key={r.label} style={s.healthRow}>
+            <span style={{ ...s.pill, ...levelColor[r.level] }}>
+              {r.level === "ok" ? "OK" : r.level === "warn" ? "Set up" : "Problem"}
+            </span>
+            <div style={s.healthRowBody}>
+              <div style={s.healthRowLabel}>{r.label}</div>
+              <div style={s.healthRowDetail}>{r.detail}</div>
+              {r.hint && <div style={s.healthRowHint}>→ {r.hint}</div>}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div style={s.healthSectionTitle}>Recent problems</div>
+      {failures.length === 0 ? (
+        <div style={s.empty}>No failed messages. 🎉</div>
+      ) : (
+        <div style={s.feed}>
+          {failures.map((e) => (
+            <div key={e.id} style={s.event}>
+              <div style={s.eventTop}>
+                <span style={s.eventKind}>⚠️ Text failed · {e.business}</span>
+                <span style={{ ...s.pill, background: "#3A1620", color: "#F7A8B8" }}>not delivered</span>
+                <span style={s.eventTime}>{timeAgo(e.at)}</span>
+              </div>
+              <div style={s.eventRow}>
+                <span style={s.eventCaller}>{e.caller}</span>
+              </div>
+              <div style={s.healthRowHint}>Reach out to this customer manually — the automatic text didn&apos;t send.</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─── Small components ───────────────────────────────────────────────────── */
 
 function Stat({ label, value, sub, accent, big }: { label: string; value: string; sub?: string; accent?: string; big?: boolean }) {
@@ -517,6 +684,14 @@ const s: Record<string, React.CSSProperties> = {
 
   empty: { color: "#6B7484", fontSize: 14, padding: "16px 0" },
   errorBanner: { background: "#3A1620", color: "#F7A8B8", padding: "10px 14px", borderRadius: 8, fontSize: 14, margin: "8px 0" },
+  healthBanner: { padding: "12px 16px", borderRadius: 10, fontSize: 15, fontWeight: 700, margin: "4px 0 16px" },
+  healthGrid: { display: "flex", flexDirection: "column", gap: 10, marginBottom: 8 },
+  healthRow: { display: "flex", gap: 12, alignItems: "flex-start", background: "#0E1526", border: "1px solid #1E2A44", borderRadius: 10, padding: "12px 14px" },
+  healthRowBody: { display: "flex", flexDirection: "column", gap: 2 },
+  healthRowLabel: { fontSize: 14, fontWeight: 700, color: "#E5E9F0" },
+  healthRowDetail: { fontSize: 13, color: "#B8C0D0" },
+  healthRowHint: { fontSize: 12.5, color: "#8A93A6", marginTop: 2 },
+  healthSectionTitle: { fontSize: 13, fontWeight: 700, color: "#8A93A6", textTransform: "uppercase", letterSpacing: 0.5, margin: "18px 0 8px" },
   footer: { color: "#5A6373", fontSize: 12, textAlign: "center", paddingTop: 12 },
   footLink: { color: "#8FB8FF", textDecoration: "none" },
 };
