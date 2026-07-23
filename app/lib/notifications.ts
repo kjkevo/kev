@@ -48,13 +48,19 @@ export const sendMissedCallText = async (
   callerPhone: string,
   businessName: string,
   template: string,
-  fromPhone?: string
+  fromPhone?: string,
+  recordVoicemail?: boolean,
 ): Promise<{ success: boolean; sid?: string; error?: string }> => {
   try {
-    const message = withComplianceFooter(
-      renderTemplate(template, { BUSINESS_NAME: businessName }),
-      businessName,
-    );
+    const rendered = renderTemplate(template, { BUSINESS_NAME: businessName });
+    // Written recording disclosure: when this business records voicemails,
+    // give callers a plain-text notice too (belt-and-suspenders with the spoken
+    // disclosure), unless the business already worded one into their message.
+    const withDisclosure =
+      recordVoicemail && !/record/i.test(rendered)
+        ? `${rendered}\n\nNote: voicemails left at this number are recorded.`
+        : rendered;
+    const message = withComplianceFooter(withDisclosure, businessName);
     const result = await sendSMS(callerPhone, message, fromPhone);
     return { success: true, sid: result.sid };
   } catch (error) {
