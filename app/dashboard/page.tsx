@@ -82,6 +82,7 @@ export default function DashboardPage() {
   const [saveError, setSaveError] = React.useState<string | null>(null);
 
   const [tickets, setTickets] = React.useState<SupportTicket[]>([]);
+  const [ticketsError, setTicketsError] = React.useState<string | null>(null);
 
   // Access is gated by the owner login (middleware), so the dashboard is always
   // in owner mode and admin calls rely on the session cookie (sent automatically).
@@ -111,11 +112,20 @@ export default function DashboardPage() {
   const loadTickets = React.useCallback(async () => {
     try {
       const res = await fetch("/api/admin/support", { cache: "no-store" });
-      if (!res.ok) return;
+      if (res.status === 401) {
+        // Not signed in as owner — the tickets endpoint is private.
+        window.location.href = "/login?next=/dashboard";
+        return;
+      }
+      if (!res.ok) {
+        setTicketsError(`Couldn't load tickets (error ${res.status}).`);
+        return;
+      }
       const data = await res.json();
       setTickets(data.tickets ?? []);
+      setTicketsError(null);
     } catch {
-      /* ignore */
+      setTicketsError("Couldn't reach the server. Check your connection and try again.");
     }
   }, []);
 
@@ -210,7 +220,7 @@ export default function DashboardPage() {
           />
         )}
         {tab === "support" && (
-          <SupportTab tickets={tickets} resolveTicket={resolveTicket} />
+          <SupportTab tickets={tickets} resolveTicket={resolveTicket} error={ticketsError} />
         )}
 
         <footer style={s.footer}>
@@ -350,10 +360,11 @@ function ActivityTab({
 }
 
 function SupportTab({
-  tickets, resolveTicket,
+  tickets, resolveTicket, error,
 }: {
   tickets: SupportTicket[];
   resolveTicket: (id: number, status: "open" | "resolved") => void;
+  error?: string | null;
 }) {
   const open = tickets.filter((t) => t.status !== "resolved");
   const resolved = tickets.filter((t) => t.status === "resolved");
@@ -363,7 +374,8 @@ function SupportTab({
         <div style={s.roiCaption}>{open.length} open · {resolved.length} resolved</div>
         <a href="/support" target="_blank" rel="noopener noreferrer" style={s.addBtn}>View public form ↗</a>
       </div>
-      {tickets.length === 0 && <div style={s.empty}>No tickets yet.</div>}
+      {error && <div style={s.errorBanner}>{error}</div>}
+      {!error && tickets.length === 0 && <div style={s.empty}>No tickets yet.</div>}
       <div style={s.feed}>
         {[...open, ...resolved].map((t) => (
           <div key={t.id} style={s.event}>
@@ -504,6 +516,7 @@ const s: Record<string, React.CSSProperties> = {
   saveError: { background: "#3A1620", color: "#F7A8B8", padding: "8px 12px", borderRadius: 8, fontSize: 13 },
 
   empty: { color: "#6B7484", fontSize: 14, padding: "16px 0" },
+  errorBanner: { background: "#3A1620", color: "#F7A8B8", padding: "10px 14px", borderRadius: 8, fontSize: 14, margin: "8px 0" },
   footer: { color: "#5A6373", fontSize: 12, textAlign: "center", paddingTop: 12 },
   footLink: { color: "#8FB8FF", textDecoration: "none" },
 };
