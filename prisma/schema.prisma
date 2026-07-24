@@ -182,6 +182,10 @@ model BusinessConfig {
   recordVoicemail     Boolean   @default(false)
   // The words Twilio speaks when voiceEnabled is true
   voiceGreeting       String    @default("Thank you for calling. We're not available right now, but we'll text you shortly.")
+  // Optional keyword voice menu: caller says a service, Twilio matches a
+  // keyword and responds with a spoken reply + a service-specific text-back.
+  // Shape: { enabled, prompt, options: [{label,keywords[],reply,sms}], fallbackReply, fallbackSms }
+  voiceMenu           Json?
 
   airtableApiKey      String?
   airtableBaseId      String?

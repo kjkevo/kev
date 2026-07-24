@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/app/lib/db';
 import { checkAdminAuth } from '@/app/lib/adminAuth';
 import { normalizePhone } from '@/app/lib/phone';
+import { normalizeVoiceMenuForStore } from '@/app/lib/voiceMenu';
 
 // GET /api/admin/businesses — list all businesses
 export async function GET(request: NextRequest) {
@@ -53,6 +55,9 @@ export async function POST(request: NextRequest) {
         ...(body.missedCallMessage ? { missedCallMessage: String(body.missedCallMessage) } : {}),
         ...(body.leadSubmissionMsg ? { leadSubmissionMsg: String(body.leadSubmissionMsg) } : {}),
         ...(body.voiceGreeting ? { voiceGreeting: String(body.voiceGreeting) } : {}),
+        ...(body.voiceMenu !== undefined
+          ? { voiceMenu: (normalizeVoiceMenuForStore(body.voiceMenu) ?? Prisma.JsonNull) as unknown as Prisma.InputJsonValue }
+          : {}),
       },
     });
     return NextResponse.json({ business }, { status: 201 });

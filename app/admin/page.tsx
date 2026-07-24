@@ -4,6 +4,15 @@ import * as React from "react";
 
 /* ─── Types ──────────────────────────────────────────────────────────────── */
 
+interface MenuOptionJSON { label: string; keywords: string[]; reply: string; sms: string }
+interface VoiceMenuJSON {
+  enabled?: boolean;
+  prompt?: string;
+  options?: MenuOptionJSON[];
+  fallbackReply?: string;
+  fallbackSms?: string;
+}
+
 interface Business {
   id: number;
   businessName: string;
@@ -15,7 +24,12 @@ interface Business {
   smsEnabled: boolean;
   voiceEnabled: boolean;
   recordVoicemail: boolean;
+  voiceMenu?: VoiceMenuJSON | null;
 }
+
+// In the form, an option's keywords are a single comma-separated string for
+// easy editing; the API splits them back into an array.
+interface MenuOptionForm { label: string; keywords: string; reply: string; sms: string }
 
 type FormState = {
   businessName: string;
@@ -27,7 +41,14 @@ type FormState = {
   smsEnabled: boolean;
   voiceEnabled: boolean;
   recordVoicemail: boolean;
+  voiceMenuEnabled: boolean;
+  voiceMenuPrompt: string;
+  voiceMenuOptions: MenuOptionForm[];
+  voiceMenuFallbackReply: string;
+  voiceMenuFallbackSms: string;
 };
+
+const EMPTY_MENU_OPTION: MenuOptionForm = { label: "", keywords: "", reply: "", sms: "" };
 
 const EMPTY_FORM: FormState = {
   businessName: "",
@@ -39,6 +60,11 @@ const EMPTY_FORM: FormState = {
   smsEnabled: true,
   voiceEnabled: false,
   recordVoicemail: false,
+  voiceMenuEnabled: false,
+  voiceMenuPrompt: "Thanks for calling {BUSINESS_NAME}! What are you calling about? You can say DJ, photo booth, or decorations.",
+  voiceMenuOptions: [{ ...EMPTY_MENU_OPTION }],
+  voiceMenuFallbackReply: "No problem — we'll text you now to help.",
+  voiceMenuFallbackSms: "Thanks for calling {BUSINESS_NAME}! What service can we help you with?",
 };
 
 /* ─── Page ───────────────────────────────────────────────────────────────── */
@@ -89,6 +115,15 @@ export default function AdminBusinessesPage() {
 
   function startEdit(b: Business) {
     setEditingId(b.id);
+    const menu = b.voiceMenu ?? null;
+    const options: MenuOptionForm[] = Array.isArray(menu?.options) && menu!.options!.length > 0
+      ? menu!.options!.map((o) => ({
+          label: o.label ?? "",
+          keywords: Array.isArray(o.keywords) ? o.keywords.join(", ") : "",
+          reply: o.reply ?? "",
+          sms: o.sms ?? "",
+        }))
+      : [{ ...EMPTY_MENU_OPTION }];
     setForm({
       businessName: b.businessName,
       businessPhone: b.businessPhone,
@@ -99,10 +134,22 @@ export default function AdminBusinessesPage() {
       smsEnabled: b.smsEnabled,
       voiceEnabled: b.voiceEnabled,
       recordVoicemail: b.recordVoicemail,
+      voiceMenuEnabled: Boolean(menu?.enabled),
+      voiceMenuPrompt: menu?.prompt || EMPTY_FORM.voiceMenuPrompt,
+      voiceMenuOptions: options,
+      voiceMenuFallbackReply: menu?.fallbackReply || EMPTY_FORM.voiceMenuFallbackReply,
+      voiceMenuFallbackSms: menu?.fallbackSms || EMPTY_FORM.voiceMenuFallbackSms,
     });
     setNotice(null);
     setError(null);
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function updateMenuOption(index: number, patch: Partial<MenuOptionForm>) {
+    setForm((f) => ({
+      ...f,
+      voiceMenuOptions: f.voiceMenuOptions.map((o, i) => (i === index ? { ...o, ...patch } : o)),
+    }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -113,10 +160,29 @@ export default function AdminBusinessesPage() {
     try {
       const url = editingId ? `/api/admin/businesses/${editingId}` : "/api/admin/businesses";
       const method = editingId ? "PATCH" : "POST";
+      const {
+        voiceMenuEnabled, voiceMenuPrompt, voiceMenuOptions,
+        voiceMenuFallbackReply, voiceMenuFallbackSms, ...rest
+      } = form;
+      const payload = {
+        ...rest,
+        voiceMenu: {
+          enabled: voiceMenuEnabled,
+          prompt: voiceMenuPrompt,
+          options: voiceMenuOptions.map((o) => ({
+            label: o.label,
+            keywords: o.keywords, // API splits the comma-separated string
+            reply: o.reply,
+            sms: o.sms,
+          })),
+          fallbackReply: voiceMenuFallbackReply,
+          fallbackSms: voiceMenuFallbackSms,
+        },
+      };
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -239,6 +305,80 @@ export default function AdminBusinessesPage() {
               </p>
             )}
 
+            {/* Keyword voice menu (only meaningful when voice is on) */}
+            {form.voiceEnabled && (
+              <div style={styles.menuBox}>
+                <label style={styles.toggle}>
+                  <input type="checkbox" checked={form.voiceMenuEnabled}
+                    onChange={(e) => setForm({ ...form, voiceMenuEnabled: e.target.checked })} />
+                  <strong>Keyword voice menu</strong> — caller says a service, hears a reply, gets a matching text
+                </label>
+
+                {form.voiceMenuEnabled && (
+                  <div style={{ marginTop: 12 }}>
+                    <Field label="Spoken question (use {BUSINESS_NAME} to insert the name)">
+                      <textarea style={styles.textarea} rows={2} value={form.voiceMenuPrompt}
+                        onChange={(e) => setForm({ ...form, voiceMenuPrompt: e.target.value })} />
+                    </Field>
+
+                    <p style={styles.muted}>
+                      Add a row per service. Callers can also press 1, 2, 3… matching the order below.
+                    </p>
+
+                    {form.voiceMenuOptions.map((opt, i) => (
+                      <div key={i} style={styles.menuOption}>
+                        <div style={styles.menuOptionHead}>
+                          <span style={styles.menuOptionNum}>Press {i + 1} / say…</span>
+                          {form.voiceMenuOptions.length > 1 && (
+                            <button type="button" style={styles.smallDangerBtn}
+                              onClick={() => setForm({ ...form, voiceMenuOptions: form.voiceMenuOptions.filter((_, j) => j !== i) })}>
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                        <div style={styles.grid}>
+                          <Field label="Service name">
+                            <input style={styles.input} value={opt.label} placeholder="DJ"
+                              onChange={(e) => updateMenuOption(i, { label: e.target.value })} />
+                          </Field>
+                          <Field label="Keywords they might say (comma-separated)">
+                            <input style={styles.input} value={opt.keywords} placeholder="dj, djing, music"
+                              onChange={(e) => updateMenuOption(i, { keywords: e.target.value })} />
+                          </Field>
+                        </div>
+                        <Field label="Spoken reply">
+                          <textarea style={styles.textarea} rows={2} value={opt.reply}
+                            placeholder="Great — our DJ team will reach out shortly."
+                            onChange={(e) => updateMenuOption(i, { reply: e.target.value })} />
+                        </Field>
+                        <Field label="Text-back for this service">
+                          <textarea style={styles.textarea} rows={2} value={opt.sms}
+                            placeholder="Thanks for calling about DJ services! What date are you looking at?"
+                            onChange={(e) => updateMenuOption(i, { sms: e.target.value })} />
+                        </Field>
+                      </div>
+                    ))}
+
+                    <button type="button" style={styles.ghostBtn}
+                      onClick={() => setForm({ ...form, voiceMenuOptions: [...form.voiceMenuOptions, { ...EMPTY_MENU_OPTION }] })}>
+                      + Add service
+                    </button>
+
+                    <div style={{ marginTop: 16 }}>
+                      <Field label="If nothing matches — spoken reply">
+                        <input style={styles.input} value={form.voiceMenuFallbackReply}
+                          onChange={(e) => setForm({ ...form, voiceMenuFallbackReply: e.target.value })} />
+                      </Field>
+                      <Field label="If nothing matches — text-back">
+                        <textarea style={styles.textarea} rows={2} value={form.voiceMenuFallbackSms}
+                          onChange={(e) => setForm({ ...form, voiceMenuFallbackSms: e.target.value })} />
+                      </Field>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div style={styles.formActions}>
               <button type="submit" style={styles.primaryBtn} disabled={saving}>
                 {saving ? "Saving…" : editingId ? "Save changes" : "Create business"}
@@ -301,6 +441,10 @@ const styles: Record<string, React.CSSProperties> = {
   input: { background: "#0A0F1E", border: "1px solid #24324F", borderRadius: 8, padding: "10px 12px", color: "#E5E9F0", fontSize: 14, width: "100%" },
   textarea: { background: "#0A0F1E", border: "1px solid #24324F", borderRadius: 8, padding: "10px 12px", color: "#E5E9F0", fontSize: 14, width: "100%", resize: "vertical" },
   toggleRow: { display: "flex", flexWrap: "wrap", gap: 16, margin: "8px 0 16px" },
+  menuBox: { border: "1px solid #24324F", borderRadius: 10, padding: 14, margin: "8px 0 16px", background: "#0B1220" },
+  menuOption: { border: "1px solid #1E2A44", borderRadius: 8, padding: 12, marginBottom: 12, background: "#0E1526" },
+  menuOptionHead: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
+  menuOptionNum: { fontSize: 13, fontWeight: 600, color: "#9FC2FF" },
   toggle: { display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: "#C7CEDB" },
   formActions: { display: "flex", gap: 10 },
   primaryBtn: { background: "#3B82F6", color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 14, fontWeight: 600, cursor: "pointer", width: "100%" },
