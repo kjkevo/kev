@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateMissedCallTwiML, generateTextOnlyTwiML, verifyTwilioSignature } from '@/app/lib/twilio';
-import { loadBusinessConfigByPhone } from '@/app/lib/config';
+import { generateMissedCallTwiML, generateTextOnlyTwiML, generateVoiceMenuTwiML, verifyTwilioSignature } from '@/app/lib/twilio';
+import { loadBusinessConfigByPhone, renderTemplate } from '@/app/lib/config';
+import { parseVoiceMenu, voiceMenuHints } from '@/app/lib/voiceMenu';
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,14 +30,28 @@ export async function POST(request: NextRequest) {
     console.log(`Incoming call from ${from} to ${to} (${config?.businessName ?? 'unknown business'}), CallSid: ${callSid}`);
 
     // Choose the voice response based on the business's channel settings.
-    // Voice enabled -> speak the custom greeting (and optionally take a voicemail).
-    // Text-only / unknown -> end the call so the status webhook triggers the text-back.
-    const twiml = config?.voiceEnabled
-      ? generateMissedCallTwiML({
-          greeting: config.voiceGreeting,
-          recordVoicemail: config.recordVoicemail,
-        })
-      : generateTextOnlyTwiML();
+    //  - Voice + keyword menu -> ask what service they need and listen.
+    //  - Voice (no menu) -> speak the custom greeting (and optionally voicemail).
+    //  - Text-only / unknown -> end the call so the status webhook texts back.
+    const menu = config?.voiceEnabled ? parseVoiceMenu(config.voiceMenu) : null;
+
+    let twiml: string;
+    if (config?.voiceEnabled && menu) {
+      const origin = new URL(request.url).origin;
+      const prompt = renderTemplate(menu.prompt, { BUSINESS_NAME: config.businessName });
+      twiml = generateVoiceMenuTwiML({
+        prompt,
+        hints: voiceMenuHints(menu),
+        actionUrl: `${origin}/api/webhooks/twilio/voice-gather`,
+      });
+    } else if (config?.voiceEnabled) {
+      twiml = generateMissedCallTwiML({
+        greeting: config.voiceGreeting,
+        recordVoicemail: config.recordVoicemail,
+      });
+    } else {
+      twiml = generateTextOnlyTwiML();
+    }
 
     // Twilio will POST to /api/webhooks/twilio/call-status when the call ends,
     // where the text-back is sent.

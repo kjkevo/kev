@@ -13,6 +13,7 @@ export interface BusinessConfig {
   voiceEnabled: boolean;
   recordVoicemail: boolean;
   voiceGreeting: string;
+  voiceMenu?: unknown; // raw JSON menu blob; parse with parseVoiceMenu()
   airtableApiKey?: string;
   airtableBaseId?: string;
   airtableMissedTable?: string;
@@ -54,6 +55,7 @@ function mapRow(config: BusinessConfigRow): BusinessConfig {
     voiceEnabled: config.voiceEnabled ?? defaultConfig.voiceEnabled,
     recordVoicemail: config.recordVoicemail ?? defaultConfig.recordVoicemail,
     voiceGreeting: config.voiceGreeting || defaultConfig.voiceGreeting,
+    voiceMenu: (config as { voiceMenu?: unknown }).voiceMenu ?? undefined,
     airtableApiKey: config.airtableApiKey || defaultConfig.airtableApiKey,
     airtableBaseId: config.airtableBaseId || defaultConfig.airtableBaseId,
     airtableMissedTable: config.airtableMissedTable || defaultConfig.airtableMissedTable,

@@ -76,6 +76,39 @@ export const generateMissedCallTwiML = (options: MissedCallTwiMLOptions = {}) =>
   return twiml.toString();
 };
 
+// Keyword voice menu: speak a prompt and listen for the caller's spoken answer
+// (or a keypad digit). Twilio POSTs the result to `actionUrl`, where we match a
+// keyword and respond. If the caller says nothing, we redirect to the same
+// handler with no input so it can send a fallback text.
+export const generateVoiceMenuTwiML = (opts: {
+  prompt: string;
+  hints?: string;
+  actionUrl: string;
+}) => {
+  const twiml = new twilio.twiml.VoiceResponse();
+  const gather = twiml.gather({
+    input: 'dtmf speech' as unknown as ('speech' | 'dtmf')[],
+    action: opts.actionUrl,
+    method: 'POST',
+    speechTimeout: 'auto',
+    timeout: 6,
+    numDigits: 1,
+    ...(opts.hints ? { hints: opts.hints } : {}),
+  });
+  gather.say(opts.prompt);
+  // No input captured -> fall through to the handler for the fallback path.
+  twiml.redirect({ method: 'POST' }, opts.actionUrl);
+  return twiml.toString();
+};
+
+// Speak a reply and end the call (used after a menu selection).
+export const generateSpokenReplyTwiML = (reply: string) => {
+  const twiml = new twilio.twiml.VoiceResponse();
+  twiml.say(reply);
+  twiml.hangup();
+  return twiml.toString();
+};
+
 // Response for text-only businesses: end the call immediately (no spoken
 // message) so the call-status webhook fires and the text-back is sent.
 export const generateTextOnlyTwiML = () => {

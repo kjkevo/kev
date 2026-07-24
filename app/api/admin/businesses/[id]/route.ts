@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/app/lib/db';
 import { checkAdminAuth } from '@/app/lib/adminAuth';
 import { normalizePhone } from '@/app/lib/phone';
+import { normalizeVoiceMenuForStore } from '@/app/lib/voiceMenu';
 
 // PATCH /api/admin/businesses/:id — update a business
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
@@ -30,6 +32,9 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   if (body.smsEnabled !== undefined) data.smsEnabled = Boolean(body.smsEnabled);
   if (body.voiceEnabled !== undefined) data.voiceEnabled = Boolean(body.voiceEnabled);
   if (body.recordVoicemail !== undefined) data.recordVoicemail = Boolean(body.recordVoicemail);
+  if (body.voiceMenu !== undefined) {
+    data.voiceMenu = normalizeVoiceMenuForStore(body.voiceMenu) ?? Prisma.JsonNull;
+  }
 
   if (body.businessPhone !== undefined) {
     const normalized = normalizePhone(String(body.businessPhone));
