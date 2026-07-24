@@ -198,6 +198,20 @@ model BusinessConfig {
   @@index([businessName])
 }
 
+// A prospect business that signed up for a trial via the onboarding flow.
+model TrialSignup {
+  id           Int      @id @default(autoincrement())
+  createdAt    DateTime @default(now())
+  businessName String
+  mobile       String
+  email        String
+  trade        String?
+  status       String   @default("new") // new | contacted | onboarded | declined
+  notes        String?
+
+  @@index([createdAt])
+}
+
 model MissedCall {
   id              Int       @id @default(autoincrement())
   createdAt       DateTime  @default(now())
