@@ -87,6 +87,7 @@ export async function POST(request: NextRequest) {
         data: {
           textSentAt: textResult.success ? new Date() : null,
           textStatus: textResult.success ? 'sent' : 'failed',
+          textBody: textResult.body ?? null,
         },
       }).catch(console.error);
 

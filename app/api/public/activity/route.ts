@@ -117,7 +117,7 @@ export async function GET() {
         pipeline: m.status,
         dealValue: m.dealValue,
         notes: m.notes,
-        outbound: msgById.get(m.businessId) ?? '',
+        outbound: m.textBody || (msgById.get(m.businessId) ?? ''),
         reply: m.textResponse ?? null,
         at: m.createdAt.toISOString(),
       });
