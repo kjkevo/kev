@@ -50,22 +50,23 @@ export const sendMissedCallText = async (
   template: string,
   fromPhone?: string,
   recordVoicemail?: boolean,
-): Promise<{ success: boolean; sid?: string; error?: string }> => {
+): Promise<{ success: boolean; sid?: string; error?: string; body?: string }> => {
+  const rendered = renderTemplate(template, { BUSINESS_NAME: businessName });
+  // Written recording disclosure: when this business records voicemails,
+  // give callers a plain-text notice too (belt-and-suspenders with the spoken
+  // disclosure), unless the business already worded one into their message.
+  const withDisclosure =
+    recordVoicemail && !/record/i.test(rendered)
+      ? `${rendered}\n\nNote: voicemails left at this number are recorded.`
+      : rendered;
   try {
-    const rendered = renderTemplate(template, { BUSINESS_NAME: businessName });
-    // Written recording disclosure: when this business records voicemails,
-    // give callers a plain-text notice too (belt-and-suspenders with the spoken
-    // disclosure), unless the business already worded one into their message.
-    const withDisclosure =
-      recordVoicemail && !/record/i.test(rendered)
-        ? `${rendered}\n\nNote: voicemails left at this number are recorded.`
-        : rendered;
     const message = withComplianceFooter(withDisclosure, businessName);
     const result = await sendSMS(callerPhone, message, fromPhone);
-    return { success: true, sid: result.sid };
+    // Return the message minus the boilerplate footer for display purposes.
+    return { success: true, sid: result.sid, body: withDisclosure };
   } catch (error) {
     console.error('Error sending missed call text:', error);
-    return { success: false, error: String(error) };
+    return { success: false, error: String(error), body: withDisclosure };
   }
 };
 

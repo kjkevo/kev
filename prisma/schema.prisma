@@ -208,6 +208,7 @@ model MissedCall {
   textSentAt      DateTime?
   textStatus      String    @default("pending")
   textResponse    String?
+  textBody        String?   // the actual message sent (e.g. service-specific text)
   twilio_call_sid String?   @unique
   airtableId      String?
 
