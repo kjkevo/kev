@@ -190,6 +190,42 @@ export const sendTextFailureAlertToOwner = async (
   return { emailSent, smsSent };
 };
 
+// Notify the operator (you) when a prospect signs up for a trial, so you can
+// provision their number and onboard them. Goes to ALERT_EMAIL if set, else the
+// sending account.
+export const sendTrialSignupAlert = async (signup: {
+  businessName: string;
+  mobile: string;
+  email: string;
+  trade?: string | null;
+}): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const transporter = initializeEmailTransporter();
+    if (!transporter) return { success: false, error: 'Email not configured' };
+    const to = process.env.ALERT_EMAIL || process.env.EMAIL_USER;
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to,
+      subject: `🚀 New trial signup: ${signup.businessName}`,
+      html: `
+        <h2>New trial signup</h2>
+        <p><strong>Business:</strong> ${signup.businessName}</p>
+        <p><strong>Mobile:</strong> <a href="tel:${signup.mobile}">${signup.mobile}</a></p>
+        <p><strong>Email:</strong> <a href="mailto:${signup.email}">${signup.email}</a></p>
+        ${signup.trade ? `<p><strong>What they do:</strong> ${signup.trade}</p>` : ''}
+        <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+        <hr />
+        <p>Next: buy them a Twilio number, point its voice + status webhooks at the app,
+        and add them in <code>/admin</code>.</p>
+      `,
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending trial signup alert:', error);
+    return { success: false, error: String(error) };
+  }
+};
+
 export const sendMissedCallAlertToOwner = async (
   ownerEmail: string,
   businessName: string,
