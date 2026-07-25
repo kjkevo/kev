@@ -318,3 +318,49 @@ k6 run load-test.js
 - [ ] Error handling and logging
 - [ ] Rate limiting (if needed)
 - [ ] Signature verification works
+
+---
+
+# Go-live readiness (before your first paying client)
+
+## Friendly-number end-to-end test
+The most important test: prove a real missed call produces a real text.
+1. Provision a test business in `/admin` whose **owner phone is your own mobile**.
+2. From a second phone, call its Twilio number and **don't answer**.
+3. Confirm within seconds: the caller gets the branded text-back, the call shows
+   in `/admin`, and `/api/health` shows `textFailuresLast24h: 0`.
+
+## Cross-carrier test (the #1 "worked in testing, failed for a client" trap)
+Verizon / AT&T / T-Mobile filter A2P traffic differently. Run the test above with
+the **caller phone on each carrier**, and only **after** your A2P campaign is
+`APPROVED` (filtering results before approval are meaningless).
+
+| Carrier | Delivered? | Delay | Notes |
+|---|---|---|---|
+| Verizon | ☐ | | |
+| AT&T | ☐ | | |
+| T-Mobile | ☐ | | |
+
+## Load / smoke test (volume, without real calls)
+`scripts/loadTest.ts` fires synthetic call-status webhooks (signed with your
+Twilio token). **Read the safety notes in the file** — against a live-Twilio
+target it sends a real text per event, so use a number you control and keep the
+count low, or point it at a staging deploy.
+
+```bash
+TARGET=https://your-app.vercel.app TWILIO_AUTH_TOKEN=xxxx \
+TO=+1BUSINESS FROM=+1YOUR_MOBILE COUNT=5 CONCURRENCY=2 npx tsx scripts/loadTest.ts
+```
+Then check `/admin` → **Performance**.
+
+## Billing lifecycle (Stripe test mode)
+Use Stripe **test** keys, point a test webhook at `/api/webhooks/stripe`, set its
+secret in `STRIPE_WEBHOOK_SECRET`, and use test cards:
+- **Trial → paid:** `/welcome` → *Add payment* → card `4242 4242 4242 4242` → page shows active.
+- **Dunning:** card `4000 0000 0000 0341` → you get the payment-failed alert, status flips to `past_due`.
+- **Cancel:** billing portal from `/welcome` → cancel → status becomes `canceled`.
+
+## Monitoring
+- `/api/health` returns `ok` (503 if the database is down).
+- The daily `health-alert` cron emails you only when the DB is down or texts
+  failed in the last 24h. Per-text failures already alert in real time.
