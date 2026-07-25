@@ -51,10 +51,11 @@ const nextConfig = {
 
   async headers() {
     return [
-      // The embeddable demo widget: allow framing.
+      // The embeddable public widgets: allow framing (e.g. into Hostinger).
       { source: "/demo", headers: embedHeaders },
+      { source: "/start", headers: embedHeaders },
       // Everything else: strict, no framing.
-      { source: "/((?!demo$).*)", headers: strictHeaders },
+      { source: "/((?!demo$|start$).*)", headers: strictHeaders },
       {
         source: "/_next/static/(.*)",
         headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
