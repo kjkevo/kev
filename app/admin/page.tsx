@@ -38,6 +38,17 @@ interface TrialSignup {
   notes?: string | null;
 }
 
+interface AnalyticsRow {
+  businessId: number;
+  businessName: string;
+  totalMissedCalls: number;
+  recoveryRate: number;
+  conversions: number;
+  recoveredRevenue: number;
+  avgResponseSeconds: number | null;
+}
+interface Analytics { overall: AnalyticsRow; perBusiness: AnalyticsRow[] }
+
 // In the form, an option's keywords are a single comma-separated string for
 // easy editing; the API splits them back into an array.
 interface MenuOptionForm { label: string; keywords: string; reply: string; sms: string }
@@ -92,6 +103,7 @@ export default function AdminBusinessesPage() {
 
   const [signups, setSignups] = React.useState<TrialSignup[]>([]);
   const [provisioningId, setProvisioningId] = React.useState<number | null>(null);
+  const [analytics, setAnalytics] = React.useState<Analytics | null>(null);
 
   const fetchBusinesses = React.useCallback(async () => {
     setLoading(true);
@@ -127,10 +139,21 @@ export default function AdminBusinessesPage() {
     }
   }, []);
 
+  const fetchAnalytics = React.useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/analytics");
+      if (!res.ok) return;
+      setAnalytics(await res.json());
+    } catch {
+      /* non-critical */
+    }
+  }, []);
+
   React.useEffect(() => {
     fetchBusinesses();
     fetchSignups();
-  }, [fetchBusinesses, fetchSignups]);
+    fetchAnalytics();
+  }, [fetchBusinesses, fetchSignups, fetchAnalytics]);
 
   async function handleProvision(s: TrialSignup) {
     if (!window.confirm(
@@ -301,6 +324,34 @@ export default function AdminBusinessesPage() {
 
         {error && <div style={styles.errorBanner}>{error}</div>}
         {notice && <div style={styles.noticeBanner}>{notice}</div>}
+
+        {/* Analytics */}
+        {analytics && analytics.overall.totalMissedCalls > 0 && (
+          <section style={styles.card}>
+            <h2 style={styles.h2}>Performance</h2>
+            <div style={styles.statGrid}>
+              <Stat label="Missed calls handled" value={String(analytics.overall.totalMissedCalls)} />
+              <Stat label="Recovery rate" value={`${analytics.overall.recoveryRate}%`} accent="#34D399" />
+              <Stat label="Recovered revenue" value={`$${analytics.overall.recoveredRevenue.toLocaleString()}`} accent="#8FE3B0" />
+              <Stat label="Avg. response" value={fmtSecs(analytics.overall.avgResponseSeconds)} />
+            </div>
+            {analytics.perBusiness.length > 0 && (
+              <div style={{ marginTop: 16 }}>
+                {analytics.perBusiness.slice(0, 8).map((r) => (
+                  <div key={r.businessId} style={styles.row}>
+                    <div>
+                      <div style={styles.rowTitle}>{r.businessName}</div>
+                      <div style={styles.rowSub}>
+                        {r.totalMissedCalls} calls · {r.recoveryRate}% recovered · {r.conversions} booked
+                      </div>
+                    </div>
+                    <div style={styles.revenueTag}>${r.recoveredRevenue.toLocaleString()}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
         {/* Trial signup queue */}
         <section style={styles.card}>
@@ -513,6 +564,21 @@ export default function AdminBusinessesPage() {
   );
 }
 
+function Stat({ label, value, accent }: { label: string; value: string; accent?: string }) {
+  return (
+    <div style={styles.stat}>
+      <div style={{ ...styles.statValue, ...(accent ? { color: accent } : {}) }}>{value}</div>
+      <div style={styles.statLabel}>{label}</div>
+    </div>
+  );
+}
+
+function fmtSecs(s: number | null): string {
+  if (s == null) return "—";
+  if (s < 60) return `${s}s`;
+  return `${Math.round(s / 60)}m`;
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label style={styles.field}>
@@ -552,6 +618,11 @@ const styles: Record<string, React.CSSProperties> = {
   rowTitle: { fontSize: 15, fontWeight: 600 },
   rowSub: { fontSize: 13, color: "#8A93A6", marginTop: 2 },
   rowActions: { display: "flex", gap: 8 },
+  statGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 12 },
+  stat: { background: "#0A0F1E", border: "1px solid #1C2740", borderRadius: 10, padding: "14px 16px" },
+  statValue: { fontSize: 24, fontWeight: 800, letterSpacing: -0.5 },
+  statLabel: { fontSize: 12.5, color: "#8A93A6", marginTop: 4 },
+  revenueTag: { fontSize: 15, fontWeight: 700, color: "#8FE3B0" },
   mutedSmall: { color: "#8A93A6", fontSize: 13 },
   provisionBtn: { background: "#12B886", color: "#04140D", border: "none", borderRadius: 6, padding: "8px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer" },
   pillNew: { background: "#12301F", color: "#8FE3B0", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999, marginLeft: 6, verticalAlign: "middle" },
