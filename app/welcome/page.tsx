@@ -7,7 +7,14 @@ import * as React from "react";
 
 type Status = "new" | "contacted" | "onboarded" | "cancelled" | "declined" | string;
 
-interface Info { businessName: string; status: Status; phoneNumber: string | null }
+interface Info {
+  businessName: string;
+  status: Status;
+  phoneNumber: string | null;
+  subscriptionStatus?: string | null;
+  hasBilling?: boolean;
+  billingEnabled?: boolean;
+}
 
 export default function WelcomePage() {
   const [token, setToken] = React.useState<string | null>(null);
@@ -16,9 +23,13 @@ export default function WelcomePage() {
   const [notFound, setNotFound] = React.useState(false);
   const [cancelling, setCancelling] = React.useState(false);
   const [confirmOpen, setConfirmOpen] = React.useState(false);
+  const [billingBusy, setBillingBusy] = React.useState(false);
+  const [justPaid, setJustPaid] = React.useState(false);
 
   React.useEffect(() => {
-    const t = new URLSearchParams(window.location.search).get("t");
+    const params = new URLSearchParams(window.location.search);
+    const t = params.get("t");
+    setJustPaid(params.get("paid") === "1");
     setToken(t);
     if (!t) { setLoading(false); setNotFound(true); return; }
     fetch(`/api/onboarding/status?t=${encodeURIComponent(t)}`)
@@ -45,6 +56,40 @@ export default function WelcomePage() {
       }
     } finally {
       setCancelling(false);
+    }
+  }
+
+  async function startCheckout(plan: "monthly" | "annual") {
+    if (!token) return;
+    setBillingBusy(true);
+    try {
+      const r = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, plan }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (j.url) { window.location.href = j.url; return; }
+      alert(j.error || "Couldn't start checkout. Please try again.");
+    } finally {
+      setBillingBusy(false);
+    }
+  }
+
+  async function openPortal() {
+    if (!token) return;
+    setBillingBusy(true);
+    try {
+      const r = await fetch("/api/billing/portal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (j.url) { window.location.href = j.url; return; }
+      alert(j.error || "Couldn't open billing. Please try again.");
+    } finally {
+      setBillingBusy(false);
     }
   }
 
@@ -86,6 +131,7 @@ export default function WelcomePage() {
               <li style={s.step}><strong>When busy:</strong> <code style={s.code}>*90</code> · <strong>when unreachable:</strong> <code style={s.code}>*92</code></li>
               <li style={s.step}>On a VoIP/office phone it&apos;s a settings toggle — reply to your email and we&apos;ll help.</li>
             </ul>
+            {renderBilling()}
             {renderCancel()}
           </>
         ) : (
@@ -104,12 +150,50 @@ export default function WelcomePage() {
 
             <p style={s.reassure}>💡 Nothing needed from you right now. We already texted your phone a
               sample of what your customers will get — check it out while you wait.</p>
+            {renderBilling()}
             {renderCancel()}
           </>
         )}
       </div>
     </main>
   );
+
+  function renderBilling() {
+    if (!info?.billingEnabled) return null;
+    const sub = info.subscriptionStatus;
+    if (justPaid || sub === "active" || sub === "trialing") {
+      return (
+        <div style={s.billingActive}>
+          <span>✅ Your subscription is active — thank you!</span>
+          <button style={s.manageLink} onClick={openPortal} disabled={billingBusy}>Manage billing</button>
+        </div>
+      );
+    }
+    if (sub === "past_due") {
+      return (
+        <div style={s.billingWarn}>
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>⚠️ There was a problem with your payment</div>
+          <p style={{ margin: "0 0 10px", fontSize: 14, color: "#E9C9A0" }}>Update your card to keep your service running.</p>
+          <button style={s.payBtn} onClick={openPortal} disabled={billingBusy}>
+            {billingBusy ? "Opening…" : "Update payment"}
+          </button>
+        </div>
+      );
+    }
+    // No subscription yet — the "add payment to continue" step.
+    return (
+      <div style={s.billingBox}>
+        <div style={s.billingTitle}>Ready to keep it going?</div>
+        <p style={s.billingSub}>Your free trial has no card attached. Add payment anytime to stay live after it ends — <strong>$49/mo</strong>, cancel whenever.</p>
+        <button style={s.payBtn} onClick={() => startCheckout("monthly")} disabled={billingBusy}>
+          {billingBusy ? "Loading…" : "Add payment — $49/mo"}
+        </button>
+        <button style={s.annualLink} onClick={() => startCheckout("annual")} disabled={billingBusy}>
+          or pay yearly — $490/yr (2 months free)
+        </button>
+      </div>
+    );
+  }
 
   function renderCancel() {
     return (
@@ -156,6 +240,14 @@ const s: Record<string, React.CSSProperties> = {
   tMarkPending: { color: "#3A465E", width: 18, textAlign: "center" },
   now: { color: "#3B82F6", fontStyle: "normal", fontSize: 13, fontWeight: 700 },
   reassure: { background: "#0F1A2E", border: "1px solid #24324F", borderRadius: 10, padding: "12px 14px", fontSize: 14, lineHeight: 1.55, color: "#B8C0D0", margin: "0 0 6px" },
+  billingBox: { marginTop: 20, background: "#0B1A2E", border: "1px solid #24406B", borderRadius: 12, padding: "16px 18px" },
+  billingTitle: { fontSize: 16, fontWeight: 700, marginBottom: 4 },
+  billingSub: { fontSize: 14, lineHeight: 1.55, color: "#98A2B6", margin: "0 0 14px" },
+  payBtn: { background: "#3B82F6", color: "#fff", border: "none", borderRadius: 10, padding: "12px 18px", fontSize: 15, fontWeight: 700, cursor: "pointer", width: "100%" },
+  annualLink: { background: "transparent", color: "#8FB8FF", border: "none", fontSize: 13.5, cursor: "pointer", marginTop: 10, textDecoration: "underline", padding: 0, display: "block", width: "100%" },
+  billingActive: { marginTop: 20, background: "#0F2A1E", border: "1px solid #1F5A3E", borderRadius: 10, padding: "12px 14px", fontSize: 14, color: "#B8F0CF", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" },
+  billingWarn: { marginTop: 20, background: "#2A1E0F", border: "1px solid #6B4A1F", borderRadius: 10, padding: "14px 16px" },
+  manageLink: { background: "transparent", color: "#8FE3B0", border: "1px solid #1F5A3E", borderRadius: 8, padding: "6px 12px", fontSize: 13, cursor: "pointer", fontWeight: 600 },
   cancelZone: { marginTop: 22, paddingTop: 18, borderTop: "1px solid #1A2338" },
   cancelLink: { background: "transparent", color: "#7A8397", border: "none", fontSize: 13.5, cursor: "pointer", textDecoration: "underline", padding: 0 },
   confirmBox: { background: "#12131C", border: "1px solid #2A2030", borderRadius: 10, padding: 14 },

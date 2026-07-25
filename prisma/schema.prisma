@@ -212,7 +212,15 @@ model TrialSignup {
   // trial status or cancel without logging in.
   token        String?  @unique
 
+  // Stripe billing (populated when the client converts from free trial to paid).
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  subscriptionStatus   String?   // trialing | active | past_due | canceled | incomplete
+  plan                 String?   // "monthly" | "annual"
+  currentPeriodEnd     DateTime?
+
   @@index([createdAt])
+  @@index([stripeCustomerId])
 }
 
 model MissedCall {

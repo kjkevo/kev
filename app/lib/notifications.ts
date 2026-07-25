@@ -245,6 +245,24 @@ export const sendSignupWelcomeEmail = async (
   }
 };
 
+// Notify the operator about a billing event (new paid conversion, payment
+// failure, cancellation) so nothing slips by unseen.
+export const sendBillingAlert = async (
+  subject: string,
+  bodyHtml: string,
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const transporter = initializeEmailTransporter();
+    if (!transporter) return { success: false, error: 'Email not configured' };
+    const to = process.env.ALERT_EMAIL || process.env.EMAIL_USER;
+    await transporter.sendMail({ from: process.env.EMAIL_USER, to, subject, html: bodyHtml });
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending billing alert:', error);
+    return { success: false, error: String(error) };
+  }
+};
+
 // Notify the operator when a trial-er cancels, so you can stop their setup.
 export const sendTrialCancelledAlert = async (signup: {
   businessName: string;
