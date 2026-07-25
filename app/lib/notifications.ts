@@ -226,6 +226,31 @@ export const sendTrialSignupAlert = async (signup: {
   }
 };
 
+// Text a prospect (who just requested it on the landing page) a live sample of
+// the text-back their own customers would get — the "instant demo text". Sent
+// from the platform's default number since the prospect isn't provisioned yet.
+export const sendDemoTextToProspect = async (
+  mobile: string,
+  businessName: string,
+  trade?: string | null,
+): Promise<{ success: boolean; sid?: string; error?: string }> => {
+  const tradeClause = trade && trade.trim() ? ` about ${trade.trim()}` : '';
+  const sample =
+    `Sorry we missed your call! Thanks for reaching out to ${businessName}${tradeClause}. ` +
+    `What can we help you with? We'll be right back with you.`;
+  const body =
+    `👋 Here's your instant demo from MissedCall — this is exactly what your ` +
+    `customers get the moment they call ${businessName} and you can't pick up:\n\n` +
+    `"${sample}"\n\nReply STOP to opt out, HELP for help.`;
+  try {
+    const result = await sendSMS(mobile, body);
+    return { success: true, sid: result.sid };
+  } catch (error) {
+    console.error('Error sending demo text to prospect:', error);
+    return { success: false, error: String(error) };
+  }
+};
+
 export const sendMissedCallAlertToOwner = async (
   ownerEmail: string,
   businessName: string,

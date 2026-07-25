@@ -47,6 +47,11 @@ export default function StartPage() {
         <div style={s.card}>
           <div style={s.kicker}>◆ You&apos;re in</div>
           <h1 style={s.h1}>Nice — {biz} is on the list! 🎉</h1>
+          <div style={s.phoneAlert}>
+            📱 <strong>Check your phone</strong> — we just texted{" "}
+            {form.mobile ? <strong>{form.mobile}</strong> : "you"} a live sample of the exact
+            text-back your customers will get. That&apos;s the magic, on your own screen.
+          </div>
           <p style={s.sub}>
             We&apos;ll set up your dedicated number and custom text-back, then reach out at{" "}
             <strong>{form.email || "your email"}</strong> to confirm. Here&apos;s what happens next,
@@ -144,6 +149,7 @@ const s: Record<string, React.CSSProperties> = {
   error: { background: "#3A1620", color: "#F7A8B8", padding: "10px 12px", borderRadius: 8, fontSize: 13, marginTop: 14 },
   submit: { marginTop: 20, background: "#3B82F6", color: "#fff", border: "none", borderRadius: 10, padding: "13px 16px", fontSize: 15, fontWeight: 700, cursor: "pointer" },
   fine: { fontSize: 12, color: "#6B7484", marginTop: 12, lineHeight: 1.5 },
+  phoneAlert: { background: "#0F2A1E", border: "1px solid #1F5A3E", color: "#B8F0CF", borderRadius: 10, padding: "12px 14px", fontSize: 14, lineHeight: 1.55, margin: "4px 0 16px" },
   link: { color: "#8FB8FF" },
   steps: { listStyle: "none", padding: 0, margin: "0 0 22px", display: "flex", flexDirection: "column", gap: 12, counterReset: "step" },
   step: { background: "#0A0F1E", border: "1px solid #1C2740", borderRadius: 10, padding: "12px 14px", fontSize: 14, lineHeight: 1.55, color: "#C7CEDB" },
