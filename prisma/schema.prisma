@@ -206,8 +206,11 @@ model TrialSignup {
   mobile       String
   email        String
   trade        String?
-  status       String   @default("new") // new | contacted | onboarded | declined
+  status       String   @default("new") // new | contacted | onboarded | cancelled | declined
   notes        String?
+  // Random public id used in the welcome-email link so a signer can view their
+  // trial status or cancel without logging in.
+  token        String?  @unique
 
   @@index([createdAt])
 }

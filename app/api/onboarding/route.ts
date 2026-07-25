@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
 import { normalizePhone } from '@/app/lib/phone';
-import { sendTrialSignupAlert, sendDemoTextToProspect } from '@/app/lib/notifications';
+import { randomUUID } from 'crypto';
+import { sendTrialSignupAlert, sendDemoTextToProspect, sendSignupWelcomeEmail } from '@/app/lib/notifications';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,19 +49,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Please enter a valid email address.' }, { status: 400, headers: corsHeaders });
   }
 
+  const token = randomUUID();
   try {
     await prisma.trialSignup.create({
-      data: { businessName, mobile, email, trade: trade || null },
+      data: { businessName, mobile, email, trade: trade || null, token },
     });
   } catch (error) {
     console.error('Error creating trial signup:', error);
     return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500, headers: corsHeaders });
   }
 
-  // Fire off the operator alert and the prospect's instant demo text. Both are
-  // best-effort — a signup should never fail because email or SMS is down.
+  // Build the status/cancel link from this request's own origin.
+  const statusUrl = `${new URL(request.url).origin}/welcome?t=${token}`;
+
+  // All best-effort — a signup should never fail because email or SMS is down.
   sendTrialSignupAlert({ businessName, mobile, email, trade }).catch(console.error);
   sendDemoTextToProspect(mobile, businessName, trade).catch(console.error);
+  sendSignupWelcomeEmail({ businessName, email }, statusUrl).catch(console.error);
 
   return NextResponse.json({ success: true }, { headers: corsHeaders });
 }
