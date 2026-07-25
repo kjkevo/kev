@@ -190,6 +190,90 @@ export const sendTextFailureAlertToOwner = async (
   return { emailSent, smsSent };
 };
 
+// Sent to the person who just signed up: a warm, plain-language note so they
+// know exactly what's happening and what (little) they need to do — plus a link
+// to view status or cancel anytime.
+export const sendSignupWelcomeEmail = async (
+  signup: { businessName: string; email: string },
+  statusUrl: string,
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const transporter = initializeEmailTransporter();
+    if (!transporter) return { success: false, error: 'Email not configured' };
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: signup.email,
+      subject: `You're in! Here's what happens next for ${signup.businessName} 🎉`,
+      html: `
+        <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:520px;color:#1a1a1a;line-height:1.6;">
+          <h2 style="margin:0 0 8px;">Welcome, ${signup.businessName}! 👋</h2>
+          <p style="margin:0 0 16px;">Thanks for starting your free trial. Here's exactly what's
+            happening — no surprises, and it's easy on your end.</p>
+
+          <h3 style="margin:20px 0 6px;font-size:16px;">What we're doing right now</h3>
+          <p style="margin:0 0 16px;">Setting up a dedicated phone number for you and building your
+            custom text-back. You don't need to do anything for this part.</p>
+
+          <h3 style="margin:20px 0 6px;font-size:16px;">What you'll do (about 2 minutes, later)</h3>
+          <ol style="margin:0 0 16px;padding-left:20px;">
+            <li>We'll email you your new number — usually within a day.</li>
+            <li>You'll turn on call forwarding so missed calls roll to it (we'll give you the exact steps).</li>
+            <li>That's it — every missed call then gets an instant text-back.</li>
+          </ol>
+
+          <p style="margin:0 0 16px;">We also just texted your phone a live sample of what your
+            customers will get. 📱</p>
+
+          <div style="margin:24px 0;">
+            <a href="${statusUrl}" style="display:inline-block;background:#2F6BFF;color:#fff;
+              text-decoration:none;padding:14px 24px;border-radius:10px;font-weight:700;">
+              View your trial status</a>
+          </div>
+
+          <p style="margin:0 0 8px;font-size:14px;color:#555;">Changed your mind? No problem and no
+            charge — you can <a href="${statusUrl}" style="color:#2F6BFF;">cancel anytime</a> from
+            that same page.</p>
+          <p style="margin:16px 0 0;font-size:14px;color:#555;">Questions? Just reply to this email —
+            a real person will answer.</p>
+        </div>
+      `,
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending signup welcome email:', error);
+    return { success: false, error: String(error) };
+  }
+};
+
+// Notify the operator when a trial-er cancels, so you can stop their setup.
+export const sendTrialCancelledAlert = async (signup: {
+  businessName: string;
+  email: string;
+  mobile: string;
+}): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const transporter = initializeEmailTransporter();
+    if (!transporter) return { success: false, error: 'Email not configured' };
+    const to = process.env.ALERT_EMAIL || process.env.EMAIL_USER;
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to,
+      subject: `⚠️ Trial cancelled: ${signup.businessName}`,
+      html: `
+        <h2>A trial was cancelled</h2>
+        <p><strong>Business:</strong> ${signup.businessName}</p>
+        <p><strong>Email:</strong> ${signup.email}</p>
+        <p><strong>Mobile:</strong> ${signup.mobile}</p>
+        <p>If you already provisioned them, remember to release their Twilio number so it stops billing.</p>
+      `,
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending trial cancelled alert:', error);
+    return { success: false, error: String(error) };
+  }
+};
+
 // Notify the operator (you) when a prospect signs up for a trial, so you can
 // provision their number and onboard them. Goes to ALERT_EMAIL if set, else the
 // sending account.
