@@ -347,6 +347,37 @@ export const sendDemoTextToProspect = async (
   }
 };
 
+// Sends a test email so the operator can confirm email is configured correctly
+// (right creds, not placeholders, provider accepts the login) with one click.
+export const sendTestEmail = async (): Promise<{ success: boolean; to?: string; error?: string }> => {
+  const transporter = initializeEmailTransporter();
+  if (!transporter) {
+    return { success: false, error: 'Email is not configured — set EMAIL_USER and EMAIL_PASSWORD (a Gmail App Password).' };
+  }
+  const to = process.env.ALERT_EMAIL || process.env.EMAIL_USER;
+  try {
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to,
+      subject: '✅ MissedCall email is working',
+      html: `
+        <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#1a1a1a;line-height:1.6;">
+          <h2>Your email is set up correctly 🎉</h2>
+          <p>This is a test from your MissedCall admin. If you're reading it, then:</p>
+          <ul>
+            <li>Setup-form emails will reach your new signups.</li>
+            <li>Signup, setup-form, cancellation, and billing alerts will reach <strong>${to}</strong>.</li>
+          </ul>
+          <p>Sent ${new Date().toLocaleString()}.</p>
+        </div>`,
+    });
+    return { success: true, to: to || undefined };
+  } catch (error) {
+    console.error('Error sending test email:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+};
+
 // Sent to the phone right after someone submits the trial form: a short nudge
 // to go read the setup-form email we just sent them.
 export const sendCheckYourEmailText = async (
