@@ -39,6 +39,56 @@ export const sendSMS = async (toPhone: string, message: string, fromPhone?: stri
   }
 };
 
+// One-click provisioning: find and buy a US local number, wired to this app's
+// webhooks (voice, call-status, inbound SMS). `areaCode` is a preference — if no
+// number is available there, we fall back to any US local number. In mock mode
+// (no real Twilio creds) we return a fake number so the flow stays testable.
+export const provisionNumber = async (opts: {
+  areaCode?: string;
+  voiceUrl: string;
+  statusCallbackUrl: string;
+  smsUrl: string;
+  friendlyName?: string;
+}): Promise<{ success: boolean; phoneNumber?: string; sid?: string; mock?: boolean; error?: string }> => {
+  if (!hasValidCredentials) {
+    const fake = `+1555${Math.floor(1000000 + Math.random() * 8999999)}`;
+    console.log(`[MOCK PROVISION] Would buy a number (${opts.areaCode ?? 'any'}) → ${fake}`);
+    return { success: true, phoneNumber: fake, sid: 'PN_MOCK_' + Date.now(), mock: true };
+  }
+
+  try {
+    // Prefer a number local to the prospect's own area code, then fall back.
+    const search = async (areaCode?: string) =>
+      client!.availablePhoneNumbers('US').local.list({
+        ...(areaCode ? { areaCode: Number(areaCode) } : {}),
+        smsEnabled: true,
+        voiceEnabled: true,
+        limit: 1,
+      });
+
+    let candidates = opts.areaCode ? await search(opts.areaCode) : [];
+    if (candidates.length === 0) candidates = await search();
+    if (candidates.length === 0) {
+      return { success: false, error: 'No US phone numbers are currently available to purchase.' };
+    }
+
+    const purchased = await client!.incomingPhoneNumbers.create({
+      phoneNumber: candidates[0].phoneNumber,
+      friendlyName: opts.friendlyName,
+      voiceUrl: opts.voiceUrl,
+      voiceMethod: 'POST',
+      statusCallback: opts.statusCallbackUrl,
+      statusCallbackMethod: 'POST',
+      smsUrl: opts.smsUrl,
+      smsMethod: 'POST',
+    });
+    return { success: true, phoneNumber: purchased.phoneNumber, sid: purchased.sid };
+  } catch (error) {
+    console.error('Error provisioning Twilio number:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+};
+
 export const generateCallResponse = (message: string) => {
   const twiml = new twilio.twiml.VoiceResponse();
   twiml.say(message);

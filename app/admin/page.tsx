@@ -27,6 +27,17 @@ interface Business {
   voiceMenu?: VoiceMenuJSON | null;
 }
 
+interface TrialSignup {
+  id: number;
+  createdAt: string;
+  businessName: string;
+  mobile: string;
+  email: string;
+  trade?: string | null;
+  status: string;
+  notes?: string | null;
+}
+
 // In the form, an option's keywords are a single comma-separated string for
 // easy editing; the API splits them back into an array.
 interface MenuOptionForm { label: string; keywords: string; reply: string; sms: string }
@@ -79,6 +90,9 @@ export default function AdminBusinessesPage() {
   const [form, setForm] = React.useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = React.useState(false);
 
+  const [signups, setSignups] = React.useState<TrialSignup[]>([]);
+  const [provisioningId, setProvisioningId] = React.useState<number | null>(null);
+
   const fetchBusinesses = React.useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -102,9 +116,49 @@ export default function AdminBusinessesPage() {
     }
   }, []);
 
+  const fetchSignups = React.useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/signups");
+      if (!res.ok) return;
+      const data = await res.json();
+      setSignups(data.signups ?? []);
+    } catch {
+      /* non-critical — the signup queue just stays empty */
+    }
+  }, []);
+
   React.useEffect(() => {
     fetchBusinesses();
-  }, [fetchBusinesses]);
+    fetchSignups();
+  }, [fetchBusinesses, fetchSignups]);
+
+  async function handleProvision(s: TrialSignup) {
+    if (!window.confirm(
+      `Provision ${s.businessName}?\n\nThis buys a Twilio number, wires its webhooks, ` +
+      `creates the business, and emails ${s.email} their number + forwarding steps.`
+    )) return;
+    setProvisioningId(s.id);
+    setError(null);
+    setNotice(null);
+    try {
+      const res = await fetch(`/api/admin/signups/${s.id}/provision`, { method: "POST" });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(j.error || `Provisioning failed (${res.status})`);
+        return;
+      }
+      setNotice(
+        `${s.businessName} is live on ${j.phoneNumber}` +
+        (j.mock ? " (mock number — Twilio isn't configured yet)." : ". We emailed them the forwarding steps.")
+      );
+      fetchSignups();
+      fetchBusinesses();
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setProvisioningId(null);
+    }
+  }
 
   function startCreate() {
     setEditingId(null);
@@ -247,6 +301,49 @@ export default function AdminBusinessesPage() {
 
         {error && <div style={styles.errorBanner}>{error}</div>}
         {notice && <div style={styles.noticeBanner}>{notice}</div>}
+
+        {/* Trial signup queue */}
+        <section style={styles.card}>
+          <h2 style={styles.h2}>
+            Trial signups
+            {signups.filter((s) => s.status !== "onboarded").length > 0 &&
+              ` · ${signups.filter((s) => s.status !== "onboarded").length} new`}
+          </h2>
+          <p style={styles.muted}>
+            One click buys a number, wires the webhooks, creates the business, and emails the
+            client their forwarding steps.
+          </p>
+          {signups.length === 0 && <p style={styles.muted}>No signups yet.</p>}
+          {signups.map((s) => {
+            const done = s.status === "onboarded";
+            return (
+              <div key={s.id} style={styles.row}>
+                <div>
+                  <div style={styles.rowTitle}>
+                    {s.businessName}{" "}
+                    <span style={done ? styles.pillDone : styles.pillNew}>{done ? "Live" : "New"}</span>
+                  </div>
+                  <div style={styles.rowSub}>
+                    {s.mobile} · {s.email}{s.trade ? ` · ${s.trade}` : ""}
+                  </div>
+                </div>
+                <div style={styles.rowActions}>
+                  {done ? (
+                    <span style={styles.mutedSmall}>Provisioned</span>
+                  ) : (
+                    <button
+                      style={styles.provisionBtn}
+                      disabled={provisioningId === s.id}
+                      onClick={() => handleProvision(s)}
+                    >
+                      {provisioningId === s.id ? "Provisioning…" : "⚡ Provision"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </section>
 
         {/* Form */}
         <section style={styles.card}>
@@ -455,6 +552,10 @@ const styles: Record<string, React.CSSProperties> = {
   rowTitle: { fontSize: 15, fontWeight: 600 },
   rowSub: { fontSize: 13, color: "#8A93A6", marginTop: 2 },
   rowActions: { display: "flex", gap: 8 },
+  mutedSmall: { color: "#8A93A6", fontSize: 13 },
+  provisionBtn: { background: "#12B886", color: "#04140D", border: "none", borderRadius: 6, padding: "8px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer" },
+  pillNew: { background: "#12301F", color: "#8FE3B0", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999, marginLeft: 6, verticalAlign: "middle" },
+  pillDone: { background: "#1B2740", color: "#9FC2FF", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999, marginLeft: 6, verticalAlign: "middle" },
   error: { color: "#F7A8B8", fontSize: 14, marginTop: 12 },
   errorBanner: { background: "#3A1620", color: "#F7A8B8", padding: "10px 14px", borderRadius: 8, fontSize: 14 },
   noticeBanner: { background: "#12301F", color: "#8FE3B0", padding: "10px 14px", borderRadius: 8, fontSize: 14 },

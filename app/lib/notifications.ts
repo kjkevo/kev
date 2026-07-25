@@ -251,6 +251,43 @@ export const sendDemoTextToProspect = async (
   }
 };
 
+// Sent to a newly-provisioned client: their dedicated number and the one
+// call-forwarding step that puts them live.
+export const sendProvisionedWelcome = async (
+  toEmail: string,
+  businessName: string,
+  newNumber: string,
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const transporter = initializeEmailTransporter();
+    if (!transporter) return { success: false, error: 'Email not configured' };
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: toEmail,
+      subject: `${businessName} is ready — one 2-minute step to go live`,
+      html: `
+        <h2>You're set up, ${businessName}! 🎉</h2>
+        <p>Your dedicated MissedCall number is:</p>
+        <p style="font-size:22px;font-weight:800;">${newNumber}</p>
+        <p>To go live, turn on call forwarding from your business phone so calls you
+          can't answer roll to this number:</p>
+        <ul>
+          <li><strong>When unanswered:</strong> dial <code>*71</code> then ${newNumber}</li>
+          <li><strong>When busy:</strong> dial <code>*90</code> then ${newNumber}</li>
+          <li><strong>When unreachable:</strong> dial <code>*92</code> then ${newNumber}</li>
+        </ul>
+        <p>On a VoIP or office phone system it's a settings toggle instead of a dial code —
+          just reply to this email and we'll walk you through it.</p>
+        <p>That's it. From then on, every missed call gets an instant text-back.</p>
+      `,
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending provisioned welcome email:', error);
+    return { success: false, error: String(error) };
+  }
+};
+
 export const sendMissedCallAlertToOwner = async (
   ownerEmail: string,
   businessName: string,
