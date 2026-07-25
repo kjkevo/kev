@@ -190,9 +190,9 @@ export const sendTextFailureAlertToOwner = async (
   return { emailSent, smsSent };
 };
 
-// Sent to the person who just signed up: a warm, plain-language note so they
-// know exactly what's happening and what (little) they need to do — plus a link
-// to view status or cancel anytime.
+// Sent to the person who just signed up: warm instructions plus a big button to
+// their setup form, where they tell us what service they want (voice/text/both)
+// and example messages, then start service or cancel.
 export const sendSignupWelcomeEmail = async (
   signup: { businessName: string; email: string },
   statusUrl: string,
@@ -203,36 +203,30 @@ export const sendSignupWelcomeEmail = async (
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: signup.email,
-      subject: `You're in! Here's what happens next for ${signup.businessName} 🎉`,
+      subject: `Finish your setup for ${signup.businessName} — 2 quick minutes 📝`,
       html: `
         <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:520px;color:#1a1a1a;line-height:1.6;">
-          <h2 style="margin:0 0 8px;">Welcome, ${signup.businessName}! 👋</h2>
-          <p style="margin:0 0 16px;">Thanks for starting your free trial. Here's exactly what's
-            happening — no surprises, and it's easy on your end.</p>
+          <h2 style="margin:0 0 8px;">You're almost there, ${signup.businessName}! 👋</h2>
+          <p style="margin:0 0 16px;">Thanks for signing up. To get your missed-call text-back set up
+            exactly how you want it, we just need a couple of quick answers from you.</p>
 
-          <h3 style="margin:20px 0 6px;font-size:16px;">What we're doing right now</h3>
-          <p style="margin:0 0 16px;">Setting up a dedicated phone number for you and building your
-            custom text-back. You don't need to do anything for this part.</p>
-
-          <h3 style="margin:20px 0 6px;font-size:16px;">What you'll do (about 2 minutes, later)</h3>
+          <h3 style="margin:20px 0 6px;font-size:16px;">Here's what to do (about 2 minutes)</h3>
           <ol style="margin:0 0 16px;padding-left:20px;">
-            <li>We'll email you your new number — usually within a day.</li>
-            <li>You'll turn on call forwarding so missed calls roll to it (we'll give you the exact steps).</li>
-            <li>That's it — every missed call then gets an instant text-back.</li>
+            <li>Tap the button below to open your setup form.</li>
+            <li>Tell us which service you want: <strong>Voice</strong>, <strong>Text</strong>, or <strong>Both</strong>.</li>
+            <li>Give us an example of the messages you'd like your customers to get.</li>
+            <li>Send it to us — then, when you're ready, start your service.</li>
           </ol>
-
-          <p style="margin:0 0 16px;">We also just texted your phone a live sample of what your
-            customers will get. 📱</p>
 
           <div style="margin:24px 0;">
             <a href="${statusUrl}" style="display:inline-block;background:#2F6BFF;color:#fff;
               text-decoration:none;padding:14px 24px;border-radius:10px;font-weight:700;">
-              View your trial status</a>
+              Open your setup form</a>
           </div>
 
-          <p style="margin:0 0 8px;font-size:14px;color:#555;">Changed your mind? No problem and no
-            charge — you can <a href="${statusUrl}" style="color:#2F6BFF;">cancel anytime</a> from
-            that same page.</p>
+          <p style="margin:0 0 8px;font-size:14px;color:#555;">Not ready, or changed your mind? No
+            problem and no charge — you can <a href="${statusUrl}" style="color:#2F6BFF;">cancel anytime</a>
+            from that same page.</p>
           <p style="margin:16px 0 0;font-size:14px;color:#555;">Questions? Just reply to this email —
             a real person will answer.</p>
         </div>
@@ -349,6 +343,70 @@ export const sendDemoTextToProspect = async (
     return { success: true, sid: result.sid };
   } catch (error) {
     console.error('Error sending demo text to prospect:', error);
+    return { success: false, error: String(error) };
+  }
+};
+
+// Sent to the phone right after someone submits the trial form: a short nudge
+// to go read the setup-form email we just sent them.
+export const sendCheckYourEmailText = async (
+  mobile: string,
+  businessName: string,
+): Promise<{ success: boolean; sid?: string; error?: string }> => {
+  const body =
+    `Thanks for signing up with MissedCall! 📧 Check your email — we just sent ` +
+    `${businessName ? `${businessName} ` : ''}a quick setup form to get your service started.\n\n` +
+    `Reply STOP to opt out, HELP for help.`;
+  try {
+    const result = await sendSMS(mobile, body);
+    return { success: true, sid: result.sid };
+  } catch (error) {
+    console.error('Error sending check-your-email text:', error);
+    return { success: false, error: String(error) };
+  }
+};
+
+// Notify the operator (you) when a client fills out their setup form, so you can
+// build their text-back to match what they asked for.
+export const sendIntakeSubmittedAlert = async (signup: {
+  businessName: string;
+  email: string;
+  mobile: string;
+  servicePreference: string;
+  exampleMessages: string;
+}): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const transporter = initializeEmailTransporter();
+    if (!transporter) return { success: false, error: 'Email not configured' };
+    const to = process.env.ALERT_EMAIL || process.env.EMAIL_USER;
+    const serviceLabel =
+      signup.servicePreference === 'both'
+        ? 'Voice + Text'
+        : signup.servicePreference === 'voice'
+          ? 'Voice'
+          : 'Text';
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to,
+      subject: `📝 Setup form submitted: ${signup.businessName}`,
+      html: `
+        <h2>A client filled out their setup form</h2>
+        <p><strong>Business:</strong> ${signup.businessName}</p>
+        <p><strong>Email:</strong> <a href="mailto:${signup.email}">${signup.email}</a></p>
+        <p><strong>Mobile:</strong> <a href="tel:${signup.mobile}">${signup.mobile}</a></p>
+        <p><strong>Service wanted:</strong> ${serviceLabel}</p>
+        <p><strong>Example messages they'd like:</strong></p>
+        <blockquote style="border-left:3px solid #ccc;padding-left:12px;color:#333;white-space:pre-wrap;">${
+          signup.exampleMessages || '(none provided)'
+        }</blockquote>
+        <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+        <hr />
+        <p>Next: build their text-back to match, then they can start service (Stripe) from their setup page.</p>
+      `,
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending intake submitted alert:', error);
     return { success: false, error: String(error) };
   }
 };

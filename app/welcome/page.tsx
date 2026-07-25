@@ -14,7 +14,12 @@ interface Info {
   subscriptionStatus?: string | null;
   hasBilling?: boolean;
   billingEnabled?: boolean;
+  servicePreference?: string | null;
+  exampleMessages?: string | null;
+  intakeSubmitted?: boolean;
 }
+
+type Service = "" | "voice" | "text" | "both";
 
 export default function WelcomePage() {
   const [token, setToken] = React.useState<string | null>(null);
@@ -25,6 +30,11 @@ export default function WelcomePage() {
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [billingBusy, setBillingBusy] = React.useState(false);
   const [justPaid, setJustPaid] = React.useState(false);
+  const [service, setService] = React.useState<Service>("");
+  const [examples, setExamples] = React.useState("");
+  const [intakeSubmitted, setIntakeSubmitted] = React.useState(false);
+  const [intakeBusy, setIntakeBusy] = React.useState(false);
+  const [editingIntake, setEditingIntake] = React.useState(false);
 
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -35,7 +45,11 @@ export default function WelcomePage() {
     fetch(`/api/onboarding/status?t=${encodeURIComponent(t)}`)
       .then(async (r) => {
         if (!r.ok) { setNotFound(true); return; }
-        setInfo(await r.json());
+        const data: Info = await r.json();
+        setInfo(data);
+        if (data.servicePreference) setService(data.servicePreference as Service);
+        if (data.exampleMessages) setExamples(data.exampleMessages);
+        setIntakeSubmitted(Boolean(data.intakeSubmitted));
       })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
@@ -56,6 +70,28 @@ export default function WelcomePage() {
       }
     } finally {
       setCancelling(false);
+    }
+  }
+
+  async function submitIntake() {
+    if (!token) return;
+    if (!service) { alert("Please choose Voice, Text, or Both."); return; }
+    setIntakeBusy(true);
+    try {
+      const r = await fetch("/api/onboarding/intake", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, service, examples }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (r.ok && j.success) {
+        setIntakeSubmitted(true);
+        setEditingIntake(false);
+      } else {
+        alert(j.error || "Couldn't send your preferences. Please try again.");
+      }
+    } finally {
+      setIntakeBusy(false);
     }
   }
 
@@ -131,7 +167,7 @@ export default function WelcomePage() {
               <li style={s.step}><strong>When busy:</strong> <code style={s.code}>*90</code> · <strong>when unreachable:</strong> <code style={s.code}>*92</code></li>
               <li style={s.step}>On a VoIP/office phone it&apos;s a settings toggle — reply to your email and we&apos;ll help.</li>
             </ul>
-            {renderBilling()}
+            {renderConversion()}
             {renderCancel()}
           </>
         ) : (
@@ -148,9 +184,8 @@ export default function WelcomePage() {
               <li style={s.tItem}><span style={s.tMarkPending}>○</span> You&apos;re live — missed calls turn into texts</li>
             </ol>
 
-            <p style={s.reassure}>💡 Nothing needed from you right now. We already texted your phone a
-              sample of what your customers will get — check it out while you wait.</p>
-            {renderBilling()}
+            <p style={s.reassure}>💡 Finish your quick setup below so we can build your text-back exactly how you want it.</p>
+            {renderConversion()}
             {renderCancel()}
           </>
         )}
@@ -158,14 +193,17 @@ export default function WelcomePage() {
     </main>
   );
 
-  function renderBilling() {
-    if (!info?.billingEnabled) return null;
-    const sub = info.subscriptionStatus;
+  // Once someone is (or just became) a paying customer, show billing status
+  // instead of the setup form; otherwise show the two-step setup form.
+  function renderConversion() {
+    const sub = info?.subscriptionStatus;
     if (justPaid || sub === "active" || sub === "trialing") {
       return (
         <div style={s.billingActive}>
-          <span>✅ Your subscription is active — thank you!</span>
-          <button style={s.manageLink} onClick={openPortal} disabled={billingBusy}>Manage billing</button>
+          <span>✅ Your service is active — thank you!</span>
+          {info?.billingEnabled && (
+            <button style={s.manageLink} onClick={openPortal} disabled={billingBusy}>Manage billing</button>
+          )}
         </div>
       );
     }
@@ -180,17 +218,80 @@ export default function WelcomePage() {
         </div>
       );
     }
-    // No subscription yet — the "add payment to continue" step.
+    return renderSetup();
+  }
+
+  // The setup form: Step 1 (send your preferences) → Step 2 (start service).
+  function renderSetup() {
+    const services: { key: Service; label: string; hint: string }[] = [
+      { key: "text", label: "💬 Text", hint: "Auto text-back on missed calls" },
+      { key: "voice", label: "📞 Voice", hint: "Voicemail / voice menu" },
+      { key: "both", label: "✨ Both", hint: "Text-back + voice" },
+    ];
+    const showForm = !intakeSubmitted || editingIntake;
+
     return (
-      <div style={s.billingBox}>
-        <div style={s.billingTitle}>Ready to keep it going?</div>
-        <p style={s.billingSub}>Your free trial has no card attached. Add payment anytime to stay live after it ends — <strong>$49/mo</strong>, cancel whenever.</p>
-        <button style={s.payBtn} onClick={() => startCheckout("monthly")} disabled={billingBusy}>
-          {billingBusy ? "Loading…" : "Add payment — $49/mo"}
-        </button>
-        <button style={s.annualLink} onClick={() => startCheckout("annual")} disabled={billingBusy}>
-          or pay yearly — $490/yr (2 months free)
-        </button>
+      <div style={s.setupBox}>
+        {/* Step 1 */}
+        <div style={s.stepHead}><span style={s.stepBadge}>Step 1</span> Tell us what you want</div>
+
+        {showForm ? (
+          <>
+            <div style={s.svcRow}>
+              {services.map((o) => (
+                <button
+                  key={o.key}
+                  onClick={() => setService(o.key)}
+                  style={{ ...s.svcBtn, ...(service === o.key ? s.svcBtnOn : {}) }}
+                >
+                  <span style={s.svcLabel}>{o.label}</span>
+                  <span style={s.svcHint}>{o.hint}</span>
+                </button>
+              ))}
+            </div>
+            <label style={s.fieldLabel}>Example messages you&apos;d like your customers to get</label>
+            <textarea
+              value={examples}
+              onChange={(e) => setExamples(e.target.value)}
+              placeholder={"e.g. Sorry we missed your call! We'll be right with you. What do you need help with?"}
+              style={s.textarea}
+              rows={4}
+            />
+            <button style={s.payBtn} onClick={submitIntake} disabled={intakeBusy}>
+              {intakeBusy ? "Sending…" : intakeSubmitted ? "Update my preferences" : "Send my preferences"}
+            </button>
+          </>
+        ) : (
+          <div style={s.intakeDone}>
+            <div style={{ fontWeight: 700, color: "#8FE3B0", marginBottom: 6 }}>✓ Preferences sent — we&apos;re on it!</div>
+            <div style={s.intakeSummary}>
+              <strong>Service:</strong>{" "}
+              {service === "both" ? "Voice + Text" : service === "voice" ? "Voice" : "Text"}
+            </div>
+            {examples && <div style={s.intakeSummary}><strong>Your examples:</strong> {examples}</div>}
+            <button style={s.editLink} onClick={() => setEditingIntake(true)}>Edit</button>
+          </div>
+        )}
+
+        {/* Step 2 */}
+        <div style={{ ...s.stepHead, marginTop: 22 }}><span style={s.stepBadge}>Step 2</span> Start your service</div>
+        {intakeSubmitted ? (
+          info?.billingEnabled ? (
+            <>
+              <p style={s.billingSub}>Ready to go live? It&apos;s <strong>$49/mo</strong>, cancel anytime.</p>
+              <button style={s.startBtn} onClick={() => startCheckout("monthly")} disabled={billingBusy}>
+                {billingBusy ? "Loading…" : "Start my service — $49/mo →"}
+              </button>
+              <button style={s.annualLink} onClick={() => startCheckout("annual")} disabled={billingBusy}>
+                or pay yearly — $490/yr (2 months free)
+              </button>
+            </>
+          ) : (
+            <p style={s.billingSub}>You&apos;re all set on our end — we&apos;ll email you when it&apos;s time to start service.</p>
+          )
+        ) : (
+          <p style={s.stepLocked}>🔒 Send your preferences above first, then you can start your service here.</p>
+        )}
       </div>
     );
   }
@@ -240,6 +341,21 @@ const s: Record<string, React.CSSProperties> = {
   tMarkPending: { color: "#3A465E", width: 18, textAlign: "center" },
   now: { color: "#3B82F6", fontStyle: "normal", fontSize: 13, fontWeight: 700 },
   reassure: { background: "#0F1A2E", border: "1px solid #24324F", borderRadius: 10, padding: "12px 14px", fontSize: 14, lineHeight: 1.55, color: "#B8C0D0", margin: "0 0 6px" },
+  setupBox: { marginTop: 20, background: "#0B1A2E", border: "1px solid #24406B", borderRadius: 12, padding: "18px" },
+  stepHead: { fontSize: 15.5, fontWeight: 700, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 },
+  stepBadge: { fontSize: 11, fontWeight: 800, background: "#1B3B66", color: "#9FC2FF", padding: "3px 8px", borderRadius: 20, letterSpacing: 0.3 },
+  svcRow: { display: "flex", gap: 8, marginBottom: 14 },
+  svcBtn: { flex: 1, background: "#0A0F1E", border: "1px solid #22304C", borderRadius: 10, padding: "10px 6px", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, color: "#C7CEDB" },
+  svcBtnOn: { border: "1px solid #3B82F6", background: "#12264A", color: "#fff", boxShadow: "0 0 0 1px #3B82F6" },
+  svcLabel: { fontSize: 14, fontWeight: 700 },
+  svcHint: { fontSize: 10.5, color: "#8A93A6", textAlign: "center", lineHeight: 1.3 },
+  fieldLabel: { display: "block", fontSize: 13, color: "#98A2B6", marginBottom: 6, fontWeight: 600 },
+  textarea: { width: "100%", background: "#0A0F1E", border: "1px solid #22304C", borderRadius: 10, padding: "10px 12px", color: "#E5E9F0", fontSize: 14, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box", marginBottom: 14 },
+  startBtn: { background: "#22C55E", color: "#04220F", border: "none", borderRadius: 10, padding: "13px 18px", fontSize: 15, fontWeight: 800, cursor: "pointer", width: "100%" },
+  stepLocked: { fontSize: 13.5, color: "#7A8397", margin: 0, background: "#0A0F1E", border: "1px dashed #2A3854", borderRadius: 10, padding: "12px 14px" },
+  intakeDone: { background: "#0A1F16", border: "1px solid #1F5A3E", borderRadius: 10, padding: "12px 14px" },
+  intakeSummary: { fontSize: 13.5, color: "#C7CEDB", marginTop: 4, lineHeight: 1.5 },
+  editLink: { background: "transparent", color: "#8FB8FF", border: "none", fontSize: 12.5, cursor: "pointer", textDecoration: "underline", padding: 0, marginTop: 8 },
   billingBox: { marginTop: 20, background: "#0B1A2E", border: "1px solid #24406B", borderRadius: 12, padding: "16px 18px" },
   billingTitle: { fontSize: 16, fontWeight: 700, marginBottom: 4 },
   billingSub: { fontSize: 14, lineHeight: 1.55, color: "#98A2B6", margin: "0 0 14px" },

@@ -31,5 +31,8 @@ export async function GET(request: NextRequest) {
     subscriptionStatus: signup.subscriptionStatus,
     hasBilling: Boolean(signup.stripeCustomerId),
     billingEnabled: stripeConfigured,
+    servicePreference: signup.servicePreference,
+    exampleMessages: signup.exampleMessages,
+    intakeSubmitted: Boolean(signup.intakeSubmittedAt),
   });
 }
