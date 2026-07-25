@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
+import { stripeConfigured } from '@/app/lib/stripe';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,5 +28,8 @@ export async function GET(request: NextRequest) {
     businessName: signup.businessName,
     status: signup.status,
     phoneNumber,
+    subscriptionStatus: signup.subscriptionStatus,
+    hasBilling: Boolean(signup.stripeCustomerId),
+    billingEnabled: stripeConfigured,
   });
 }
