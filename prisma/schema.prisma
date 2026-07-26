@@ -212,6 +212,11 @@ model TrialSignup {
   // trial status or cancel without logging in.
   token        String?  @unique
 
+  // Setup-form intake: what the client submits back before starting service.
+  servicePreference    String?   // "voice" | "text" | "both"
+  exampleMessages      String?   // sample text-backs they'd like us to send
+  intakeSubmittedAt    DateTime?
+
   // Stripe billing (populated when the client converts from free trial to paid).
   stripeCustomerId     String?
   stripeSubscriptionId String?

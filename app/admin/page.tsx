@@ -104,6 +104,7 @@ export default function AdminBusinessesPage() {
   const [signups, setSignups] = React.useState<TrialSignup[]>([]);
   const [provisioningId, setProvisioningId] = React.useState<number | null>(null);
   const [analytics, setAnalytics] = React.useState<Analytics | null>(null);
+  const [testingEmail, setTestingEmail] = React.useState(false);
 
   const fetchBusinesses = React.useCallback(async () => {
     setLoading(true);
@@ -310,6 +311,25 @@ export default function AdminBusinessesPage() {
     window.location.href = "/login";
   }
 
+  async function sendTestEmail() {
+    setError(null);
+    setNotice(null);
+    setTestingEmail(true);
+    try {
+      const res = await fetch("/api/admin/test-email", { method: "POST" });
+      const j = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setNotice(`✅ Test email sent to ${j.to || "your inbox"} — check it (and your spam folder).`);
+      } else {
+        setError(j.error || `Email test failed (${res.status})`);
+      }
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setTestingEmail(false);
+    }
+  }
+
   /* ── Main admin ── */
   return (
     <div style={styles.page}>
@@ -319,7 +339,12 @@ export default function AdminBusinessesPage() {
             <h1 style={styles.h1}>Business Admin</h1>
             <p style={styles.muted}>Add and configure businesses in the missed-call system.</p>
           </div>
-          <button onClick={signOut} style={styles.ghostBtn}>Sign out</button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={sendTestEmail} style={styles.ghostBtn} disabled={testingEmail}>
+              {testingEmail ? "Sending…" : "✉️ Test email"}
+            </button>
+            <button onClick={signOut} style={styles.ghostBtn}>Sign out</button>
+          </div>
         </header>
 
         {error && <div style={styles.errorBanner}>{error}</div>}

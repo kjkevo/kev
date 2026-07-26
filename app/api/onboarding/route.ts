@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
 import { normalizePhone } from '@/app/lib/phone';
 import { randomUUID } from 'crypto';
-import { sendTrialSignupAlert, sendDemoTextToProspect, sendSignupWelcomeEmail } from '@/app/lib/notifications';
+import { sendTrialSignupAlert, sendCheckYourEmailText, sendSignupWelcomeEmail } from '@/app/lib/notifications';
 
 export const dynamic = 'force-dynamic';
 
@@ -64,7 +64,8 @@ export async function POST(request: NextRequest) {
 
   // All best-effort — a signup should never fail because email or SMS is down.
   sendTrialSignupAlert({ businessName, mobile, email, trade }).catch(console.error);
-  sendDemoTextToProspect(mobile, businessName, trade).catch(console.error);
+  // Text the prospect to go check their email for the setup form, then email it.
+  sendCheckYourEmailText(mobile, businessName).catch(console.error);
   sendSignupWelcomeEmail({ businessName, email }, statusUrl).catch(console.error);
 
   return NextResponse.json({ success: true }, { headers: corsHeaders });
