@@ -129,7 +129,8 @@ export default function StartPage() {
         </button>
         <p style={s.fine}>
           By submitting, you agree to be contacted about setting up your account. See our{" "}
-          <a style={s.link} href="/privacy">Privacy Policy</a> and{" "}
+          <a style={s.link} href="/opt-in">SMS Opt-in</a>,{" "}
+          <a style={s.link} href="/privacy">Privacy Policy</a>, and{" "}
           <a style={s.link} href="/terms">Terms</a>.
         </p>
       </form>
