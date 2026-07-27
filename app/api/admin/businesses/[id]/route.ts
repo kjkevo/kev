@@ -29,6 +29,19 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   if (body.missedCallMessage !== undefined) data.missedCallMessage = String(body.missedCallMessage);
   if (body.leadSubmissionMsg !== undefined) data.leadSubmissionMsg = String(body.leadSubmissionMsg);
   if (body.voiceGreeting !== undefined) data.voiceGreeting = String(body.voiceGreeting);
+  if (body.active !== undefined) data.active = Boolean(body.active);
+  // Extend the trial by N days from the later of now / current end date.
+  if (body.extendDays !== undefined) {
+    const days = Number(body.extendDays);
+    if (Number.isFinite(days) && days > 0) {
+      const current = await prisma.businessConfig.findUnique({ where: { id }, select: { trialEndsAt: true } });
+      const base = current?.trialEndsAt && current.trialEndsAt.getTime() > Date.now() ? current.trialEndsAt.getTime() : Date.now();
+      data.trialEndsAt = new Date(base + days * 24 * 60 * 60 * 1000);
+      // Re-open the reminder gate and reactivate when extending.
+      data.trialReminderStage = 0;
+      data.active = true;
+    }
+  }
   if (body.smsEnabled !== undefined) data.smsEnabled = Boolean(body.smsEnabled);
   if (body.voiceEnabled !== undefined) data.voiceEnabled = Boolean(body.voiceEnabled);
   if (body.recordVoicemail !== undefined) data.recordVoicemail = Boolean(body.recordVoicemail);

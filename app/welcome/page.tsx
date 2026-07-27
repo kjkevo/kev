@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { ONBOARDING_SECTIONS } from "@/app/lib/onboardingSchema";
 
 // Public trial status page reached from the welcome email (/welcome?t=<token>).
 // Shows what's happening in plain language and lets them cancel — no login.
@@ -16,6 +17,7 @@ interface Info {
   billingEnabled?: boolean;
   servicePreference?: string | null;
   exampleMessages?: string | null;
+  onboardingDetails?: Record<string, string> | null;
   intakeSubmitted?: boolean;
 }
 
@@ -31,7 +33,7 @@ export default function WelcomePage() {
   const [billingBusy, setBillingBusy] = React.useState(false);
   const [justPaid, setJustPaid] = React.useState(false);
   const [service, setService] = React.useState<Service>("");
-  const [examples, setExamples] = React.useState("");
+  const [details, setDetails] = React.useState<Record<string, string>>({});
   const [intakeSubmitted, setIntakeSubmitted] = React.useState(false);
   const [intakeBusy, setIntakeBusy] = React.useState(false);
   const [editingIntake, setEditingIntake] = React.useState(false);
@@ -48,7 +50,7 @@ export default function WelcomePage() {
         const data: Info = await r.json();
         setInfo(data);
         if (data.servicePreference) setService(data.servicePreference as Service);
-        if (data.exampleMessages) setExamples(data.exampleMessages);
+        if (data.onboardingDetails) setDetails(data.onboardingDetails);
         setIntakeSubmitted(Boolean(data.intakeSubmitted));
       })
       .catch(() => setNotFound(true))
@@ -81,7 +83,7 @@ export default function WelcomePage() {
       const r = await fetch("/api/onboarding/intake", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, service, examples }),
+        body: JSON.stringify({ token, service, details }),
       });
       const j = await r.json().catch(() => ({}));
       if (r.ok && j.success) {
@@ -221,7 +223,18 @@ export default function WelcomePage() {
     return renderSetup();
   }
 
-  // The setup form: Step 1 (send your preferences) → Step 2 (start service).
+  const pricingBox = (
+    <div style={s.pricingBox}>
+      <div style={s.pricingTitle}>🎁 14-day free trial</div>
+      <ul style={s.pricingList}>
+        <li><strong>No card needed</strong> to start</li>
+        <li>After your trial it&apos;s <strong>$59.99/month</strong></li>
+        <li>Cancel anytime</li>
+      </ul>
+    </div>
+  );
+
+  // The setup form: how it works → questionnaire → pricing.
   function renderSetup() {
     const services: { key: Service; label: string; hint: string }[] = [
       { key: "text", label: "💬 Text", hint: "Auto text-back on missed calls" },
@@ -232,11 +245,16 @@ export default function WelcomePage() {
 
     return (
       <div style={s.setupBox}>
-        {/* Step 1 */}
-        <div style={s.stepHead}><span style={s.stepBadge}>Step 1</span> Tell us what you want</div>
+        <div style={s.howHead}>How it works</div>
+        <ol style={s.howList}>
+          <li>Answer a few questions about your business — only the service type is required.</li>
+          <li>Send it to us — we build your custom text-back.</li>
+          <li>Start your service when you&apos;re ready.</li>
+        </ol>
 
         {showForm ? (
           <>
+            <label style={s.fieldLabel}>Which service do you want? <span style={s.req}>*required</span></label>
             <div style={s.svcRow}>
               {services.map((o) => (
                 <button
@@ -249,48 +267,75 @@ export default function WelcomePage() {
                 </button>
               ))}
             </div>
-            <label style={s.fieldLabel}>Example messages you&apos;d like your customers to get</label>
-            <textarea
-              value={examples}
-              onChange={(e) => setExamples(e.target.value)}
-              placeholder={"e.g. Sorry we missed your call! We'll be right with you. What do you need help with?"}
-              style={s.textarea}
-              rows={4}
-            />
+
+            <p style={s.optionalNote}>
+              The questions below are optional — but the more you share, the better we can tailor your
+              text-backs. You can always reply to our email with more later.
+            </p>
+
+            {ONBOARDING_SECTIONS.map((section) => (
+              <div key={section.title} style={s.formSection}>
+                <div style={s.sectionTitle}>{section.title}</div>
+                {section.fields.map((f) => (
+                  <div key={f.id} style={{ marginBottom: 12 }}>
+                    <label style={s.fieldLabel}>{f.label}</label>
+                    {f.type === "textarea" ? (
+                      <textarea
+                        value={details[f.id] || ""}
+                        onChange={(e) => setDetails((d) => ({ ...d, [f.id]: e.target.value }))}
+                        placeholder={f.placeholder}
+                        style={s.textarea}
+                        rows={3}
+                      />
+                    ) : f.type === "radio" ? (
+                      <div style={s.radioRow}>
+                        {f.options!.map((opt) => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => setDetails((d) => ({ ...d, [f.id]: opt }))}
+                            style={{ ...s.radioBtn, ...(details[f.id] === opt ? s.radioBtnOn : {}) }}
+                          >
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <input
+                        type="text"
+                        value={details[f.id] || ""}
+                        onChange={(e) => setDetails((d) => ({ ...d, [f.id]: e.target.value }))}
+                        placeholder={f.placeholder}
+                        style={s.input}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            ))}
+
+            {pricingBox}
+
             <button style={s.payBtn} onClick={submitIntake} disabled={intakeBusy}>
-              {intakeBusy ? "Sending…" : intakeSubmitted ? "Update my preferences" : "Send my preferences"}
+              {intakeBusy ? "Sending…" : intakeSubmitted ? "Update my answers" : "Send my answers"}
             </button>
           </>
         ) : (
-          <div style={s.intakeDone}>
-            <div style={{ fontWeight: 700, color: "#8FE3B0", marginBottom: 6 }}>✓ Preferences sent — we&apos;re on it!</div>
-            <div style={s.intakeSummary}>
-              <strong>Service:</strong>{" "}
-              {service === "both" ? "Voice + Text" : service === "voice" ? "Voice" : "Text"}
+          <>
+            <div style={s.intakeDone}>
+              <div style={{ fontWeight: 700, color: "#8FE3B0", marginBottom: 6 }}>✓ Answers sent — we&apos;re on it!</div>
+              <div style={s.intakeSummary}>
+                <strong>Service:</strong>{" "}
+                {service === "both" ? "Voice + Text" : service === "voice" ? "Voice" : "Text"}
+              </div>
+              <div style={s.intakeSummary}>
+                No card needed right now. We&apos;re building your custom setup and will email you to
+                confirm it looks good. Once you approve, we&apos;ll start your 14-day free trial.
+              </div>
+              <button style={s.editLink} onClick={() => setEditingIntake(true)}>Edit my answers</button>
             </div>
-            {examples && <div style={s.intakeSummary}><strong>Your examples:</strong> {examples}</div>}
-            <button style={s.editLink} onClick={() => setEditingIntake(true)}>Edit</button>
-          </div>
-        )}
-
-        {/* Step 2 */}
-        <div style={{ ...s.stepHead, marginTop: 22 }}><span style={s.stepBadge}>Step 2</span> Start your service</div>
-        {intakeSubmitted ? (
-          info?.billingEnabled ? (
-            <>
-              <p style={s.billingSub}>Ready to go live? It&apos;s <strong>$49/mo</strong>, cancel anytime.</p>
-              <button style={s.startBtn} onClick={() => startCheckout("monthly")} disabled={billingBusy}>
-                {billingBusy ? "Loading…" : "Start my service — $49/mo →"}
-              </button>
-              <button style={s.annualLink} onClick={() => startCheckout("annual")} disabled={billingBusy}>
-                or pay yearly — $490/yr (2 months free)
-              </button>
-            </>
-          ) : (
-            <p style={s.billingSub}>You&apos;re all set on our end — we&apos;ll email you when it&apos;s time to start service.</p>
-          )
-        ) : (
-          <p style={s.stepLocked}>🔒 Send your preferences above first, then you can start your service here.</p>
+            {pricingBox}
+          </>
         )}
       </div>
     );
@@ -342,6 +387,11 @@ const s: Record<string, React.CSSProperties> = {
   now: { color: "#3B82F6", fontStyle: "normal", fontSize: 13, fontWeight: 700 },
   reassure: { background: "#0F1A2E", border: "1px solid #24324F", borderRadius: 10, padding: "12px 14px", fontSize: 14, lineHeight: 1.55, color: "#B8C0D0", margin: "0 0 6px" },
   setupBox: { marginTop: 20, background: "#0B1A2E", border: "1px solid #24406B", borderRadius: 12, padding: "18px" },
+  howHead: { fontSize: 15.5, fontWeight: 700, marginBottom: 8 },
+  howList: { margin: "0 0 18px", paddingLeft: 20, fontSize: 14, lineHeight: 1.6, color: "#C7CEDB" },
+  pricingBox: { margin: "16px 0", background: "#0A1F16", border: "1px solid #1F5A3E", borderRadius: 10, padding: "14px 16px" },
+  pricingTitle: { fontSize: 15, fontWeight: 800, color: "#B8F0CF", marginBottom: 6 },
+  pricingList: { margin: 0, paddingLeft: 20, fontSize: 14, lineHeight: 1.7, color: "#C7CEDB" },
   stepHead: { fontSize: 15.5, fontWeight: 700, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 },
   stepBadge: { fontSize: 11, fontWeight: 800, background: "#1B3B66", color: "#9FC2FF", padding: "3px 8px", borderRadius: 20, letterSpacing: 0.3 },
   svcRow: { display: "flex", gap: 8, marginBottom: 14 },
@@ -350,7 +400,15 @@ const s: Record<string, React.CSSProperties> = {
   svcLabel: { fontSize: 14, fontWeight: 700 },
   svcHint: { fontSize: 10.5, color: "#8A93A6", textAlign: "center", lineHeight: 1.3 },
   fieldLabel: { display: "block", fontSize: 13, color: "#98A2B6", marginBottom: 6, fontWeight: 600 },
-  textarea: { width: "100%", background: "#0A0F1E", border: "1px solid #22304C", borderRadius: 10, padding: "10px 12px", color: "#E5E9F0", fontSize: 14, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box", marginBottom: 14 },
+  req: { color: "#F7A8B8", fontWeight: 600, fontSize: 11.5 },
+  optionalNote: { fontSize: 12.5, color: "#7A8397", lineHeight: 1.5, margin: "4px 0 16px", background: "#0A0F1E", border: "1px solid #1C2740", borderRadius: 8, padding: "10px 12px" },
+  formSection: { marginBottom: 8, paddingTop: 12, borderTop: "1px solid #16233B" },
+  sectionTitle: { fontSize: 13, fontWeight: 800, color: "#8FB8FF", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 },
+  input: { width: "100%", background: "#0A0F1E", border: "1px solid #22304C", borderRadius: 10, padding: "10px 12px", color: "#E5E9F0", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" },
+  radioRow: { display: "flex", gap: 8, flexWrap: "wrap" },
+  radioBtn: { background: "#0A0F1E", border: "1px solid #22304C", borderRadius: 8, padding: "8px 14px", cursor: "pointer", color: "#C7CEDB", fontSize: 13.5 },
+  radioBtnOn: { border: "1px solid #3B82F6", background: "#12264A", color: "#fff" },
+  textarea: { width: "100%", background: "#0A0F1E", border: "1px solid #22304C", borderRadius: 10, padding: "10px 12px", color: "#E5E9F0", fontSize: 14, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" },
   startBtn: { background: "#22C55E", color: "#04220F", border: "none", borderRadius: 10, padding: "13px 18px", fontSize: 15, fontWeight: 800, cursor: "pointer", width: "100%" },
   stepLocked: { fontSize: 13.5, color: "#7A8397", margin: 0, background: "#0A0F1E", border: "1px dashed #2A3854", borderRadius: 10, padding: "12px 14px" },
   intakeDone: { background: "#0A1F16", border: "1px solid #1F5A3E", borderRadius: 10, padding: "12px 14px" },

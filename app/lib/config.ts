@@ -14,6 +14,7 @@ export interface BusinessConfig {
   recordVoicemail: boolean;
   voiceGreeting: string;
   voiceMenu?: unknown; // raw JSON menu blob; parse with parseVoiceMenu()
+  active: boolean;     // master on/off; false = trial expired/unpaid or disabled
   airtableApiKey?: string;
   airtableBaseId?: string;
   airtableMissedTable?: string;
@@ -31,6 +32,7 @@ const defaultConfig: Omit<BusinessConfig, 'id'> = {
   voiceEnabled: false,
   recordVoicemail: false,
   voiceGreeting: 'Thank you for calling. We\'re not available right now, but we\'ll text you shortly.',
+  active: true,
   airtableApiKey: process.env.AIRTABLE_API_KEY,
   airtableBaseId: process.env.AIRTABLE_BASE_ID,
   airtableMissedTable: process.env.AIRTABLE_MISSED_CALLS_TABLE_ID,
@@ -56,6 +58,7 @@ function mapRow(config: BusinessConfigRow): BusinessConfig {
     recordVoicemail: config.recordVoicemail ?? defaultConfig.recordVoicemail,
     voiceGreeting: config.voiceGreeting || defaultConfig.voiceGreeting,
     voiceMenu: (config as { voiceMenu?: unknown }).voiceMenu ?? undefined,
+    active: (config as { active?: boolean }).active ?? true,
     airtableApiKey: config.airtableApiKey || defaultConfig.airtableApiKey,
     airtableBaseId: config.airtableBaseId || defaultConfig.airtableBaseId,
     airtableMissedTable: config.airtableMissedTable || defaultConfig.airtableMissedTable,

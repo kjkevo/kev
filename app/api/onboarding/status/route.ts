@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
     billingEnabled: stripeConfigured,
     servicePreference: signup.servicePreference,
     exampleMessages: signup.exampleMessages,
+    onboardingDetails: signup.onboardingDetails,
     intakeSubmitted: Boolean(signup.intakeSubmittedAt),
   });
 }

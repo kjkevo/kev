@@ -1,8 +1,26 @@
 "use client";
 
 import * as React from "react";
+import { ONBOARDING_SECTIONS } from "@/app/lib/onboardingSchema";
 
 /* ─── Types ──────────────────────────────────────────────────────────────── */
+
+interface Client {
+  signupId: number | null;
+  businessId: number | null;
+  businessName: string;
+  email: string;
+  mobile: string;
+  trade: string | null;
+  servicePreference: string | null;
+  onboardingDetails: Record<string, string> | null;
+  intakeSubmitted: boolean;
+  active: boolean | null;
+  subscriptionStatus: string | null;
+  category: "paying" | "trial" | "review" | "new";
+  stage: string;
+  billDate: string | null;
+}
 
 interface MenuOptionJSON { label: string; keywords: string[]; reply: string; sms: string }
 interface VoiceMenuJSON {
@@ -25,6 +43,9 @@ interface Business {
   voiceEnabled: boolean;
   recordVoicemail: boolean;
   voiceMenu?: VoiceMenuJSON | null;
+  active?: boolean;
+  trialEndsAt?: string | null;
+  subscriptionStatus?: string | null;
 }
 
 interface TrialSignup {
@@ -101,10 +122,11 @@ export default function AdminBusinessesPage() {
   const [form, setForm] = React.useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = React.useState(false);
 
-  const [signups, setSignups] = React.useState<TrialSignup[]>([]);
-  const [provisioningId, setProvisioningId] = React.useState<number | null>(null);
   const [analytics, setAnalytics] = React.useState<Analytics | null>(null);
   const [testingEmail, setTestingEmail] = React.useState(false);
+  const [pipeline, setPipeline] = React.useState<Client[]>([]);
+  const [openForm, setOpenForm] = React.useState<number | null>(null);
+  const [busyId, setBusyId] = React.useState<string | null>(null);
 
   const fetchBusinesses = React.useCallback(async () => {
     setLoading(true);
@@ -129,17 +151,6 @@ export default function AdminBusinessesPage() {
     }
   }, []);
 
-  const fetchSignups = React.useCallback(async () => {
-    try {
-      const res = await fetch("/api/admin/signups");
-      if (!res.ok) return;
-      const data = await res.json();
-      setSignups(data.signups ?? []);
-    } catch {
-      /* non-critical — the signup queue just stays empty */
-    }
-  }, []);
-
   const fetchAnalytics = React.useCallback(async () => {
     try {
       const res = await fetch("/api/admin/analytics");
@@ -150,39 +161,22 @@ export default function AdminBusinessesPage() {
     }
   }, []);
 
+  const fetchPipeline = React.useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/pipeline");
+      if (!res.ok) return;
+      const j = await res.json();
+      setPipeline(j.clients || []);
+    } catch {
+      /* non-critical */
+    }
+  }, []);
+
   React.useEffect(() => {
     fetchBusinesses();
-    fetchSignups();
     fetchAnalytics();
-  }, [fetchBusinesses, fetchSignups, fetchAnalytics]);
-
-  async function handleProvision(s: TrialSignup) {
-    if (!window.confirm(
-      `Provision ${s.businessName}?\n\nThis buys a Twilio number, wires its webhooks, ` +
-      `creates the business, and emails ${s.email} their number + forwarding steps.`
-    )) return;
-    setProvisioningId(s.id);
-    setError(null);
-    setNotice(null);
-    try {
-      const res = await fetch(`/api/admin/signups/${s.id}/provision`, { method: "POST" });
-      const j = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(j.error || `Provisioning failed (${res.status})`);
-        return;
-      }
-      setNotice(
-        `${s.businessName} is live on ${j.phoneNumber}` +
-        (j.mock ? " (mock number — Twilio isn't configured yet)." : ". We emailed them the forwarding steps.")
-      );
-      fetchSignups();
-      fetchBusinesses();
-    } catch (err) {
-      setError(String(err));
-    } finally {
-      setProvisioningId(null);
-    }
-  }
+    fetchPipeline();
+  }, [fetchBusinesses, fetchAnalytics, fetchPipeline]);
 
   function startCreate() {
     setEditingId(null);
@@ -330,6 +324,164 @@ export default function AdminBusinessesPage() {
     }
   }
 
+  function refreshAll() { fetchBusinesses(); fetchPipeline(); }
+
+  async function patchBusiness(id: number, body: Record<string, unknown>, okMsg: string) {
+    setError(null); setNotice(null);
+    try {
+      const res = await fetch(`/api/admin/businesses/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (res.ok) { setNotice(okMsg); refreshAll(); }
+      else setError(j.error || `Update failed (${res.status})`);
+    } catch (e) { setError(String(e)); }
+  }
+
+  function setActive(id: number, name: string, active: boolean) {
+    if (!active && !confirm(`Turn OFF ${name}? Their missed-call texts will stop until you turn it back on.`)) return;
+    patchBusiness(id, { active }, `${name} turned ${active ? "on" : "off"}.`);
+  }
+  function extendTrial(id: number, name: string, days: number) {
+    patchBusiness(id, { extendDays: days }, `Extended ${name}'s trial by ${days} days.`);
+  }
+
+  // POST helper for the workflow endpoints, with a per-row busy key.
+  async function postAction(key: string, url: string, okMsg: string, confirmMsg?: string) {
+    if (confirmMsg && !confirm(confirmMsg)) return;
+    setError(null); setNotice(null); setBusyId(key);
+    try {
+      const res = await fetch(url, { method: "POST" });
+      const j = await res.json().catch(() => ({}));
+      if (res.ok) { setNotice(okMsg); refreshAll(); }
+      else setError(j.error || `Action failed (${res.status})`);
+    } catch (e) { setError(String(e)); }
+    finally { setBusyId(null); }
+  }
+
+  function provisionClient(c: Client) {
+    postAction(`prov-${c.signupId}`, `/api/admin/signups/${c.signupId}/provision`,
+      `Built ${c.businessName}'s service. Review it in Businesses below, then start their trial.`,
+      `Build ${c.businessName}?\n\nThis buys a Twilio number and creates their service (turned OFF). It won't start their trial yet.`);
+  }
+  function startTrial(c: Client) {
+    postAction(`start-${c.businessId}`, `/api/admin/businesses/${c.businessId}/start-trial`,
+      `${c.businessName} is live — 14-day free trial started. We emailed them their number.`,
+      `Start ${c.businessName}'s 14-day free trial now?\n\nThis turns their service ON and emails them their number + forwarding steps.`);
+  }
+  function sendConfirmation(c: Client) {
+    postAction(`conf-${c.businessId}`, `/api/admin/businesses/${c.businessId}/send-confirmation`,
+      `Confirmation email sent to ${c.email}.`);
+  }
+
+  function stageLabel(c: Client): string {
+    switch (c.stage) {
+      case "form_in": return "Form submitted — review & build";
+      case "built": return "Built — ready to start trial";
+      case "trial": {
+        const d = c.billDate ? Math.ceil((new Date(c.billDate).getTime() - Date.now()) / 86400000) : 0;
+        return `On trial · ${d}d left`;
+      }
+      case "trial_ended": return "Trial ended — unpaid";
+      case "paying": return "Paying";
+      case "no_form": return "Waiting on their form";
+      default: return c.stage;
+    }
+  }
+
+  function renderForm(c: Client) {
+    const d = c.onboardingDetails || {};
+    return (
+      <div style={styles.formPanel}>
+        <div style={styles.formLine}>
+          <strong>Service wanted:</strong>{" "}
+          {c.servicePreference === "both" ? "Voice + Text" : c.servicePreference === "voice" ? "Voice" : c.servicePreference === "text" ? "Text" : "—"}
+        </div>
+        {ONBOARDING_SECTIONS.map((section) => {
+          const rows = section.fields.filter((f) => d[f.id]);
+          if (rows.length === 0) return null;
+          return (
+            <div key={section.title} style={{ marginTop: 10 }}>
+              <div style={styles.formSectionTitle}>{section.title}</div>
+              {rows.map((f) => (
+                <div key={f.id} style={styles.formLine}><strong>{f.label}</strong><br />{d[f.id]}</div>
+              ))}
+            </div>
+          );
+        })}
+        {Object.keys(d).length === 0 && <div style={styles.formLine}>No extra details provided.</div>}
+      </div>
+    );
+  }
+
+  function renderClientRow(c: Client) {
+    const isOpen = openForm === c.signupId;
+    const busyProv = busyId === `prov-${c.signupId}`;
+    const busyStart = busyId === `start-${c.businessId}`;
+    const busyConf = busyId === `conf-${c.businessId}`;
+    return (
+      <div key={`${c.signupId}-${c.businessId}`} style={styles.pipeRow}>
+        <div style={styles.pipeHead}>
+          <div style={{ minWidth: 0 }}>
+            <div style={styles.rowTitle}>{c.businessName}</div>
+            <div style={styles.rowSub}>
+              {stageLabel(c)}
+              {c.billDate ? ` · bill ${fmtDate(c.billDate)}` : ""}
+              {c.active === false && c.businessId ? " · ⏸️ OFF" : ""}
+            </div>
+            <div style={styles.rowSub}>{c.mobile} · {c.email}{c.trade ? ` · ${c.trade}` : ""}</div>
+          </div>
+          <div style={styles.rowActions}>
+            {c.intakeSubmitted && (
+              <button style={styles.smallBtn} onClick={() => setOpenForm(isOpen ? null : c.signupId)}>
+                {isOpen ? "Hide form" : "View form"}
+              </button>
+            )}
+            {!c.businessId && c.signupId && (
+              <button style={styles.provisionBtn} disabled={busyProv} onClick={() => provisionClient(c)}>
+                {busyProv ? "Building…" : "⚡ Provision & build"}
+              </button>
+            )}
+            {c.businessId && (c.stage === "built" || c.stage === "trial") && (
+              <button style={styles.smallBtn} disabled={busyConf} onClick={() => sendConfirmation(c)}>
+                {busyConf ? "Sending…" : "✉️ Send confirmation"}
+              </button>
+            )}
+            {c.businessId && (c.stage === "built" || c.stage === "trial_ended") && (
+              <button style={styles.startTrialBtn} disabled={busyStart} onClick={() => startTrial(c)}>
+                {busyStart ? "Starting…" : c.stage === "trial_ended" ? "▶ Restart trial" : "▶ Start 14-day trial"}
+              </button>
+            )}
+            {c.businessId && c.stage === "trial" && (
+              <>
+                <button style={styles.smallBtn} onClick={() => extendTrial(c.businessId!, c.businessName, 7)}>+7 days</button>
+                <button style={styles.smallBtn} onClick={() => setActive(c.businessId!, c.businessName, false)}>Turn off</button>
+              </>
+            )}
+            {c.businessId && c.stage === "paying" && (
+              <button style={styles.smallBtn} onClick={() => setActive(c.businessId!, c.businessName, c.active === false)}>
+                {c.active === false ? "Turn on" : "Turn off"}
+              </button>
+            )}
+          </div>
+        </div>
+        {isOpen && renderForm(c)}
+      </div>
+    );
+  }
+
+  function renderBucket(title: string, subtitle: string, list: Client[]) {
+    return (
+      <section style={styles.card}>
+        <h2 style={styles.h2}>{title}{list.length > 0 ? ` (${list.length})` : ""}</h2>
+        <p style={styles.muted}>{subtitle}</p>
+        {list.length === 0 ? <p style={styles.mutedSmall}>None.</p> : list.map(renderClientRow)}
+      </section>
+    );
+  }
+
   /* ── Main admin ── */
   return (
     <div style={styles.page}>
@@ -378,48 +530,11 @@ export default function AdminBusinessesPage() {
           </section>
         )}
 
-        {/* Trial signup queue */}
-        <section style={styles.card}>
-          <h2 style={styles.h2}>
-            Trial signups
-            {signups.filter((s) => s.status !== "onboarded").length > 0 &&
-              ` · ${signups.filter((s) => s.status !== "onboarded").length} new`}
-          </h2>
-          <p style={styles.muted}>
-            One click buys a number, wires the webhooks, creates the business, and emails the
-            client their forwarding steps.
-          </p>
-          {signups.length === 0 && <p style={styles.muted}>No signups yet.</p>}
-          {signups.map((s) => {
-            const done = s.status === "onboarded";
-            return (
-              <div key={s.id} style={styles.row}>
-                <div>
-                  <div style={styles.rowTitle}>
-                    {s.businessName}{" "}
-                    <span style={done ? styles.pillDone : styles.pillNew}>{done ? "Live" : "New"}</span>
-                  </div>
-                  <div style={styles.rowSub}>
-                    {s.mobile} · {s.email}{s.trade ? ` · ${s.trade}` : ""}
-                  </div>
-                </div>
-                <div style={styles.rowActions}>
-                  {done ? (
-                    <span style={styles.mutedSmall}>Provisioned</span>
-                  ) : (
-                    <button
-                      style={styles.provisionBtn}
-                      disabled={provisioningId === s.id}
-                      onClick={() => handleProvision(s)}
-                    >
-                      {provisioningId === s.id ? "Provisioning…" : "⚡ Provision"}
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </section>
+        {/* Client pipeline */}
+        {renderBucket("📋 Needs review", "Forms submitted — review, build their service, then start their trial.", pipeline.filter((c) => c.category === "review"))}
+        {renderBucket("🎁 On free trial", "Live trials. Bill date = when their 14-day trial ends.", pipeline.filter((c) => c.category === "trial"))}
+        {renderBucket("💳 Paying", "Active paying clients. Bill date = next charge.", pipeline.filter((c) => c.category === "paying"))}
+        {renderBucket("🆕 New (no form yet)", "Signed up but haven't submitted their setup form.", pipeline.filter((c) => c.category === "new"))}
 
         {/* Form */}
         <section style={styles.card}>
@@ -571,12 +686,21 @@ export default function AdminBusinessesPage() {
             {businesses.map((b) => (
               <div key={b.id} style={styles.row}>
                 <div>
-                  <div style={styles.rowTitle}>{b.businessName}</div>
+                  <div style={styles.rowTitle}>
+                    {b.businessName} <span style={billingBadge(b)}>{billingLabel(b)}</span>
+                  </div>
                   <div style={styles.rowSub}>
                     {b.businessPhone} · {b.smsEnabled ? "Text" : "No text"}{b.voiceEnabled ? " + Voice" : ""}
+                    {b.active === false ? " · ⏸️ OFF" : ""}
                   </div>
                 </div>
                 <div style={styles.rowActions}>
+                  {b.active === false ? (
+                    <button style={styles.smallBtn} onClick={() => setActive(b.id, b.businessName, true)}>Turn on</button>
+                  ) : (
+                    <button style={styles.smallBtn} onClick={() => setActive(b.id, b.businessName, false)}>Turn off</button>
+                  )}
+                  <button style={styles.smallBtn} onClick={() => extendTrial(b.id, b.businessName, 7)}>+7 days</button>
                   <button style={styles.smallBtn} onClick={() => startEdit(b)}>Edit</button>
                   <button style={styles.smallDangerBtn} onClick={() => handleDelete(b.id, b.businessName)}>Delete</button>
                 </div>
@@ -602,6 +726,32 @@ function fmtSecs(s: number | null): string {
   if (s == null) return "—";
   if (s < 60) return `${s}s`;
   return `${Math.round(s / 60)}m`;
+}
+
+function fmtDate(iso: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+// A short billing/trial label for a business row.
+function billingLabel(b: Business): string {
+  const sub = b.subscriptionStatus;
+  if (sub === "active" || sub === "trialing") return "PAID";
+  if (sub === "past_due") return "PAST DUE";
+  if (sub === "canceled") return "CANCELED";
+  if (b.trialEndsAt) {
+    const days = Math.ceil((new Date(b.trialEndsAt).getTime() - Date.now()) / 86400000);
+    return days > 0 ? `TRIAL · ${days}d left` : "TRIAL ENDED";
+  }
+  return "—";
+}
+function billingBadge(b: Business): React.CSSProperties {
+  const l = billingLabel(b);
+  const base: React.CSSProperties = { fontSize: 11, fontWeight: 800, padding: "2px 7px", borderRadius: 20, marginLeft: 8, verticalAlign: "middle" };
+  if (l === "PAID") return { ...base, background: "#0F2A1E", color: "#8FE3B0", border: "1px solid #1F5A3E" };
+  if (l === "PAST DUE" || l === "TRIAL ENDED" || l === "CANCELED") return { ...base, background: "#2A1620", color: "#F7A8B8", border: "1px solid #6B2740" };
+  return { ...base, background: "#0B1A2E", color: "#9FC2FF", border: "1px solid #24406B" };
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -649,6 +799,12 @@ const styles: Record<string, React.CSSProperties> = {
   statLabel: { fontSize: 12.5, color: "#8A93A6", marginTop: 4 },
   revenueTag: { fontSize: 15, fontWeight: 700, color: "#8FE3B0" },
   mutedSmall: { color: "#8A93A6", fontSize: 13 },
+  pipeRow: { borderTop: "1px solid #16233B", padding: "12px 0" },
+  pipeHead: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" },
+  startTrialBtn: { background: "#22C55E", color: "#04220F", border: "none", borderRadius: 8, padding: "7px 12px", fontSize: 13, fontWeight: 800, cursor: "pointer" },
+  formPanel: { marginTop: 10, background: "#0A0F1E", border: "1px solid #1C2740", borderRadius: 10, padding: "12px 14px" },
+  formSectionTitle: { fontSize: 12, fontWeight: 800, color: "#8FB8FF", textTransform: "uppercase", letterSpacing: 0.5, margin: "8px 0 4px" },
+  formLine: { fontSize: 13.5, color: "#C7CEDB", lineHeight: 1.5, marginTop: 4, whiteSpace: "pre-wrap" },
   provisionBtn: { background: "#12B886", color: "#04140D", border: "none", borderRadius: 6, padding: "8px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer" },
   pillNew: { background: "#12301F", color: "#8FE3B0", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999, marginLeft: 6, verticalAlign: "middle" },
   pillDone: { background: "#1B2740", color: "#9FC2FF", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999, marginLeft: 6, verticalAlign: "middle" },

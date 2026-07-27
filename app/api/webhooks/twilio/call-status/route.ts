@@ -45,6 +45,12 @@ export async function POST(request: NextRequest) {
       console.warn(`No business configured for number ${to}; skipping.`);
       return NextResponse.json({ success: true, skipped: 'no business for number' });
     }
+    // Shut-off gate: a disabled business (trial expired without payment, or
+    // manually turned off) sends nothing.
+    if (!config.active) {
+      console.log(`Business ${config.id} is inactive; skipping text-back.`);
+      return NextResponse.json({ success: true, skipped: 'inactive' });
+    }
     const configErrors = validateConfig(config);
     if (configErrors.length > 0) {
       console.error('Invalid config:', configErrors);

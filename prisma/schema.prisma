@@ -192,6 +192,14 @@ model BusinessConfig {
   airtableMissedTable String?
   airtableLeadsTable  String?
 
+  // Trial enforcement. `active` is the master on/off switch the webhooks check
+  // before doing anything; a client with no card is auto-disabled when their
+  // 14-day trial ends. signupId links back to the TrialSignup (billing state).
+  active              Boolean   @default(true)
+  trialEndsAt         DateTime?
+  signupId            Int?      @unique
+  trialReminderStage  Int       @default(0) // 0 none, 1 sent ~4-day, 2 sent ~1-day
+
   missedCalls      MissedCall[]
   leadSubmissions  LeadSubmission[]
 
@@ -215,6 +223,7 @@ model TrialSignup {
   // Setup-form intake: what the client submits back before starting service.
   servicePreference    String?   // "voice" | "text" | "both"
   exampleMessages      String?   // sample text-backs they'd like us to send
+  onboardingDetails    Json?     // full questionnaire answers (see onboardingSchema.ts)
   intakeSubmittedAt    DateTime?
 
   // Stripe billing (populated when the client converts from free trial to paid).

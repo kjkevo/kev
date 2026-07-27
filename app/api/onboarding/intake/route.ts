@@ -12,12 +12,19 @@ const VALID_SERVICES = ['voice', 'text', 'both'];
 export async function POST(request: NextRequest) {
   let token = '';
   let service = '';
-  let examples = '';
+  let details: Record<string, string> = {};
   try {
     const body = await request.json();
     token = String(body.token ?? '');
     service = String(body.service ?? '').toLowerCase();
-    examples = String(body.examples ?? '').trim();
+    // Full questionnaire answers: keep only string values, cap length per field.
+    if (body.details && typeof body.details === 'object') {
+      for (const [k, v] of Object.entries(body.details as Record<string, unknown>)) {
+        if (v == null) continue;
+        const val = String(v).trim();
+        if (val) details[k] = val.slice(0, 4000);
+      }
+    }
   } catch {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
   }
@@ -26,7 +33,6 @@ export async function POST(request: NextRequest) {
   if (!VALID_SERVICES.includes(service)) {
     return NextResponse.json({ error: 'Please choose Voice, Text, or Both.' }, { status: 400 });
   }
-  if (examples.length > 2000) examples = examples.slice(0, 2000);
 
   const signup = await prisma.trialSignup.findUnique({ where: { token } });
   if (!signup) return NextResponse.json({ error: 'not_found' }, { status: 404 });
@@ -35,7 +41,9 @@ export async function POST(request: NextRequest) {
     where: { token },
     data: {
       servicePreference: service,
-      exampleMessages: examples || null,
+      // Promote the sample-messages answer to its own column for convenience.
+      exampleMessages: details.exampleMessages || null,
+      onboardingDetails: details,
       intakeSubmittedAt: new Date(),
     },
   });
@@ -46,7 +54,7 @@ export async function POST(request: NextRequest) {
     email: signup.email,
     mobile: signup.mobile,
     servicePreference: service,
-    exampleMessages: examples,
+    details,
   }).catch(console.error);
 
   return NextResponse.json({ success: true });

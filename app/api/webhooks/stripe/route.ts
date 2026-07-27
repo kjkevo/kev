@@ -46,6 +46,11 @@ export async function POST(request: NextRequest) {
             },
           });
           const signup = await prisma.trialSignup.findUnique({ where: { token } });
+          // Turn their live service back on immediately (in case the trial had
+          // already lapsed and auto-disabled them).
+          if (signup) {
+            await prisma.businessConfig.updateMany({ where: { signupId: signup.id }, data: { active: true } });
+          }
           await sendBillingAlert(
             `💳 New paid customer: ${signup?.businessName ?? token}`,
             `<p><strong>${signup?.businessName ?? ''}</strong> (${signup?.email ?? ''}) just converted to paid. 🎉</p>`,
@@ -76,6 +81,11 @@ export async function POST(request: NextRequest) {
           where: { stripeSubscriptionId: sub.id },
           data: { subscriptionStatus: 'canceled' },
         });
+        // Pause their live service on cancellation.
+        const canceled = await prisma.trialSignup.findFirst({ where: { stripeSubscriptionId: sub.id }, select: { id: true } });
+        if (canceled) {
+          await prisma.businessConfig.updateMany({ where: { signupId: canceled.id }, data: { active: false } });
+        }
         break;
       }
 

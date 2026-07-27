@@ -13,7 +13,21 @@ export async function GET(request: NextRequest) {
   const businesses = await prisma.businessConfig.findMany({
     orderBy: { id: 'asc' },
   });
-  return NextResponse.json({ businesses });
+  // Attach each business's billing status (lives on the linked TrialSignup) so
+  // the admin can see who's on a trial vs. paying at a glance.
+  const signupIds = businesses.map((b) => b.signupId).filter((x): x is number => x != null);
+  const signups = signupIds.length
+    ? await prisma.trialSignup.findMany({
+        where: { id: { in: signupIds } },
+        select: { id: true, subscriptionStatus: true },
+      })
+    : [];
+  const subById = new Map(signups.map((s) => [s.id, s.subscriptionStatus]));
+  const withBilling = businesses.map((b) => ({
+    ...b,
+    subscriptionStatus: b.signupId != null ? subById.get(b.signupId) ?? null : null,
+  }));
+  return NextResponse.json({ businesses: withBilling });
 }
 
 // POST /api/admin/businesses — create a business
