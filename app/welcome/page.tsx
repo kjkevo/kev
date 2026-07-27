@@ -98,14 +98,15 @@ export default function WelcomePage() {
     }
   }
 
-  async function startCheckout(plan: "monthly" | "annual") {
+  async function startCheckout() {
     if (!token) return;
     setBillingBusy(true);
     try {
+      // The price tier (single vs both) is derived server-side from their service.
       const r = await fetch("/api/billing/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, plan }),
+        body: JSON.stringify({ token }),
       });
       const j = await r.json().catch(() => ({}));
       if (j.url) { window.location.href = j.url; return; }
@@ -339,6 +340,14 @@ export default function WelcomePage() {
               <button style={s.editLink} onClick={() => setEditingIntake(true)}>Edit my answers</button>
             </div>
             {pricingBox}
+            {info?.billingEnabled && (
+              <>
+                <button style={s.payBtn} onClick={startCheckout} disabled={billingBusy}>
+                  {billingBusy ? "Loading…" : `Add payment — ${service === "both" ? "$100" : "$59.99"}/mo`}
+                </button>
+                <p style={s.payNote}>Ready to go live now, or keeping your service after the trial? Add your card here — cancel anytime.</p>
+              </>
+            )}
           </>
         )}
       </div>
@@ -421,7 +430,8 @@ const s: Record<string, React.CSSProperties> = {
   billingBox: { marginTop: 20, background: "#0B1A2E", border: "1px solid #24406B", borderRadius: 12, padding: "16px 18px" },
   billingTitle: { fontSize: 16, fontWeight: 700, marginBottom: 4 },
   billingSub: { fontSize: 14, lineHeight: 1.55, color: "#98A2B6", margin: "0 0 14px" },
-  payBtn: { background: "#3B82F6", color: "#fff", border: "none", borderRadius: 10, padding: "12px 18px", fontSize: 15, fontWeight: 700, cursor: "pointer", width: "100%" },
+  payBtn: { background: "#3B82F6", color: "#fff", border: "none", borderRadius: 10, padding: "12px 18px", fontSize: 15, fontWeight: 700, cursor: "pointer", width: "100%", marginTop: 12 },
+  payNote: { fontSize: 12.5, color: "#7A8397", lineHeight: 1.5, margin: "8px 0 0", textAlign: "center" },
   annualLink: { background: "transparent", color: "#8FB8FF", border: "none", fontSize: 13.5, cursor: "pointer", marginTop: 10, textDecoration: "underline", padding: 0, display: "block", width: "100%" },
   billingActive: { marginTop: 20, background: "#0F2A1E", border: "1px solid #1F5A3E", borderRadius: 10, padding: "12px 14px", fontSize: 14, color: "#B8F0CF", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" },
   billingWarn: { marginTop: 20, background: "#2A1E0F", border: "1px solid #6B4A1F", borderRadius: 10, padding: "14px 16px" },
