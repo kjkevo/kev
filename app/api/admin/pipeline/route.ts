@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     intakeSubmitted: boolean;
     active: boolean | null;
     subscriptionStatus: string | null;
-    category: 'paying' | 'trial' | 'review' | 'new';
+    category: 'paying' | 'trial' | 'review' | 'new' | 'cancel_requested';
     stage: string;
     billDate: string | null;
   };
@@ -49,7 +49,9 @@ export async function GET(request: NextRequest) {
     let stage: string;
     let billDate: string | null = null;
 
-    if (sub && PAID.includes(sub)) {
+    if (s.status === 'cancel_requested') {
+      category = 'cancel_requested'; stage = 'cancel_requested';
+    } else if (sub && PAID.includes(sub)) {
       category = 'paying'; stage = 'paying';
       billDate = s.currentPeriodEnd ? s.currentPeriodEnd.toISOString() : null;
     } else if (b && b.active && b.trialEndsAt && b.trialEndsAt.getTime() > now) {

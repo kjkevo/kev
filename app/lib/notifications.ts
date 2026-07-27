@@ -232,11 +232,20 @@ export const sendSignupWelcomeEmail = async (
             <li>Cancel anytime</li>
           </ul>
 
-          <p style="margin:0 0 8px;font-size:14px;color:#555;">Not ready, or changed your mind? No
-            problem and no charge — you can <a href="${statusUrl}" style="color:#2F6BFF;">cancel anytime</a>
-            from that same page.</p>
+          <p style="margin:0 0 10px;font-size:14px;color:#555;">Not ready, or changed your mind? No
+            problem and no charge:</p>
+          <div style="margin:0 0 18px;">
+            <a href="${statusUrl}&cancel=1" style="display:inline-block;background:#fff;border:1px solid #d9534f;
+              color:#d9534f;text-decoration:none;padding:11px 20px;border-radius:10px;font-weight:600;font-size:14px;">
+              Cancel my plan</a>
+          </div>
+
           <p style="margin:16px 0 0;font-size:14px;color:#555;">Questions? Just reply to this email —
             a real person will answer.</p>
+          <p style="margin:16px 0 0;font-size:12px;color:#999;">
+            <a href="${new URL(statusUrl).origin}/privacy" style="color:#999;">Privacy Policy</a> &nbsp;·&nbsp;
+            <a href="${new URL(statusUrl).origin}/terms" style="color:#999;">Terms &amp; Conditions</a>
+          </p>
         </div>
       `,
     });
@@ -345,13 +354,15 @@ export const sendTrialCancelledAlert = async (signup: {
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to,
-      subject: `⚠️ Trial cancelled: ${signup.businessName}`,
+      subject: `⚠️ Cancellation requested: ${signup.businessName}`,
       html: `
-        <h2>A trial was cancelled</h2>
+        <h2>A client requested cancellation</h2>
         <p><strong>Business:</strong> ${signup.businessName}</p>
         <p><strong>Email:</strong> ${signup.email}</p>
         <p><strong>Mobile:</strong> ${signup.mobile}</p>
-        <p>If you already provisioned them, remember to release their Twilio number so it stops billing.</p>
+        <p>Their service has been turned off. It's waiting in your dashboard under
+        <strong>Cancellation requests</strong> — confirm to finalize (and release their Twilio number so it
+        stops billing), or keep them and turn it back on.</p>
       `,
     });
     return { success: true };
