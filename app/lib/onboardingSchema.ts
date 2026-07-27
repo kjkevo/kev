@@ -27,15 +27,6 @@ export const ONBOARDING_SECTIONS: OnboardingSection[] = [
       { id: 'industry', label: 'What industry / trade are you in?', type: 'text', placeholder: 'Plumbing, salon, law firm…' },
       { id: 'hours', label: 'Hours of operation (include holidays / closures)', type: 'textarea', placeholder: 'Mon–Fri 8am–6pm, closed weekends & major holidays' },
       { id: 'webSocial', label: 'Website and social links', type: 'text', placeholder: 'yoursite.com, instagram.com/you' },
-      { id: 'locations', label: 'Areas / locations you serve (single or multiple?)', type: 'text', placeholder: 'One shop in Dallas / 3 locations across TX' },
-    ],
-  },
-  {
-    title: 'How to handle a missed call',
-    fields: [
-      { id: 'afterMissed', label: 'Right after a missed call, what should happen?', type: 'radio', options: ['Text them', 'Call them back', 'Both'] },
-      { id: 'afterHoursDifferent', label: 'Should the message differ for after-hours or weekends? If so, how?', type: 'textarea', placeholder: 'After hours: let them know we reply at 8am' },
-      { id: 'identifyReason', label: 'Should we try to identify why they called (sales, support, appointment, complaint)?', type: 'radio', options: ['Yes', 'No'] },
     ],
   },
   {
@@ -61,15 +52,6 @@ export const ONBOARDING_SECTIONS: OnboardingSection[] = [
       { id: 'leadInfo', label: 'What info should we collect from callers?', type: 'text', placeholder: 'Name, phone, reason for call, address' },
       { id: 'leadDestination', label: 'Where should leads go?', type: 'text', placeholder: 'Text to owner + email + Google Sheet' },
       { id: 'urgency', label: 'How should we flag emergencies vs routine calls?', type: 'textarea', placeholder: 'Water leak = call me immediately; everything else = daily summary' },
-    ],
-  },
-  {
-    title: 'Tone & brand voice',
-    fields: [
-      { id: 'tone', label: 'Overall tone?', type: 'radio', options: ['Formal', 'Friendly', 'Casual'] },
-      { id: 'wordsUseAvoid', label: 'Any words / phrases to always use or avoid', type: 'textarea', placeholder: 'Say “neighbor”, never say “cheap”' },
-      { id: 'ownerName', label: 'Use your name, or just “the team”?', type: 'text', placeholder: 'Use “Mike” / just “the team”' },
-      { id: 'disclaimers', label: 'Any legal disclaimers required? (medical / legal / financial)', type: 'textarea' },
     ],
   },
   {

@@ -349,16 +349,28 @@ export default function AdminBusinessesPage() {
   }
 
   // POST helper for the workflow endpoints, with a per-row busy key.
-  async function postAction(key: string, url: string, okMsg: string, confirmMsg?: string) {
+  async function postAction(key: string, url: string, okMsg: string, confirmMsg?: string, body?: unknown) {
     if (confirmMsg && !confirm(confirmMsg)) return;
     setError(null); setNotice(null); setBusyId(key);
     try {
-      const res = await fetch(url, { method: "POST" });
+      const res = await fetch(url, {
+        method: "POST",
+        ...(body ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {}),
+      });
       const j = await res.json().catch(() => ({}));
       if (res.ok) { setNotice(okMsg); refreshAll(); }
       else setError(j.error || `Action failed (${res.status})`);
     } catch (e) { setError(String(e)); }
     finally { setBusyId(null); }
+  }
+
+  function cancelDecision(c: Client, decision: "confirm" | "keep") {
+    const msg = decision === "confirm"
+      ? `Confirm cancellation for ${c.businessName}? Their service stays off. (Release their Twilio number if you bought one.)`
+      : `Keep ${c.businessName} and turn their service back on?`;
+    postAction(`cd-${c.signupId}`, `/api/admin/signups/${c.signupId}/cancel-decision`,
+      decision === "confirm" ? `${c.businessName} cancelled.` : `${c.businessName} kept — service back on.`,
+      msg, { decision });
   }
 
   function provisionClient(c: Client) {
@@ -387,6 +399,7 @@ export default function AdminBusinessesPage() {
       case "trial_ended": return "Trial ended — unpaid";
       case "paying": return "Paying";
       case "no_form": return "Waiting on their form";
+      case "cancel_requested": return "Cancellation requested — service off";
       default: return c.stage;
     }
   }
@@ -465,6 +478,12 @@ export default function AdminBusinessesPage() {
                 {c.active === false ? "Turn on" : "Turn off"}
               </button>
             )}
+            {c.category === "cancel_requested" && (
+              <>
+                <button style={styles.startTrialBtn} onClick={() => cancelDecision(c, "keep")}>Keep client</button>
+                <button style={styles.smallDangerBtn} onClick={() => cancelDecision(c, "confirm")}>Confirm cancellation</button>
+              </>
+            )}
           </div>
         </div>
         {isOpen && renderForm(c)}
@@ -531,6 +550,8 @@ export default function AdminBusinessesPage() {
         )}
 
         {/* Client pipeline */}
+        {pipeline.some((c) => c.category === "cancel_requested") &&
+          renderBucket("⚠️ Cancellation requests", "Clients who asked to cancel — service is already off. Confirm to finalize, or keep them.", pipeline.filter((c) => c.category === "cancel_requested"))}
         {renderBucket("📋 Needs review", "Forms submitted — review, build their service, then start their trial.", pipeline.filter((c) => c.category === "review"))}
         {renderBucket("🎁 On free trial", "Live trials. Bill date = when their 14-day trial ends.", pipeline.filter((c) => c.category === "trial"))}
         {renderBucket("💳 Paying", "Active paying clients. Bill date = next charge.", pipeline.filter((c) => c.category === "paying"))}

@@ -42,6 +42,7 @@ export default function WelcomePage() {
     const params = new URLSearchParams(window.location.search);
     const t = params.get("t");
     setJustPaid(params.get("paid") === "1");
+    if (params.get("cancel") === "1") setConfirmOpen(true);
     setToken(t);
     if (!t) { setLoading(false); setNotFound(true); return; }
     fetch(`/api/onboarding/status?t=${encodeURIComponent(t)}`)
@@ -67,7 +68,7 @@ export default function WelcomePage() {
         body: JSON.stringify({ token }),
       });
       if (r.ok) {
-        setInfo((prev) => (prev ? { ...prev, status: "cancelled" } : prev));
+        setInfo((prev) => (prev ? { ...prev, status: "cancel_requested" } : prev));
         setConfirmOpen(false);
       }
     } finally {
@@ -145,10 +146,12 @@ export default function WelcomePage() {
             <p style={s.sub}>This link may be old or incomplete. If you think this is a mistake,
               just reply to your welcome email and we&apos;ll sort it out.</p>
           </>
-        ) : info.status === "cancelled" ? (
+        ) : info.status === "cancelled" || info.status === "cancel_requested" ? (
           <>
             <div style={s.kicker}>◆ MissedCall</div>
-            <h1 style={s.h1}>Your trial is cancelled</h1>
+            <h1 style={s.h1}>
+              {info.status === "cancel_requested" ? "Cancellation received" : "Your trial is cancelled"}
+            </h1>
             <p style={s.sub}>No charges, nothing else to do — we&apos;ve stopped your setup for
               {" "}{biz}. Changed your mind? Reply to your welcome email and we&apos;ll turn it right
               back on.</p>

@@ -19,17 +19,20 @@ export async function POST(request: NextRequest) {
   const signup = await prisma.trialSignup.findUnique({ where: { token } });
   if (!signup) return NextResponse.json({ error: 'not_found' }, { status: 404 });
 
-  if (signup.status === 'cancelled') {
+  if (signup.status === 'cancelled' || signup.status === 'cancel_requested') {
     return NextResponse.json({ success: true, alreadyCancelled: true });
   }
 
+  // Client requests cancellation: stop their live service right away and flag it
+  // for the operator to finalize (release number, etc.) from the dashboard.
   await prisma.trialSignup.update({
     where: { token },
     data: {
-      status: 'cancelled',
-      notes: `${signup.notes ? signup.notes + '\n' : ''}Cancelled by client on ${new Date().toISOString()}`,
+      status: 'cancel_requested',
+      notes: `${signup.notes ? signup.notes + '\n' : ''}Cancellation requested by client on ${new Date().toISOString()}`,
     },
   });
+  await prisma.businessConfig.updateMany({ where: { signupId: signup.id }, data: { active: false } });
 
   sendTrialCancelledAlert({
     businessName: signup.businessName,
