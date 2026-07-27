@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
 import { checkAdminAuth } from '@/app/lib/adminAuth';
 import { provisionNumber } from '@/app/lib/twilio';
-import { sendProvisionedWelcome } from '@/app/lib/notifications';
 
 // POST /api/admin/signups/[id]/provision — the one-click flow: buy a number,
 // wire its webhooks to this app, create the business, mark the signup onboarded,
@@ -23,8 +22,11 @@ export async function POST(
   if (!signup) {
     return NextResponse.json({ error: 'Signup not found' }, { status: 404 });
   }
-  if (signup.status === 'onboarded') {
-    return NextResponse.json({ error: 'This signup has already been provisioned.' }, { status: 409 });
+  // Guard on an existing business (not status), since provisioning no longer
+  // starts the trial and we don't want to buy a second number.
+  const existing = await prisma.businessConfig.findUnique({ where: { signupId: id } });
+  if (existing) {
+    return NextResponse.json({ error: 'This client already has a service built.' }, { status: 409 });
   }
 
   // Build webhook URLs from this request's own origin so provisioning works on
@@ -65,6 +67,11 @@ export async function POST(
         missedCallMessage,
         smsEnabled: true,
         voiceEnabled: false,
+        // Built but OFF: no live texts and no trial clock until you click
+        // "Start 14-day trial" from the dashboard after the client's go-ahead.
+        active: false,
+        signupId: signup.id,
+        trialEndsAt: null,
       },
     });
   } catch (error: unknown) {
@@ -81,13 +88,14 @@ export async function POST(
   await prisma.trialSignup.update({
     where: { id },
     data: {
-      status: 'onboarded',
-      notes: `${signup.notes ? signup.notes + '\n' : ''}Provisioned ${result.phoneNumber} on ${new Date().toISOString()}${result.mock ? ' (MOCK — Twilio not configured)' : ''}`,
+      // Not 'onboarded' yet — that means live. Provisioning just builds it.
+      status: 'contacted',
+      notes: `${signup.notes ? signup.notes + '\n' : ''}Built (number ${result.phoneNumber}) on ${new Date().toISOString()}${result.mock ? ' (MOCK — Twilio not configured)' : ''}`,
     },
   });
 
-  // Best-effort: email the client their number + forwarding step.
-  sendProvisionedWelcome(signup.email, signup.businessName, result.phoneNumber).catch(console.error);
+  // No client email here — the client is emailed when you send the confirmation
+  // and again when you start their trial (they go live).
 
   return NextResponse.json({
     success: true,

@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
 import { sendSMS } from './twilio';
 import { renderTemplate } from './config';
+import { ONBOARDING_SECTIONS } from './onboardingSchema';
 
 let emailTransporter: nodemailer.Transporter | null = null;
 
@@ -203,19 +204,18 @@ export const sendSignupWelcomeEmail = async (
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: signup.email,
-      subject: `Finish your setup for ${signup.businessName} — 2 quick minutes 📝`,
+      subject: `Finish your setup for ${signup.businessName} — a few quick questions 📝`,
       html: `
-        <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:520px;color:#1a1a1a;line-height:1.6;">
+        <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:540px;color:#1a1a1a;line-height:1.6;">
           <h2 style="margin:0 0 8px;">You're almost there, ${signup.businessName}! 👋</h2>
-          <p style="margin:0 0 16px;">Thanks for signing up. To get your missed-call text-back set up
-            exactly how you want it, we just need a couple of quick answers from you.</p>
+          <p style="margin:0 0 16px;">Thanks for signing up. To build your missed-call text-back
+            exactly how you want it, we just need to learn a bit about your business.</p>
 
-          <h3 style="margin:20px 0 6px;font-size:16px;">Here's what to do (about 2 minutes)</h3>
+          <h3 style="margin:20px 0 6px;font-size:16px;">How it works</h3>
           <ol style="margin:0 0 16px;padding-left:20px;">
-            <li>Tap the button below to open your setup form.</li>
-            <li>Tell us which service you want: <strong>Voice</strong>, <strong>Text</strong>, or <strong>Both</strong>.</li>
-            <li>Give us an example of the messages you'd like your customers to get.</li>
-            <li>Send it to us — then, when you're ready, start your service.</li>
+            <li><strong>Answer a few questions</strong> about your business — only the service type is required, the rest just makes your text-backs better.</li>
+            <li><strong>Send it to us</strong> — we build your custom text-back.</li>
+            <li><strong>Start your service</strong> when you're ready.</li>
           </ol>
 
           <div style="margin:24px 0;">
@@ -223,6 +223,13 @@ export const sendSignupWelcomeEmail = async (
               text-decoration:none;padding:14px 24px;border-radius:10px;font-weight:700;">
               Open your setup form</a>
           </div>
+
+          <h3 style="margin:20px 0 6px;font-size:16px;">Simple pricing</h3>
+          <ul style="margin:0 0 16px;padding-left:20px;">
+            <li>Start with a <strong>14-day free trial</strong></li>
+            <li><strong>No card needed</strong> to begin</li>
+            <li>After your trial it's <strong>$59.99/month</strong> — cancel anytime</li>
+          </ul>
 
           <p style="margin:0 0 8px;font-size:14px;color:#555;">Not ready, or changed your mind? No
             problem and no charge — you can <a href="${statusUrl}" style="color:#2F6BFF;">cancel anytime</a>
@@ -235,6 +242,71 @@ export const sendSignupWelcomeEmail = async (
     return { success: true };
   } catch (error) {
     console.error('Error sending signup welcome email:', error);
+    return { success: false, error: String(error) };
+  }
+};
+
+// Remind a trial client (no card on file) that their 14-day free trial is
+// ending soon and they need to add payment to keep the service.
+export const sendTrialReminderEmail = async (
+  toEmail: string,
+  businessName: string,
+  daysLeft: number,
+  addPaymentUrl: string,
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const transporter = initializeEmailTransporter();
+    if (!transporter) return { success: false, error: 'Email not configured' };
+    const when = daysLeft <= 1 ? 'tomorrow' : `in ${daysLeft} days`;
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: toEmail,
+      subject: `Your ${businessName} free trial ends ${when} — add payment to stay live`,
+      html: `
+        <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:520px;color:#1a1a1a;line-height:1.6;">
+          <h2>Your free trial ends ${when}</h2>
+          <p>We hope the missed-call text-back has been catching calls for <strong>${businessName}</strong>!
+            To keep it running after your trial, add your payment — it's <strong>$59.99/month</strong>, cancel anytime.</p>
+          <div style="margin:22px 0;">
+            <a href="${addPaymentUrl}" style="display:inline-block;background:#2F6BFF;color:#fff;text-decoration:none;padding:13px 22px;border-radius:10px;font-weight:700;">Add payment &amp; stay live</a>
+          </div>
+          <p style="font-size:14px;color:#555;">If you don't add payment, your service will simply pause when the trial ends — no charge, no hard feelings. Questions? Just reply.</p>
+        </div>`,
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending trial reminder email:', error);
+    return { success: false, error: String(error) };
+  }
+};
+
+// Tell a client their trial ended and service is paused (they never added a card).
+export const sendTrialEndedEmail = async (
+  toEmail: string,
+  businessName: string,
+  addPaymentUrl: string,
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const transporter = initializeEmailTransporter();
+    if (!transporter) return { success: false, error: 'Email not configured' };
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: toEmail,
+      subject: `Your ${businessName} trial has ended — reactivate anytime`,
+      html: `
+        <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:520px;color:#1a1a1a;line-height:1.6;">
+          <h2>Your free trial has ended</h2>
+          <p>Your missed-call text-back for <strong>${businessName}</strong> is now paused. No charge was made.</p>
+          <p>Want it back on? Add payment anytime (<strong>$59.99/month</strong>, cancel anytime) and it turns right back on:</p>
+          <div style="margin:22px 0;">
+            <a href="${addPaymentUrl}" style="display:inline-block;background:#22C55E;color:#04220F;text-decoration:none;padding:13px 22px;border-radius:10px;font-weight:800;">Reactivate my service</a>
+          </div>
+          <p style="font-size:14px;color:#555;">Questions? Just reply to this email.</p>
+        </div>`,
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending trial ended email:', error);
     return { success: false, error: String(error) };
   }
 };
@@ -398,13 +470,14 @@ export const sendCheckYourEmailText = async (
 };
 
 // Notify the operator (you) when a client fills out their setup form, so you can
-// build their text-back to match what they asked for.
+// build their text-back to match what they asked for. Renders the full
+// questionnaire grouped by section, in the schema's order.
 export const sendIntakeSubmittedAlert = async (signup: {
   businessName: string;
   email: string;
   mobile: string;
   servicePreference: string;
-  exampleMessages: string;
+  details: Record<string, string>;
 }): Promise<{ success: boolean; error?: string }> => {
   try {
     const transporter = initializeEmailTransporter();
@@ -416,23 +489,37 @@ export const sendIntakeSubmittedAlert = async (signup: {
         : signup.servicePreference === 'voice'
           ? 'Voice'
           : 'Text';
+
+    const esc = (v: string) => v.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const sectionsHtml = ONBOARDING_SECTIONS.map((section) => {
+      const rows = section.fields
+        .filter((f) => signup.details[f.id])
+        .map(
+          (f) =>
+            `<p style="margin:8px 0 0"><strong>${f.label}</strong><br/>
+             <span style="white-space:pre-wrap;color:#333">${esc(signup.details[f.id])}</span></p>`,
+        )
+        .join('');
+      if (!rows) return '';
+      return `<h3 style="margin:18px 0 2px;font-size:15px;border-bottom:1px solid #eee;padding-bottom:4px">${section.title}</h3>${rows}`;
+    }).join('');
+
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to,
       subject: `📝 Setup form submitted: ${signup.businessName}`,
       html: `
-        <h2>A client filled out their setup form</h2>
-        <p><strong>Business:</strong> ${signup.businessName}</p>
-        <p><strong>Email:</strong> <a href="mailto:${signup.email}">${signup.email}</a></p>
-        <p><strong>Mobile:</strong> <a href="tel:${signup.mobile}">${signup.mobile}</a></p>
-        <p><strong>Service wanted:</strong> ${serviceLabel}</p>
-        <p><strong>Example messages they'd like:</strong></p>
-        <blockquote style="border-left:3px solid #ccc;padding-left:12px;color:#333;white-space:pre-wrap;">${
-          signup.exampleMessages || '(none provided)'
-        }</blockquote>
-        <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
-        <hr />
-        <p>Next: build their text-back to match, then they can start service (Stripe) from their setup page.</p>
+        <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:600px;color:#1a1a1a;line-height:1.5">
+          <h2>A client filled out their setup form</h2>
+          <p><strong>Business:</strong> ${signup.businessName}</p>
+          <p><strong>Email:</strong> <a href="mailto:${signup.email}">${signup.email}</a></p>
+          <p><strong>Mobile:</strong> <a href="tel:${signup.mobile}">${signup.mobile}</a></p>
+          <p><strong>Service wanted:</strong> ${serviceLabel}</p>
+          ${sectionsHtml || '<p><em>No additional details provided.</em></p>'}
+          <p style="margin-top:16px"><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+          <hr />
+          <p>Next: build their text-back to match, then they can start service (Stripe) from their setup page.</p>
+        </div>
       `,
     });
     return { success: true };
@@ -442,8 +529,46 @@ export const sendIntakeSubmittedAlert = async (signup: {
   }
 };
 
-// Sent to a newly-provisioned client: their dedicated number and the one
-// call-forwarding step that puts them live.
+// Sent to the client after you BUILD their service, so they can confirm it looks
+// right before you start their trial.
+export const sendSetupConfirmationEmail = async (opts: {
+  toEmail: string;
+  businessName: string;
+  channel: string;
+  missedCallMessage: string;
+  voiceGreeting?: string;
+  reviewUrl?: string;
+}): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const transporter = initializeEmailTransporter();
+    if (!transporter) return { success: false, error: 'Email not configured' };
+    const preview = opts.missedCallMessage.replace(/\{BUSINESS_NAME\}/g, opts.businessName);
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: opts.toEmail,
+      subject: `Your ${opts.businessName} setup is ready — does this look right?`,
+      html: `
+        <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:520px;color:#1a1a1a;line-height:1.6;">
+          <h2>Here's your setup, ${opts.businessName} 👀</h2>
+          <p>We've built your missed-call service. Take a look and reply to confirm — once you give the
+            go-ahead, we'll start your <strong>14-day free trial</strong> and turn everything on.</p>
+          <p><strong>Service:</strong> ${opts.channel}</p>
+          <p><strong>The text your callers will get:</strong></p>
+          <blockquote style="border-left:3px solid #2F6BFF;padding-left:12px;color:#333;white-space:pre-wrap;">${preview}</blockquote>
+          ${opts.voiceGreeting ? `<p><strong>What callers hear:</strong></p><blockquote style="border-left:3px solid #2F6BFF;padding-left:12px;color:#333;">${opts.voiceGreeting}</blockquote>` : ''}
+          ${opts.reviewUrl ? `<p><a href="${opts.reviewUrl}" style="color:#2F6BFF;">View your setup page</a></p>` : ''}
+          <p style="font-size:14px;color:#555;">Want a tweak? Just reply with what to change and we'll fix it before going live.</p>
+        </div>`,
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending setup confirmation email:', error);
+    return { success: false, error: String(error) };
+  }
+};
+
+// Sent to a client when you START their trial: their dedicated number, the one
+// call-forwarding step, and that their 14-day free trial is now running.
 export const sendProvisionedWelcome = async (
   toEmail: string,
   businessName: string,
@@ -455,10 +580,10 @@ export const sendProvisionedWelcome = async (
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: toEmail,
-      subject: `${businessName} is ready — one 2-minute step to go live`,
+      subject: `${businessName} is live — your 14-day free trial has started 🎉`,
       html: `
-        <h2>You're set up, ${businessName}! 🎉</h2>
-        <p>Your dedicated MissedCall number is:</p>
+        <h2>You're live, ${businessName}! 🎉</h2>
+        <p>Your <strong>14-day free trial</strong> has started — no card needed. Here's your dedicated MissedCall number:</p>
         <p style="font-size:22px;font-weight:800;">${newNumber}</p>
         <p>To go live, turn on call forwarding from your business phone so calls you
           can't answer roll to this number:</p>

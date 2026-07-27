@@ -33,10 +33,13 @@ export async function POST(request: NextRequest) {
     //  - Voice + keyword menu -> ask what service they need and listen.
     //  - Voice (no menu) -> speak the custom greeting (and optionally voicemail).
     //  - Text-only / unknown -> end the call so the status webhook texts back.
-    const menu = config?.voiceEnabled ? parseVoiceMenu(config.voiceMenu) : null;
+    // Shut-off gate: a disabled business gets the plain text-only response
+    // (which does nothing, since the status webhook is gated too).
+    const active = config?.active !== false;
+    const menu = active && config?.voiceEnabled ? parseVoiceMenu(config.voiceMenu) : null;
 
     let twiml: string;
-    if (config?.voiceEnabled && menu) {
+    if (active && config?.voiceEnabled && menu) {
       const origin = new URL(request.url).origin;
       const prompt = renderTemplate(menu.prompt, { BUSINESS_NAME: config.businessName });
       twiml = generateVoiceMenuTwiML({
@@ -44,7 +47,7 @@ export async function POST(request: NextRequest) {
         hints: voiceMenuHints(menu),
         actionUrl: `${origin}/api/webhooks/twilio/voice-gather`,
       });
-    } else if (config?.voiceEnabled) {
+    } else if (active && config?.voiceEnabled) {
       twiml = generateMissedCallTwiML({
         greeting: config.voiceGreeting,
         recordVoicemail: config.recordVoicemail,
