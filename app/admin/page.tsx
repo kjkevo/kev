@@ -508,8 +508,8 @@ export default function AdminBusinessesPage() {
       <div style={styles.container}>
         <header style={styles.header}>
           <div>
-            <h1 style={styles.h1}>Business Admin</h1>
-            <p style={styles.muted}>Add and configure businesses in the missed-call system.</p>
+            <h1 style={styles.h1}>Slimpse</h1>
+            <p style={styles.muted}>Client dashboard</p>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={sendTestEmail} style={styles.ghostBtn} disabled={testingEmail}>
