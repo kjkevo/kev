@@ -127,6 +127,7 @@ export default function AdminBusinessesPage() {
   const [pipeline, setPipeline] = React.useState<Client[]>([]);
   const [openForm, setOpenForm] = React.useState<number | null>(null);
   const [busyId, setBusyId] = React.useState<string | null>(null);
+  const [tab, setTab] = React.useState<string>("overview");
 
   const fetchBusinesses = React.useCallback(async () => {
     setLoading(true);
@@ -521,8 +522,32 @@ export default function AdminBusinessesPage() {
         {error && <div style={styles.errorBanner}>{error}</div>}
         {notice && <div style={styles.noticeBanner}>{notice}</div>}
 
-        {/* Analytics */}
-        {analytics && analytics.overall.totalMissedCalls > 0 && (
+        {/* Tab bar */}
+        <div style={styles.tabBar}>
+          {[
+            { id: "overview", label: "Overview", count: null as number | null },
+            { id: "review", label: "📋 Needs review", count: pipeline.filter((c) => c.category === "review").length },
+            { id: "trials", label: "🎁 Free trials", count: pipeline.filter((c) => c.category === "trial").length },
+            { id: "paying", label: "💳 Paying", count: pipeline.filter((c) => c.category === "paying").length },
+            { id: "new", label: "🆕 New", count: pipeline.filter((c) => c.category === "new").length },
+            { id: "cancellations", label: "⚠️ Cancellations", count: pipeline.filter((c) => c.category === "cancel_requested").length },
+            { id: "businesses", label: "⚙️ Businesses", count: businesses.length },
+          ].map((t) => {
+            if (t.id === "cancellations" && t.count === 0) return null;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                style={{ ...styles.tab, ...(tab === t.id ? styles.tabActive : {}) }}
+              >
+                {t.label}{t.count != null ? ` (${t.count})` : ""}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Overview */}
+        {tab === "overview" && analytics && (
           <section style={styles.card}>
             <h2 style={styles.h2}>Performance</h2>
             <div style={styles.statGrid}>
@@ -549,14 +574,17 @@ export default function AdminBusinessesPage() {
           </section>
         )}
 
-        {/* Client pipeline */}
-        {pipeline.some((c) => c.category === "cancel_requested") &&
+        {/* Client pipeline — one bucket per tab */}
+        {tab === "cancellations" &&
           renderBucket("⚠️ Cancellation requests", "Clients who asked to cancel — service is already off. Confirm to finalize, or keep them.", pipeline.filter((c) => c.category === "cancel_requested"))}
-        {renderBucket("📋 Needs review", "Forms submitted — review, build their service, then start their trial.", pipeline.filter((c) => c.category === "review"))}
-        {renderBucket("🎁 On free trial", "Live trials. Bill date = when their 14-day trial ends.", pipeline.filter((c) => c.category === "trial"))}
-        {renderBucket("💳 Paying", "Active paying clients. Bill date = next charge.", pipeline.filter((c) => c.category === "paying"))}
-        {renderBucket("🆕 New (no form yet)", "Signed up but haven't submitted their setup form.", pipeline.filter((c) => c.category === "new"))}
+        {tab === "review" && renderBucket("📋 Needs review", "Forms submitted — review, build their service, then start their trial.", pipeline.filter((c) => c.category === "review"))}
+        {tab === "trials" && renderBucket("🎁 On free trial", "Live trials. Bill date = when their 14-day trial ends.", pipeline.filter((c) => c.category === "trial"))}
+        {tab === "paying" && renderBucket("💳 Paying", "Active paying clients. Bill date = next charge.", pipeline.filter((c) => c.category === "paying"))}
+        {tab === "new" && renderBucket("🆕 New (no form yet)", "Signed up but haven't submitted their setup form.", pipeline.filter((c) => c.category === "new"))}
 
+        {/* Businesses tab: add form + config list */}
+        {tab === "businesses" && (
+        <>
         {/* Form */}
         <section style={styles.card}>
           <h2 style={styles.h2}>{editingId ? `Edit business #${editingId}` : "Add a business"}</h2>
@@ -729,6 +757,8 @@ export default function AdminBusinessesPage() {
             ))}
           </div>
         </section>
+        </>
+        )}
       </div>
     </div>
   );
@@ -820,6 +850,9 @@ const styles: Record<string, React.CSSProperties> = {
   statLabel: { fontSize: 12.5, color: "#8A93A6", marginTop: 4 },
   revenueTag: { fontSize: 15, fontWeight: 700, color: "#8FE3B0" },
   mutedSmall: { color: "#8A93A6", fontSize: 13 },
+  tabBar: { display: "flex", gap: 8, flexWrap: "wrap", margin: "0 0 22px" },
+  tab: { background: "#0E1526", border: "1px solid #1E2A44", color: "#8A93A6", borderRadius: 10, padding: "9px 15px", fontSize: 14, fontWeight: 600, cursor: "pointer" },
+  tabActive: { background: "#12264A", border: "1px solid #3B82F6", color: "#fff" },
   pipeRow: { borderTop: "1px solid #16233B", padding: "12px 0" },
   pipeHead: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" },
   startTrialBtn: { background: "#22C55E", color: "#04220F", border: "none", borderRadius: 8, padding: "7px 12px", fontSize: 13, fontWeight: 800, cursor: "pointer" },
