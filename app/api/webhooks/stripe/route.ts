@@ -26,8 +26,8 @@ export async function POST(request: NextRequest) {
 
   const planFromPrice = (priceId?: string | null): string | undefined => {
     if (!priceId) return undefined;
-    if (priceId === PRICES.annual) return 'annual';
-    if (priceId === PRICES.monthly) return 'monthly';
+    if (priceId === PRICES.both) return 'both';
+    if (priceId === PRICES.single) return 'single';
     return undefined;
   };
 

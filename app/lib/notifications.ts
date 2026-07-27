@@ -226,9 +226,10 @@ export const sendSignupWelcomeEmail = async (
 
           <h3 style="margin:20px 0 6px;font-size:16px;">Simple pricing</h3>
           <ul style="margin:0 0 16px;padding-left:20px;">
-            <li>Start with a <strong>14-day free trial</strong></li>
-            <li><strong>No card needed</strong> to begin</li>
-            <li>After your trial it's <strong>$59.99/month</strong> — cancel anytime</li>
+            <li>Start with a <strong>14-day free trial</strong> — <strong>no card needed</strong> to begin</li>
+            <li><strong>$59.99/month</strong> for Voice or Text</li>
+            <li><strong>$100/month</strong> for both Voice + Text</li>
+            <li>Cancel anytime</li>
           </ul>
 
           <p style="margin:0 0 8px;font-size:14px;color:#555;">Not ready, or changed your mind? No
@@ -266,7 +267,8 @@ export const sendTrialReminderEmail = async (
         <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:520px;color:#1a1a1a;line-height:1.6;">
           <h2>Your free trial ends ${when}</h2>
           <p>We hope the missed-call text-back has been catching calls for <strong>${businessName}</strong>!
-            To keep it running after your trial, add your payment — it's <strong>$59.99/month</strong>, cancel anytime.</p>
+            To keep it running after your trial, add your payment — <strong>$59.99/month</strong> for Voice
+            or Text, or <strong>$100/month</strong> for both. Cancel anytime.</p>
           <div style="margin:22px 0;">
             <a href="${addPaymentUrl}" style="display:inline-block;background:#2F6BFF;color:#fff;text-decoration:none;padding:13px 22px;border-radius:10px;font-weight:700;">Add payment &amp; stay live</a>
           </div>
@@ -297,7 +299,8 @@ export const sendTrialEndedEmail = async (
         <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:520px;color:#1a1a1a;line-height:1.6;">
           <h2>Your free trial has ended</h2>
           <p>Your missed-call text-back for <strong>${businessName}</strong> is now paused. No charge was made.</p>
-          <p>Want it back on? Add payment anytime (<strong>$59.99/month</strong>, cancel anytime) and it turns right back on:</p>
+          <p>Want it back on? Add payment anytime (<strong>$59.99/month</strong> for Voice or Text,
+            <strong>$100/month</strong> for both — cancel anytime) and it turns right back on:</p>
           <div style="margin:22px 0;">
             <a href="${addPaymentUrl}" style="display:inline-block;background:#22C55E;color:#04220F;text-decoration:none;padding:13px 22px;border-radius:10px;font-weight:800;">Reactivate my service</a>
           </div>
