@@ -228,7 +228,8 @@ export default function WelcomePage() {
       <div style={s.pricingTitle}>🎁 14-day free trial</div>
       <ul style={s.pricingList}>
         <li><strong>No card needed</strong> to start</li>
-        <li>After your trial it&apos;s <strong>$59.99/month</strong></li>
+        <li><strong>$59.99/mo</strong> for Voice or Text</li>
+        <li><strong>$100/mo</strong> for both Voice + Text</li>
         <li>Cancel anytime</li>
       </ul>
     </div>

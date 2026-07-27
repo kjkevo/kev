@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
-import { createCheckoutSession, stripeConfigured } from '@/app/lib/stripe';
+import { createCheckoutSession, stripeConfigured, tierForService } from '@/app/lib/stripe';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,11 +12,9 @@ export async function POST(request: NextRequest) {
   }
 
   let token = '';
-  let plan = 'monthly';
   try {
     const body = await request.json();
     token = String(body.token ?? '');
-    if (body.plan === 'annual') plan = 'annual';
   } catch {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
   }
@@ -25,12 +23,15 @@ export async function POST(request: NextRequest) {
   const signup = await prisma.trialSignup.findUnique({ where: { token } });
   if (!signup) return NextResponse.json({ error: 'not_found' }, { status: 404 });
 
+  // Tier (and price) follows the service they chose: both = $100, else $59.99.
+  const tier = tierForService(signup.servicePreference);
+
   const origin = new URL(request.url).origin;
   const { url, error } = await createCheckoutSession({
     token,
     email: signup.email,
     businessName: signup.businessName,
-    plan,
+    tier,
     customerId: signup.stripeCustomerId,
     successUrl: `${origin}/welcome?t=${token}&paid=1`,
     cancelUrl: `${origin}/welcome?t=${token}`,

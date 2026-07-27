@@ -11,13 +11,19 @@ export const stripe = stripeConfigured
   : null;
 
 // Price IDs are created once in the Stripe dashboard (Products) and set in env.
+// Tiered by channel: "single" = Voice OR Text ($59.99/mo); "both" = Voice + Text
+// ($100/mo). The tier is derived from the client's chosen service.
 export const PRICES: Record<string, string | undefined> = {
-  monthly: process.env.STRIPE_PRICE_MONTHLY,
-  annual: process.env.STRIPE_PRICE_ANNUAL,
+  single: process.env.STRIPE_PRICE_SINGLE,
+  both: process.env.STRIPE_PRICE_BOTH,
 };
 
-export function priceIdForPlan(plan: string): string | undefined {
-  return PRICES[plan] ?? PRICES.monthly;
+export function tierForService(service?: string | null): 'single' | 'both' {
+  return service === 'both' ? 'both' : 'single';
+}
+
+export function priceIdForTier(tier: string): string | undefined {
+  return PRICES[tier] ?? PRICES.single;
 }
 
 // Create a Checkout Session to convert a trial into a paid subscription. Card is
@@ -26,13 +32,13 @@ export async function createCheckoutSession(opts: {
   token: string;
   email: string;
   businessName: string;
-  plan: string;
+  tier: string; // "single" | "both"
   customerId?: string | null;
   successUrl: string;
   cancelUrl: string;
 }): Promise<{ url: string | null; error?: string }> {
   if (!stripe) return { url: null, error: 'Billing is not configured yet.' };
-  const price = priceIdForPlan(opts.plan);
+  const price = priceIdForTier(opts.tier);
   if (!price) return { url: null, error: 'No Stripe price is configured.' };
 
   try {
