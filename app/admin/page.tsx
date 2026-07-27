@@ -70,6 +70,16 @@ interface AnalyticsRow {
 }
 interface Analytics { overall: AnalyticsRow; perBusiness: AnalyticsRow[] }
 
+interface OverviewRow {
+  id: number;
+  businessName: string;
+  businessPhone: string;
+  callsTotal: number;
+  callsWeek: number;
+  health: "green" | "yellow" | "red";
+  reason: string;
+}
+
 // In the form, an option's keywords are a single comma-separated string for
 // easy editing; the API splits them back into an array.
 interface MenuOptionForm { label: string; keywords: string; reply: string; sms: string }
@@ -128,6 +138,7 @@ export default function AdminBusinessesPage() {
   const [openForm, setOpenForm] = React.useState<number | null>(null);
   const [busyId, setBusyId] = React.useState<string | null>(null);
   const [tab, setTab] = React.useState<string>("overview");
+  const [overview, setOverview] = React.useState<OverviewRow[]>([]);
 
   const fetchBusinesses = React.useCallback(async () => {
     setLoading(true);
@@ -173,11 +184,23 @@ export default function AdminBusinessesPage() {
     }
   }, []);
 
+  const fetchOverview = React.useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/overview");
+      if (!res.ok) return;
+      const j = await res.json();
+      setOverview(j.businesses || []);
+    } catch {
+      /* non-critical */
+    }
+  }, []);
+
   React.useEffect(() => {
     fetchBusinesses();
     fetchAnalytics();
     fetchPipeline();
-  }, [fetchBusinesses, fetchAnalytics, fetchPipeline]);
+    fetchOverview();
+  }, [fetchBusinesses, fetchAnalytics, fetchPipeline, fetchOverview]);
 
   function startCreate() {
     setEditingId(null);
@@ -325,7 +348,7 @@ export default function AdminBusinessesPage() {
     }
   }
 
-  function refreshAll() { fetchBusinesses(); fetchPipeline(); }
+  function refreshAll() { fetchBusinesses(); fetchPipeline(); fetchOverview(); }
 
   async function patchBusiness(id: number, body: Record<string, unknown>, okMsg: string) {
     setError(null); setNotice(null);
@@ -546,30 +569,30 @@ export default function AdminBusinessesPage() {
           })}
         </div>
 
-        {/* Overview */}
-        {tab === "overview" && analytics && (
+        {/* Overview — active businesses + health */}
+        {tab === "overview" && (
           <section style={styles.card}>
-            <h2 style={styles.h2}>Performance</h2>
-            <div style={styles.statGrid}>
-              <Stat label="Missed calls handled" value={String(analytics.overall.totalMissedCalls)} />
-              <Stat label="Recovery rate" value={`${analytics.overall.recoveryRate}%`} accent="#34D399" />
-              <Stat label="Recovered revenue" value={`$${analytics.overall.recoveredRevenue.toLocaleString()}`} accent="#8FE3B0" />
-              <Stat label="Avg. response" value={fmtSecs(analytics.overall.avgResponseSeconds)} />
-            </div>
-            {analytics.perBusiness.length > 0 && (
-              <div style={{ marginTop: 16 }}>
-                {analytics.perBusiness.slice(0, 8).map((r) => (
-                  <div key={r.businessId} style={styles.row}>
-                    <div>
-                      <div style={styles.rowTitle}>{r.businessName}</div>
-                      <div style={styles.rowSub}>
-                        {r.totalMissedCalls} calls · {r.recoveryRate}% recovered · {r.conversions} booked
-                      </div>
+            <h2 style={styles.h2}>Active businesses{overview.length > 0 ? ` (${overview.length})` : ""}</h2>
+            <p style={styles.muted}>Who&apos;s live right now, their call activity, and their health.</p>
+            {overview.length === 0 ? (
+              <p style={styles.mutedSmall}>No active businesses yet. Start a trial to bring one live.</p>
+            ) : (
+              overview.map((b) => (
+                <div key={b.id} style={styles.row}>
+                  <div>
+                    <div style={styles.rowTitle}>
+                      <span style={healthDot(b.health)} /> {b.businessName}
                     </div>
-                    <div style={styles.revenueTag}>${r.recoveredRevenue.toLocaleString()}</div>
+                    <div style={styles.rowSub}>
+                      {b.businessPhone} · {b.callsTotal} calls total · {b.callsWeek} this week
+                    </div>
+                    <div style={{ ...styles.rowSub, color: healthColor(b.health) }}>{b.reason}</div>
                   </div>
-                ))}
-              </div>
+                  <div style={{ ...styles.healthLabel, color: healthColor(b.health) }}>
+                    {b.health === "green" ? "Healthy" : b.health === "yellow" ? "Attention" : "Problem"}
+                  </div>
+                </div>
+              ))
             )}
           </section>
         )}
@@ -797,6 +820,13 @@ function billingLabel(b: Business): string {
   }
   return "—";
 }
+function healthColor(h: "green" | "yellow" | "red"): string {
+  return h === "green" ? "#22C55E" : h === "yellow" ? "#F5C518" : "#EF4444";
+}
+function healthDot(h: "green" | "yellow" | "red"): React.CSSProperties {
+  return { display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: healthColor(h), marginRight: 8, verticalAlign: "middle", boxShadow: `0 0 6px ${healthColor(h)}` };
+}
+
 function billingBadge(b: Business): React.CSSProperties {
   const l = billingLabel(b);
   const base: React.CSSProperties = { fontSize: 11, fontWeight: 800, padding: "2px 7px", borderRadius: 20, marginLeft: 8, verticalAlign: "middle" };
@@ -853,6 +883,7 @@ const styles: Record<string, React.CSSProperties> = {
   tabBar: { display: "flex", gap: 8, flexWrap: "wrap", margin: "0 0 22px" },
   tab: { background: "#0E1526", border: "1px solid #1E2A44", color: "#8A93A6", borderRadius: 10, padding: "9px 15px", fontSize: 14, fontWeight: 600, cursor: "pointer" },
   tabActive: { background: "#12264A", border: "1px solid #3B82F6", color: "#fff" },
+  healthLabel: { fontSize: 13, fontWeight: 700 },
   pipeRow: { borderTop: "1px solid #16233B", padding: "12px 0" },
   pipeHead: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" },
   startTrialBtn: { background: "#22C55E", color: "#04220F", border: "none", borderRadius: 8, padding: "7px 12px", fontSize: 13, fontWeight: 800, cursor: "pointer" },
