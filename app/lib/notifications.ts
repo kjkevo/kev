@@ -5,29 +5,48 @@ import { ONBOARDING_SECTIONS } from './onboardingSchema';
 
 let emailTransporter: nodemailer.Transporter | null = null;
 
+// The "from" address on every email. With a real email service you can send
+// from your business address (e.g. a verified Gmail, or your own domain) by
+// setting EMAIL_FROM (e.g. `Slimpse <Slimpsehelp@gmail.com>`).
+export const emailFrom = (): string =>
+  process.env.EMAIL_FROM || process.env.EMAIL_USER || '';
+
 const initializeEmailTransporter = () => {
   if (emailTransporter) return emailTransporter;
 
+  // Preferred: a transactional email service over SMTP (Brevo, SendGrid, Resend,
+  // Mailgun, …). Far better inbox delivery than personal Gmail. Set SMTP_* vars.
+  const smtpHost = process.env.SMTP_HOST;
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPass = process.env.SMTP_PASS;
+  if (smtpHost && smtpUser && smtpPass) {
+    const port = Number(process.env.SMTP_PORT || 587);
+    emailTransporter = nodemailer.createTransport({
+      host: smtpHost,
+      port,
+      secure: port === 465,
+      auth: { user: smtpUser, pass: smtpPass },
+    });
+    return emailTransporter;
+  }
+
+  // Fallback: Gmail via app password (ok for alerts to yourself; unreliable for
+  // customer-facing mail — use an SMTP service above for that).
   const emailService = process.env.EMAIL_SERVICE || 'gmail';
   const emailUser = process.env.EMAIL_USER;
   const emailPassword = process.env.EMAIL_PASSWORD;
-
-  // Check if credentials are placeholders or missing
   const hasValidCredentials = emailUser && emailPassword &&
     !emailUser.includes('your-email') &&
     !emailPassword.includes('your-app-password');
 
   if (!emailUser || !emailPassword || !hasValidCredentials) {
-    console.warn('Email not configured (using placeholders) - owner notifications will be mocked');
+    console.warn('Email not configured - notifications will be mocked');
     return null;
   }
 
   emailTransporter = nodemailer.createTransport({
     service: emailService,
-    auth: {
-      user: emailUser,
-      pass: emailPassword,
-    },
+    auth: { user: emailUser, pass: emailPassword },
   });
 
   return emailTransporter;
@@ -108,7 +127,7 @@ export const sendLeadAlertToOwner = async (
     }
 
     const mailOptions = {
-      from: process.env.EMAIL_USER,
+      from: emailFrom(),
       to: ownerEmail,
       subject: `🔔 New Lead for ${businessName}`,
       html: `
@@ -155,7 +174,7 @@ export const sendTextFailureAlertToOwner = async (
         recipients.push(process.env.ALERT_EMAIL);
       }
       await transporter.sendMail({
-        from: process.env.EMAIL_USER,
+        from: emailFrom(),
         to: recipients.join(', '),
         subject: `⚠️ Text-back FAILED for ${businessName} — call ${detail.customerPhone} back`,
         html: `
@@ -202,7 +221,7 @@ export const sendSignupWelcomeEmail = async (
     const transporter = initializeEmailTransporter();
     if (!transporter) return { success: false, error: 'Email not configured' };
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+      from: emailFrom(),
       to: signup.email,
       subject: `Finish your setup for ${signup.businessName} — a few quick questions 📝`,
       html: `
@@ -269,7 +288,7 @@ export const sendTrialReminderEmail = async (
     if (!transporter) return { success: false, error: 'Email not configured' };
     const when = daysLeft <= 1 ? 'tomorrow' : `in ${daysLeft} days`;
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+      from: emailFrom(),
       to: toEmail,
       subject: `Your ${businessName} free trial ends ${when} — add payment to stay live`,
       html: `
@@ -301,7 +320,7 @@ export const sendTrialEndedEmail = async (
     const transporter = initializeEmailTransporter();
     if (!transporter) return { success: false, error: 'Email not configured' };
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+      from: emailFrom(),
       to: toEmail,
       subject: `Your ${businessName} trial has ended — reactivate anytime`,
       html: `
@@ -352,7 +371,7 @@ export const sendTrialCancelledAlert = async (signup: {
     if (!transporter) return { success: false, error: 'Email not configured' };
     const to = process.env.ALERT_EMAIL || process.env.EMAIL_USER;
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+      from: emailFrom(),
       to,
       subject: `⚠️ Cancellation requested: ${signup.businessName}`,
       html: `
@@ -386,7 +405,7 @@ export const sendTrialSignupAlert = async (signup: {
     if (!transporter) return { success: false, error: 'Email not configured' };
     const to = process.env.ALERT_EMAIL || process.env.EMAIL_USER;
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+      from: emailFrom(),
       to,
       subject: `🚀 New trial signup: ${signup.businessName}`,
       html: `
@@ -443,7 +462,7 @@ export const sendTestEmail = async (): Promise<{ success: boolean; to?: string; 
   const to = process.env.ALERT_EMAIL || process.env.EMAIL_USER;
   try {
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+      from: emailFrom(),
       to,
       subject: '✅ MissedCall email is working',
       html: `
@@ -519,7 +538,7 @@ export const sendIntakeSubmittedAlert = async (signup: {
     }).join('');
 
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+      from: emailFrom(),
       to,
       subject: `📝 Setup form submitted: ${signup.businessName}`,
       html: `
@@ -558,7 +577,7 @@ export const sendSetupConfirmationEmail = async (opts: {
     if (!transporter) return { success: false, error: 'Email not configured' };
     const preview = opts.missedCallMessage.replace(/\{BUSINESS_NAME\}/g, opts.businessName);
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+      from: emailFrom(),
       to: opts.toEmail,
       subject: `Your ${opts.businessName} setup is ready — does this look right?`,
       html: `
@@ -592,7 +611,7 @@ export const sendProvisionedWelcome = async (
     const transporter = initializeEmailTransporter();
     if (!transporter) return { success: false, error: 'Email not configured' };
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+      from: emailFrom(),
       to: toEmail,
       subject: `${businessName} is live — your 14-day free trial has started 🎉`,
       html: `
@@ -635,7 +654,7 @@ export const sendMissedCallAlertToOwner = async (
     }
 
     const mailOptions = {
-      from: process.env.EMAIL_USER,
+      from: emailFrom(),
       to: ownerEmail,
       subject: `📞 Missed Call for ${businessName}`,
       html: `
