@@ -11,12 +11,6 @@ export default function DemoPage() {
   const [name, setName] = React.useState("");
   const [trade, setTrade] = React.useState("");
   const [shown, setShown] = React.useState(false);
-  const [speaking, setSpeaking] = React.useState(false);
-  const [canSpeak, setCanSpeak] = React.useState(false);
-
-  React.useEffect(() => {
-    setCanSpeak(typeof window !== "undefined" && "speechSynthesis" in window);
-  }, []);
 
   const biz = (name.trim() || "your business").trim();
   const serviceLine = trade.trim()
@@ -27,33 +21,8 @@ export default function DemoPage() {
     `Sorry we missed your call! Thanks for reaching out to ${biz}${serviceLine}. ` +
     `What can we help you with? We'll get right back to you.`;
 
-  const voiceText =
-    `Thanks for calling ${biz}! Sorry we missed you — we're helping another ` +
-    `customer right now. We'll text you in just a moment so we can help.`;
-
   function reveal() {
     setShown(true);
-  }
-
-  function hearIt() {
-    if (!canSpeak) return;
-    try {
-      window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(voiceText);
-      u.rate = 1;
-      u.pitch = 1;
-      const preferred = window.speechSynthesis
-        .getVoices()
-        .find((v) => /en(-|_)US/i.test(v.lang) && /female|Samantha|Google US/i.test(v.name));
-      if (preferred) u.voice = preferred;
-      u.onend = () => setSpeaking(false);
-      u.onerror = () => setSpeaking(false);
-      setSpeaking(true);
-      setShown(true);
-      window.speechSynthesis.speak(u);
-    } catch {
-      setSpeaking(false);
-    }
   }
 
   return (
@@ -63,11 +32,6 @@ export default function DemoPage() {
         <div style={s.left}>
           <div style={s.kicker}>◆ Live demo</div>
           <h1 style={s.h1}>See it work for your business</h1>
-          <p style={s.sub}>
-            Type your business name and we&apos;ll show you exactly what a customer gets the
-            moment they call and you can&apos;t pick up — the instant text-back, and the voice
-            greeting in your own brand.
-          </p>
 
           <label style={s.label}>Your business name</label>
           <input
@@ -89,18 +53,7 @@ export default function DemoPage() {
 
           <div style={s.btnRow}>
             <button style={s.primary} onClick={reveal}>Show me the text-back</button>
-            <button
-              style={{ ...s.secondary, ...(speaking ? s.secondaryActive : {}) }}
-              onClick={hearIt}
-              disabled={!canSpeak}
-              title={canSpeak ? "" : "Your browser can't play the voice preview"}
-            >
-              {speaking ? "🔊 Speaking…" : "🔊 Hear the voice greeting"}
-            </button>
           </div>
-          {!canSpeak && (
-            <p style={s.tiny}>Voice preview needs a modern browser (Chrome, Safari, Edge).</p>
-          )}
 
           <a style={s.cta} href="/start">Set this up for {biz} →</a>
         </div>
