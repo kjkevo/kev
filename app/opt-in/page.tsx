@@ -14,10 +14,6 @@ export default function OptInPage() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!consent) {
-      setError("Please check the box to agree to receive text messages.");
-      return;
-    }
     setSubmitting(true);
     try {
       const res = await fetch("/api/opt-in", {
@@ -42,15 +38,20 @@ export default function OptInPage() {
     <main style={s.wrap}>
       <div style={s.card}>
         <div style={s.brand}>Simplicity Pleasing</div>
-        <h1 style={s.h1}>Request a text back</h1>
+        <h1 style={s.h1}>Get in touch</h1>
         <p style={s.sub}>
-          Tell us how to reach you and what you need. We&apos;ll text you back to help book your
-          DJing, photo booth, or party decoration.
+          Simplicity Pleasing helps you book DJing, photo booths, and party decoration for your
+          event. Send us your details below and we&apos;ll follow up to help plan it.
+        </p>
+        <p style={s.info}>
+          Prefer a text reply? Checking the optional box below lets us text you about your
+          inquiry — it&apos;s completely optional and never required to contact us.
         </p>
 
         {done ? (
           <div style={s.success}>
-            ✅ Thanks! You&apos;re all set — we&apos;ll text you shortly at the number you provided.
+            ✅ Thanks! We&apos;ve got your info and will follow up. If you opted in to texts, we&apos;ll
+            message you shortly at the number you provided.
           </div>
         ) : (
           <form onSubmit={submit}>
@@ -79,11 +80,11 @@ export default function OptInPage() {
             <label style={s.consentRow}>
               <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} style={s.checkbox} />
               <span style={s.consentText}>
-                By checking this box, I agree to receive automated text messages from
-                <strong> Simplicity Pleasing</strong> at the mobile number I provide, about my inquiry.
-                Consent is not a condition of any purchase. Message frequency varies; message and data
-                rates may apply. Reply <strong>STOP</strong> to opt out or <strong>HELP</strong> for help.
-                See our{" "}
+                <strong>(Optional)</strong> By checking this box, I agree to receive automated text
+                messages from <strong>Simplicity Pleasing</strong> at the mobile number I provide, about
+                my inquiry. This is optional and not a condition of contacting us or any purchase.
+                Message frequency varies; message and data rates may apply. Reply <strong>STOP</strong>{" "}
+                to opt out or <strong>HELP</strong> for help. See our{" "}
                 <a style={s.link} href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>{" "}
                 and{" "}
                 <a style={s.link} href="/terms" target="_blank" rel="noopener noreferrer">Terms &amp; Conditions</a>.
@@ -93,7 +94,7 @@ export default function OptInPage() {
             {error && <div style={s.error}>{error}</div>}
 
             <button type="submit" style={s.button} disabled={submitting}>
-              {submitting ? "Sending…" : "Text me back"}
+              {submitting ? "Sending…" : "Send my info"}
             </button>
           </form>
         )}
@@ -107,7 +108,8 @@ const s: Record<string, React.CSSProperties> = {
   card: { width: "100%", maxWidth: 460, background: "#0E1526", border: "1px solid #1E2A44", borderRadius: 16, padding: 28 },
   brand: { fontSize: 13, fontWeight: 700, color: "#34D399", textTransform: "uppercase", letterSpacing: 0.6 },
   h1: { fontSize: 26, fontWeight: 800, margin: "8px 0 6px" },
-  sub: { fontSize: 14, color: "#8A93A6", lineHeight: 1.5, margin: "0 0 20px" },
+  sub: { fontSize: 14, color: "#8A93A6", lineHeight: 1.5, margin: "0 0 12px" },
+  info: { fontSize: 13, color: "#7FBFA0", lineHeight: 1.5, margin: "0 0 20px", background: "#0A1F16", border: "1px solid #1F5A3E", borderRadius: 8, padding: "10px 12px" },
   label: { display: "flex", flexDirection: "column", gap: 6, fontSize: 13.5, color: "#B8C0D0", marginBottom: 14 },
   req: { color: "#F7A8B8" },
   input: { background: "#0A0F1E", border: "1px solid #24324F", borderRadius: 8, padding: "10px 12px", color: "#E5E9F0", fontSize: 15, width: "100%" },

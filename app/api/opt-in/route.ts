@@ -5,9 +5,10 @@ import { sendLeadConfirmationText } from '@/app/lib/notifications';
 
 export const dynamic = 'force-dynamic';
 
-// POST /api/opt-in — public web opt-in form submission.
-// Records a lead and (when Twilio is live) sends a confirmation text.
-// Requires explicit consent (the checkbox) to be true.
+// POST /api/opt-in — public contact form submission.
+// Consent to receive texts is OPTIONAL (A2P: opt-in must be voluntary and never
+// a condition of using the service). We only send a text when the visitor
+// checked the (unchecked-by-default) consent box.
 export async function POST(request: NextRequest) {
   let body: Record<string, unknown>;
   try {
@@ -23,9 +24,6 @@ export async function POST(request: NextRequest) {
 
   if (!phone) {
     return NextResponse.json({ error: 'Please enter a valid US phone number.' }, { status: 400 });
-  }
-  if (!consent) {
-    return NextResponse.json({ error: 'You must agree to receive text messages to continue.' }, { status: 400 });
   }
 
   try {
@@ -44,24 +42,30 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Send confirmation text from the business's number (mock until Twilio is live).
-    const textResult = await sendLeadConfirmationText(
-      phone,
-      business.businessName,
-      name || 'there',
-      business.leadSubmissionMsg,
-      business.businessPhone,
-    );
+    // Only text them if they explicitly opted in (checked the consent box).
+    if (consent) {
+      const textResult = await sendLeadConfirmationText(
+        phone,
+        business.businessName,
+        name || 'there',
+        business.leadSubmissionMsg,
+        business.businessPhone,
+      );
+      await prisma.leadSubmission.update({
+        where: { id: lead.id },
+        data: {
+          textSentAt: textResult.success ? new Date() : null,
+          textStatus: textResult.success ? 'sent' : 'failed',
+        },
+      });
+    } else {
+      await prisma.leadSubmission.update({
+        where: { id: lead.id },
+        data: { textStatus: 'skipped' },
+      });
+    }
 
-    await prisma.leadSubmission.update({
-      where: { id: lead.id },
-      data: {
-        textSentAt: textResult.success ? new Date() : null,
-        textStatus: textResult.success ? 'sent' : 'failed',
-      },
-    });
-
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, consented: consent });
   } catch (error) {
     console.error('Error handling opt-in:', error);
     return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 });
