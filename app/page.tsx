@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-// The product's home is the dashboard.
+// The product's home is the admin/client dashboard.
 export default function HomePage() {
-  redirect("/dashboard");
+  redirect("/admin");
 }
