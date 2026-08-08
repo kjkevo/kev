@@ -411,6 +411,16 @@ export default function AdminBusinessesPage() {
     postAction(`conf-${c.businessId}`, `/api/admin/businesses/${c.businessId}/send-confirmation`,
       `Confirmation email sent to ${c.email}.`);
   }
+  function cancelSubscription(c: Client) {
+    postAction(`sub-${c.businessId}`, `/api/admin/businesses/${c.businessId}/cancel-subscription`,
+      `${c.businessName}'s subscription cancelled and service turned off.`,
+      `Cancel ${c.businessName}'s subscription?\n\nThis stops their billing in Stripe and turns their service OFF.`);
+  }
+  function removeClient(c: Client) {
+    postAction(`rm-${c.businessId}`, `/api/admin/businesses/${c.businessId}/remove`,
+      `${c.businessName} removed from services.`,
+      `Remove ${c.businessName} from your services?\n\nThis cancels any subscription, turns their service OFF, and takes them out of your dashboard. (History is kept.)`);
+  }
 
   function stageLabel(c: Client): string {
     switch (c.stage) {
@@ -498,9 +508,15 @@ export default function AdminBusinessesPage() {
               </>
             )}
             {c.businessId && c.stage === "paying" && (
-              <button style={styles.smallBtn} onClick={() => setActive(c.businessId!, c.businessName, c.active === false)}>
-                {c.active === false ? "Turn on" : "Turn off"}
-              </button>
+              <>
+                <button style={styles.smallBtn} onClick={() => setActive(c.businessId!, c.businessName, c.active === false)}>
+                  {c.active === false ? "Turn on" : "Turn off"}
+                </button>
+                <button style={styles.smallDangerBtn} onClick={() => cancelSubscription(c)}>Cancel subscription</button>
+              </>
+            )}
+            {c.businessId && c.category !== "cancel_requested" && (
+              <button style={styles.smallDangerBtn} onClick={() => removeClient(c)}>Remove</button>
             )}
             {c.category === "cancel_requested" && (
               <>

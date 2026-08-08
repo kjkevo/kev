@@ -63,6 +63,18 @@ export async function createCheckoutSession(opts: {
 
 // Billing portal: where a paying client updates their card, sees invoices, or
 // cancels — Stripe hosts the whole dunning/cancellation flow.
+// Immediately cancel a subscription (used when the operator ends a client).
+export async function cancelSubscription(subscriptionId: string): Promise<{ ok: boolean; error?: string }> {
+  if (!stripe) return { ok: false, error: 'Billing is not configured.' };
+  try {
+    await stripe.subscriptions.cancel(subscriptionId);
+    return { ok: true };
+  } catch (error) {
+    console.error('Error cancelling subscription:', error);
+    return { ok: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
 export async function createPortalSession(opts: {
   customerId: string;
   returnUrl: string;
