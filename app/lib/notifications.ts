@@ -490,7 +490,7 @@ export const sendCheckYourEmailText = async (
   businessName: string,
 ): Promise<{ success: boolean; sid?: string; error?: string }> => {
   const body =
-    `Thanks for signing up with MissedCall! 📧 Check your email — we just sent ` +
+    `Hey, this is Slimpse! Check your email — we just sent ` +
     `${businessName ? `${businessName} ` : ''}a quick setup form to get your service started.\n\n` +
     `Reply STOP to opt out, HELP for help.`;
   try {
