@@ -48,14 +48,18 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  // Best-effort — the client's submission shouldn't fail because email is down.
-  sendIntakeSubmittedAlert({
-    businessName: signup.businessName,
-    email: signup.email,
-    mobile: signup.mobile,
-    servicePreference: service,
-    details,
-  }).catch(console.error);
+  // Await (best-effort): on serverless an un-awaited promise is killed once the
+  // response is sent, which would silently drop this operator alert. allSettled
+  // means the client's submission still succeeds even if email is down.
+  await Promise.allSettled([
+    sendIntakeSubmittedAlert({
+      businessName: signup.businessName,
+      email: signup.email,
+      mobile: signup.mobile,
+      servicePreference: service,
+      details,
+    }),
+  ]);
 
   return NextResponse.json({ success: true });
 }

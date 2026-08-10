@@ -28,8 +28,12 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     await prisma.trialSignup.update({ where: { id: business.signupId }, data: { status: 'onboarded' } });
   }
 
-  // They're live now — email their number + the forwarding step.
-  sendProvisionedWelcome(business.ownerEmail, business.businessName, business.businessPhone).catch(console.error);
+  // They're live now — email their number + the forwarding step. Await it:
+  // on serverless an un-awaited promise is killed once the response returns,
+  // which would silently drop this welcome email.
+  await Promise.allSettled([
+    sendProvisionedWelcome(business.ownerEmail, business.businessName, business.businessPhone),
+  ]);
 
   return NextResponse.json({ success: true, trialEndsAt: trialEndsAt.toISOString() });
 }

@@ -62,11 +62,18 @@ export async function POST(request: NextRequest) {
   // Build the status/cancel link from this request's own origin.
   const statusUrl = `${new URL(request.url).origin}/welcome?t=${token}`;
 
-  // All best-effort — a signup should never fail because email or SMS is down.
-  sendTrialSignupAlert({ businessName, mobile, email, trade }).catch(console.error);
-  // Text the prospect to go check their email for the setup form, then email it.
-  sendCheckYourEmailText(mobile, businessName).catch(console.error);
-  sendSignupWelcomeEmail({ businessName, email }, statusUrl).catch(console.error);
+  // Fire the prospect + operator notifications. These MUST be awaited: on
+  // serverless (Vercel) any promise left running after the response is sent gets
+  // frozen/killed, which silently drops the text and email. allSettled keeps them
+  // best-effort — a signup still succeeds even if email or SMS is down.
+  await Promise.allSettled([
+    // Operator alert: a new trial signed up.
+    sendTrialSignupAlert({ businessName, mobile, email, trade }),
+    // Text the prospect to go check their email for the setup form...
+    sendCheckYourEmailText(mobile, businessName),
+    // ...then email them the setup form itself.
+    sendSignupWelcomeEmail({ businessName, email }, statusUrl),
+  ]);
 
   return NextResponse.json({ success: true }, { headers: corsHeaders });
 }
