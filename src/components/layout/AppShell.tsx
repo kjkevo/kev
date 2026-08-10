@@ -11,6 +11,8 @@ const SHELL_EXCLUDED = ["/", "/login", "/signup", "/onboarding", "/admin", "/liv
 
 function useShellVisible() {
   const pathname = usePathname();
+  // The trivia game is a self-contained, full-screen product — never the shell.
+  if (pathname.startsWith("/trivia")) return false;
   return !SHELL_EXCLUDED.includes(pathname);
 }
 
