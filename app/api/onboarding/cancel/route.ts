@@ -34,11 +34,15 @@ export async function POST(request: NextRequest) {
   });
   await prisma.businessConfig.updateMany({ where: { signupId: signup.id }, data: { active: false } });
 
-  sendTrialCancelledAlert({
-    businessName: signup.businessName,
-    email: signup.email,
-    mobile: signup.mobile,
-  }).catch(console.error);
+  // Await (best-effort): on serverless an un-awaited promise is dropped once the
+  // response is sent, which would silently swallow this operator alert.
+  await Promise.allSettled([
+    sendTrialCancelledAlert({
+      businessName: signup.businessName,
+      email: signup.email,
+      mobile: signup.mobile,
+    }),
+  ]);
 
   return NextResponse.json({ success: true });
 }
