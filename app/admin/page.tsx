@@ -421,6 +421,11 @@ export default function AdminBusinessesPage() {
       `${c.businessName} removed from services.`,
       `Remove ${c.businessName} from your services?\n\nThis cancels any subscription, turns their service OFF, and takes them out of your dashboard. (History is kept.)`);
   }
+  function deleteSignup(c: Client) {
+    postAction(`del-${c.signupId}`, `/api/admin/signups/${c.signupId}/delete`,
+      `${c.businessName} deleted.`,
+      `Permanently DELETE ${c.businessName}?\n\nThis erases the signup and any service, number history, and call/lead records tied to it. This cannot be undone. (Use "Remove" instead if you just want to offboard a real client and keep their history.)`);
+  }
 
   function stageLabel(c: Client): string {
     switch (c.stage) {
@@ -517,6 +522,9 @@ export default function AdminBusinessesPage() {
             )}
             {c.businessId && c.category !== "cancel_requested" && (
               <button style={styles.smallDangerBtn} onClick={() => removeClient(c)}>Remove</button>
+            )}
+            {c.signupId && (
+              <button style={styles.smallDangerBtn} onClick={() => deleteSignup(c)}>🗑 Delete</button>
             )}
             {c.category === "cancel_requested" && (
               <>
