@@ -1,10 +1,12 @@
 // Shared onboarding questionnaire schema. Imported by BOTH the client form
 // (/welcome) and the server-side operator alert email, so the questions and
 // their labels never drift apart. Answers are stored as a flat { id: value }
-// object in TrialSignup.onboardingDetails (JSON); this schema supplies the
-// labels/grouping for rendering.
+// object in TrialSignup.onboardingDetails (JSON); chip fields store their picks
+// as a comma-joined string so this stays a flat string map. This schema also
+// drives the /welcome multi-step wizard: section order = step order, and
+// `optional` sections can be skipped.
 
-export type FieldType = 'text' | 'textarea' | 'radio' | 'select';
+export type FieldType = 'text' | 'textarea' | 'radio' | 'chips';
 
 export interface OnboardingField {
   id: string;
@@ -12,60 +14,39 @@ export interface OnboardingField {
   type: FieldType;
   options?: string[];
   placeholder?: string;
+  required?: boolean;
 }
 
 export interface OnboardingSection {
   title: string;
+  // Optional sections can be skipped in the wizard (deferred to "finish later").
+  optional?: boolean;
+  // Short wizard label for the progress bar.
+  stepLabel: string;
   fields: OnboardingField[];
 }
 
 export const ONBOARDING_SECTIONS: OnboardingSection[] = [
   {
     title: 'Business basics',
+    stepLabel: 'Business',
     fields: [
+      { id: 'industry', label: 'What industry / trade are you in?', type: 'text', placeholder: 'Plumbing, salon, law firm…', required: true },
       { id: 'description', label: 'Describe your business in 1–2 sentences', type: 'textarea', placeholder: 'e.g. Family-owned HVAC company serving the Dallas metro since 2009.' },
-      { id: 'industry', label: 'What industry / trade are you in?', type: 'text', placeholder: 'Plumbing, salon, law firm…' },
-      { id: 'hours', label: 'Hours of operation (include holidays / closures)', type: 'textarea', placeholder: 'Mon–Fri 8am–6pm, closed weekends & major holidays' },
-      { id: 'webSocial', label: 'Website and social links', type: 'text', placeholder: 'yoursite.com, instagram.com/you' },
+      { id: 'websiteUrl', label: 'Website (optional — we can pull details from it later)', type: 'text', placeholder: 'yoursite.com' },
     ],
   },
   {
-    title: 'Services & products',
+    title: 'How we handle your calls',
+    stepLabel: 'Polish',
+    optional: true,
     fields: [
-      { id: 'services', label: 'List your services / products (add prices if you want them quoted)', type: 'textarea', placeholder: 'AC repair from $89, install quotes free…' },
-      { id: 'notOffered', label: 'Anything you do NOT offer (so we never over-promise)', type: 'textarea', placeholder: 'We don’t do commercial jobs or duct cleaning' },
-      { id: 'faqs', label: 'Common customer questions + your answers', type: 'textarea', placeholder: 'Q: Do you offer free estimates? A: Yes, always.' },
-    ],
-  },
-  {
-    title: 'Booking & scheduling',
-    fields: [
-      { id: 'takesAppointments', label: 'Do you take appointments?', type: 'radio', options: ['Yes', 'No'] },
-      { id: 'bookingSystem', label: 'If yes, what system? (Calendly, Square, phone only…)', type: 'text', placeholder: 'Calendly' },
-      { id: 'bookingMode', label: 'Should we book directly, or just collect info for staff to follow up?', type: 'radio', options: ['Book directly', 'Collect info only'] },
-      { id: 'apptDuration', label: 'Typical appointment length / buffer rules', type: 'text', placeholder: '1 hr, 15 min buffer' },
-    ],
-  },
-  {
-    title: 'Lead capture',
-    fields: [
-      { id: 'leadInfo', label: 'What info should we collect from callers?', type: 'text', placeholder: 'Name, phone, reason for call, address' },
-      { id: 'leadDestination', label: 'Where should leads go?', type: 'text', placeholder: 'Text to owner + email + Google Sheet' },
-      { id: 'urgency', label: 'How should we flag emergencies vs routine calls?', type: 'textarea', placeholder: 'Water leak = call me immediately; everything else = daily summary' },
-    ],
-  },
-  {
-    title: 'Escalation',
-    fields: [
-      { id: 'escalation', label: 'When should we hand off to a live person immediately?', type: 'textarea', placeholder: 'Anyone mentioning “emergency” or “no heat”' },
-      { id: 'notifyWho', label: 'Who gets notified, and how fast?', type: 'text', placeholder: 'Text Mike within 2 minutes' },
-    ],
-  },
-  {
-    title: 'Sample messages & scenarios',
-    fields: [
-      { id: 'exampleMessages', label: 'Example messages you’d like your customers to get', type: 'textarea', placeholder: 'Sorry we missed your call! We’ll be right with you — what do you need help with?' },
-      { id: 'scenarios', label: 'Roleplay 2–3 real calls in your own words — a great lead, a tire-kicker, an angry customer — and how you’d ideally respond.', type: 'textarea', placeholder: 'Great lead: “Hi, my AC died”… I’d say…' },
+      { id: 'tone', label: 'What tone should your text-backs use?', type: 'radio', options: ['Friendly & casual', 'Professional & direct'] },
+      { id: 'hours', label: 'Hours of operation', type: 'text', placeholder: 'Mon–Fri 8am–6pm, closed weekends' },
+      { id: 'emergencyNotify', label: 'What counts as an emergency, and who should we notify?', type: 'textarea', placeholder: 'Anyone saying “no heat” or “leak” → text Mike within 2 min' },
+      { id: 'leadInfo', label: 'What should we collect from callers?', type: 'chips', options: ['Name', 'Phone', 'Reason for call', 'Address'] },
+      { id: 'leadDestination', label: 'Where should leads go?', type: 'chips', options: ['Text me', 'Email', 'Google Sheet', 'CRM'] },
+      { id: 'exampleMessages', label: 'An example message you’d like customers to get', type: 'textarea', placeholder: 'Sorry we missed your call! We’ll be right with you — what do you need?' },
     ],
   },
 ];

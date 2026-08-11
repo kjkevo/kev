@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ONBOARDING_SECTIONS } from "@/app/lib/onboardingSchema";
+import { ONBOARDING_SECTIONS, type OnboardingField } from "@/app/lib/onboardingSchema";
 
 // Public trial status page reached from the welcome email (/welcome?t=<token>).
 // Shows what's happening in plain language and lets them cancel — no login.
@@ -37,6 +37,7 @@ export default function WelcomePage() {
   const [intakeSubmitted, setIntakeSubmitted] = React.useState(false);
   const [intakeBusy, setIntakeBusy] = React.useState(false);
   const [editingIntake, setEditingIntake] = React.useState(false);
+  const [step, setStep] = React.useState(1); // 1 = service, 2 = basics, 3 = optional polish
 
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -76,9 +77,22 @@ export default function WelcomePage() {
     }
   }
 
+  // Chip fields store their picks as a comma-joined string in `details`.
+  function chipSelected(fieldId: string, option: string) {
+    return (details[fieldId] || "").split(", ").filter(Boolean).includes(option);
+  }
+  function toggleChip(fieldId: string, option: string) {
+    setDetails((d) => {
+      const cur = (d[fieldId] || "").split(", ").filter(Boolean);
+      const next = cur.includes(option) ? cur.filter((x) => x !== option) : [...cur, option];
+      return { ...d, [fieldId]: next.join(", ") };
+    });
+  }
+
   async function submitIntake() {
     if (!token) return;
-    if (!service) { alert("Please choose Voice, Text, or Both."); return; }
+    if (!service) { alert("Please choose Text, Voice, or Both."); setStep(1); return; }
+    if (!(details["industry"] || "").trim()) { alert("Please tell us your industry."); setStep(2); return; }
     setIntakeBusy(true);
     try {
       const r = await fetch("/api/onboarding/intake", {
@@ -242,7 +256,8 @@ export default function WelcomePage() {
     return renderSetup();
   }
 
-  // The setup form: how it works → questionnaire → pricing.
+  // The setup form — a short 3-step wizard. Step 1 (service) and step 2
+  // (business basics) are required; step 3 (polish) is optional and skippable.
   function renderSetup() {
     const services: { key: Service; label: string; hint: string }[] = [
       { key: "text", label: "💬 Text", hint: "Auto text-back on missed calls" },
@@ -251,107 +266,155 @@ export default function WelcomePage() {
     ];
     const showForm = !intakeSubmitted || editingIntake;
 
+    // Already submitted → confirmation + optional pay-now.
+    if (!showForm) {
+      return (
+        <div style={s.setupBox}>
+          <div style={s.intakeDone}>
+            <div style={{ fontWeight: 700, color: "#8FE3B0", marginBottom: 6 }}>✓ Answers sent — we&apos;re on it!</div>
+            <div style={s.intakeSummary}>
+              <strong>Service:</strong>{" "}
+              {service === "both" ? "Voice + Text" : service === "voice" ? "Voice" : "Text"}
+            </div>
+            <div style={s.intakeSummary}>
+              No card needed right now. We&apos;re building your custom setup and will email you to
+              confirm it looks good. Once you approve, we&apos;ll start your 14-day free trial.
+            </div>
+            <button style={s.editLink} onClick={() => { setEditingIntake(true); setStep(1); }}>Edit my answers</button>
+          </div>
+          {pricingBox}
+          {info?.billingEnabled && (
+            <>
+              <button style={s.payBtn} onClick={startCheckout} disabled={billingBusy}>
+                {billingBusy ? "Loading…" : `Add payment — ${service === "both" ? "$100" : "$59.99"}/mo`}
+              </button>
+              <p style={s.payNote}>Ready to go live now, or keeping your service after the trial? Add your card here — cancel anytime.</p>
+            </>
+          )}
+        </div>
+      );
+    }
+
+    const basics = ONBOARDING_SECTIONS[0];
+    const polish = ONBOARDING_SECTIONS[1];
+    const industryFilled = Boolean((details["industry"] || "").trim());
+    const steps = ["Service", basics.stepLabel, polish.stepLabel];
+
     return (
       <div style={s.setupBox}>
-        <div style={s.howHead}>How it works</div>
-        <ol style={s.howList}>
-          <li>Answer a few questions about your business.</li>
-          <li>Send it to us.</li>
-          <li>Start your service.</li>
-        </ol>
+        {/* Payoff up front */}
+        <div style={s.trialBanner}>🎁 14-day free trial · <strong>No card needed</strong> · Cancel anytime</div>
 
-        {showForm ? (
+        {/* Progress bar */}
+        <div style={s.progressWrap}>
+          {steps.map((label, i) => {
+            const n = i + 1;
+            const state = n < step ? "done" : n === step ? "on" : "todo";
+            return (
+              <div key={label} style={s.progressItem}>
+                <div style={{ ...s.progressDot, ...(state === "on" ? s.progressDotOn : state === "done" ? s.progressDotDone : {}) }}>
+                  {state === "done" ? "✓" : n}
+                </div>
+                <span style={{ ...s.progressLabel, ...(state === "on" ? s.progressLabelOn : {}) }}>{label}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        {step === 1 && (
           <>
             <label style={s.fieldLabel}>Which service do you want? <span style={s.req}>*required</span></label>
             <div style={s.svcRow}>
               {services.map((o) => (
-                <button
-                  key={o.key}
-                  onClick={() => setService(o.key)}
-                  style={{ ...s.svcBtn, ...(service === o.key ? s.svcBtnOn : {}) }}
-                >
+                <button key={o.key} onClick={() => setService(o.key)}
+                  style={{ ...s.svcBtn, ...(service === o.key ? s.svcBtnOn : {}) }}>
                   <span style={s.svcLabel}>{o.label}</span>
                   <span style={s.svcHint}>{o.hint}</span>
                 </button>
               ))}
             </div>
+            <div style={s.navRow}>
+              <span />
+              <button style={{ ...s.nextBtn, ...(service ? {} : s.nextBtnOff) }} disabled={!service} onClick={() => setStep(2)}>
+                Continue →
+              </button>
+            </div>
+          </>
+        )}
 
+        {step === 2 && (
+          <>
+            <div style={s.sectionTitle}>{basics.title}</div>
+            {basics.fields.map((f) => renderField(f))}
+            <div style={s.navRow}>
+              <button style={s.backBtn} onClick={() => setStep(1)}>← Back</button>
+              <button style={{ ...s.nextBtn, ...(industryFilled ? {} : s.nextBtnOff) }} disabled={!industryFilled} onClick={() => setStep(3)}>
+                Continue →
+              </button>
+            </div>
+          </>
+        )}
+
+        {step === 3 && (
+          <>
+            <div style={s.sectionTitle}>{polish.title}</div>
             <p style={s.optionalNote}>
-              The questions below are optional — but the more you share, the better we can tailor your
-              text-backs. You can always reply to our email with more later.
+              All optional — the more you share, the better we tailor your text-backs. Skip and finish
+              later straight from your email if you&apos;d rather.
             </p>
-
-            {ONBOARDING_SECTIONS.map((section) => (
-              <div key={section.title} style={s.formSection}>
-                <div style={s.sectionTitle}>{section.title}</div>
-                {section.fields.map((f) => (
-                  <div key={f.id} style={{ marginBottom: 12 }}>
-                    <label style={s.fieldLabel}>{f.label}</label>
-                    {f.type === "textarea" ? (
-                      <textarea
-                        value={details[f.id] || ""}
-                        onChange={(e) => setDetails((d) => ({ ...d, [f.id]: e.target.value }))}
-                        placeholder={f.placeholder}
-                        style={s.textarea}
-                        rows={3}
-                      />
-                    ) : f.type === "radio" ? (
-                      <div style={s.radioRow}>
-                        {f.options!.map((opt) => (
-                          <button
-                            key={opt}
-                            type="button"
-                            onClick={() => setDetails((d) => ({ ...d, [f.id]: opt }))}
-                            style={{ ...s.radioBtn, ...(details[f.id] === opt ? s.radioBtnOn : {}) }}
-                          >
-                            {opt}
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <input
-                        type="text"
-                        value={details[f.id] || ""}
-                        onChange={(e) => setDetails((d) => ({ ...d, [f.id]: e.target.value }))}
-                        placeholder={f.placeholder}
-                        style={s.input}
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-            ))}
-
-            {pricingBox}
-
-            <button style={s.payBtn} onClick={submitIntake} disabled={intakeBusy}>
-              {intakeBusy ? "Sending…" : intakeSubmitted ? "Update my answers" : "Send my answers"}
+            {polish.fields.map((f) => renderField(f))}
+            <div style={s.navRow}>
+              <button style={s.backBtn} onClick={() => setStep(2)}>← Back</button>
+              <button style={s.nextBtn} onClick={submitIntake} disabled={intakeBusy}>
+                {intakeBusy ? "Sending…" : intakeSubmitted ? "Update my answers" : "Finish setup"}
+              </button>
+            </div>
+            <button style={s.skipLink} onClick={submitIntake} disabled={intakeBusy}>
+              Skip these — finish later
             </button>
           </>
+        )}
+      </div>
+    );
+  }
+
+  // Renders one schema field by its type (text / textarea / radio / chips).
+  function renderField(f: OnboardingField) {
+    return (
+      <div key={f.id} style={{ marginBottom: 14 }}>
+        <label style={s.fieldLabel}>
+          {f.label} {f.required ? <span style={s.req}>*required</span> : null}
+        </label>
+        {f.type === "textarea" ? (
+          <textarea
+            value={details[f.id] || ""}
+            onChange={(e) => setDetails((d) => ({ ...d, [f.id]: e.target.value }))}
+            placeholder={f.placeholder}
+            style={s.textarea}
+            rows={3}
+          />
+        ) : f.type === "radio" ? (
+          <div style={s.radioRow}>
+            {f.options!.map((opt) => (
+              <button key={opt} type="button" onClick={() => setDetails((d) => ({ ...d, [f.id]: opt }))}
+                style={{ ...s.radioBtn, ...(details[f.id] === opt ? s.radioBtnOn : {}) }}>
+                {opt}
+              </button>
+            ))}
+          </div>
+        ) : f.type === "chips" ? (
+          <div style={s.radioRow}>
+            {f.options!.map((opt) => (
+              <button key={opt} type="button" onClick={() => toggleChip(f.id, opt)}
+                style={{ ...s.chip, ...(chipSelected(f.id, opt) ? s.chipOn : {}) }}>
+                {chipSelected(f.id, opt) ? "✓ " : ""}{opt}
+              </button>
+            ))}
+          </div>
         ) : (
-          <>
-            <div style={s.intakeDone}>
-              <div style={{ fontWeight: 700, color: "#8FE3B0", marginBottom: 6 }}>✓ Answers sent — we&apos;re on it!</div>
-              <div style={s.intakeSummary}>
-                <strong>Service:</strong>{" "}
-                {service === "both" ? "Voice + Text" : service === "voice" ? "Voice" : "Text"}
-              </div>
-              <div style={s.intakeSummary}>
-                No card needed right now. We&apos;re building your custom setup and will email you to
-                confirm it looks good. Once you approve, we&apos;ll start your 14-day free trial.
-              </div>
-              <button style={s.editLink} onClick={() => setEditingIntake(true)}>Edit my answers</button>
-            </div>
-            {pricingBox}
-            {info?.billingEnabled && (
-              <>
-                <button style={s.payBtn} onClick={startCheckout} disabled={billingBusy}>
-                  {billingBusy ? "Loading…" : `Add payment — ${service === "both" ? "$100" : "$59.99"}/mo`}
-                </button>
-                <p style={s.payNote}>Ready to go live now, or keeping your service after the trial? Add your card here — cancel anytime.</p>
-              </>
-            )}
-          </>
+          <input type="text" value={details[f.id] || ""}
+            onChange={(e) => setDetails((d) => ({ ...d, [f.id]: e.target.value }))}
+            placeholder={f.placeholder} style={s.input} />
         )}
       </div>
     );
@@ -403,6 +466,21 @@ const s: Record<string, React.CSSProperties> = {
   now: { color: "#3B82F6", fontStyle: "normal", fontSize: 13, fontWeight: 700 },
   reassure: { background: "#0F1A2E", border: "1px solid #24324F", borderRadius: 10, padding: "12px 14px", fontSize: 14, lineHeight: 1.55, color: "#B8C0D0", margin: "0 0 6px" },
   setupBox: { marginTop: 20, background: "#0B1A2E", border: "1px solid #24406B", borderRadius: 12, padding: "18px" },
+  trialBanner: { background: "#0A1F16", border: "1px solid #1F5A3E", borderRadius: 8, padding: "8px 12px", fontSize: 13, color: "#B8F0CF", textAlign: "center", marginBottom: 16 },
+  progressWrap: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, marginBottom: 18 },
+  progressItem: { display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 },
+  progressDot: { width: 24, height: 24, borderRadius: "50%", background: "#0A0F1E", border: "1px solid #2A3854", color: "#7A8397", fontSize: 12, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  progressDotOn: { background: "#12264A", border: "1px solid #3B82F6", color: "#fff", boxShadow: "0 0 0 1px #3B82F6" },
+  progressDotDone: { background: "#0F2A1E", border: "1px solid #1F5A3E", color: "#8FE3B0" },
+  progressLabel: { fontSize: 12, color: "#7A8397", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
+  progressLabelOn: { color: "#E5E9F0" },
+  navRow: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginTop: 18 },
+  backBtn: { background: "transparent", color: "#98A2B6", border: "1px solid #2A3854", borderRadius: 10, padding: "11px 16px", fontSize: 14, fontWeight: 600, cursor: "pointer" },
+  nextBtn: { background: "#3B82F6", color: "#fff", border: "none", borderRadius: 10, padding: "11px 20px", fontSize: 14, fontWeight: 700, cursor: "pointer" },
+  nextBtnOff: { background: "#1B2740", color: "#5A6478", cursor: "not-allowed" },
+  chip: { background: "#0A0F1E", border: "1px solid #22304C", borderRadius: 20, padding: "8px 14px", cursor: "pointer", color: "#C7CEDB", fontSize: 13.5 },
+  chipOn: { border: "1px solid #34D399", background: "#0F2A1E", color: "#B8F0CF" },
+  skipLink: { display: "block", width: "100%", background: "transparent", color: "#7A8397", border: "none", fontSize: 13, cursor: "pointer", textDecoration: "underline", padding: 0, marginTop: 14, textAlign: "center" },
   howHead: { fontSize: 15.5, fontWeight: 700, marginBottom: 8 },
   howList: { margin: "0 0 18px", paddingLeft: 20, fontSize: 14, lineHeight: 1.6, color: "#C7CEDB" },
   pricingBox: { margin: "16px 0", background: "#0A1F16", border: "1px solid #1F5A3E", borderRadius: 10, padding: "14px 16px" },
