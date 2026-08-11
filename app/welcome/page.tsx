@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { ONBOARDING_SECTIONS, type OnboardingField } from "@/app/lib/onboardingSchema";
+import { VOICE_OPTIONS, DEFAULT_VOICE } from "@/app/lib/voices";
 
 // Public trial status page reached from the welcome email (/welcome?t=<token>).
 // Shows what's happening in plain language and lets them cancel — no login.
@@ -38,6 +39,7 @@ export default function WelcomePage() {
   const [intakeBusy, setIntakeBusy] = React.useState(false);
   const [editingIntake, setEditingIntake] = React.useState(false);
   const [step, setStep] = React.useState(1); // 1 = service, 2 = basics, 3 = optional polish
+  const [voiceBusy, setVoiceBusy] = React.useState(false);
 
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -87,6 +89,29 @@ export default function WelcomePage() {
       const next = cur.includes(option) ? cur.filter((x) => x !== option) : [...cur, option];
       return { ...d, [fieldId]: next.join(", ") };
     });
+  }
+
+  async function testVoice() {
+    if (!token) return;
+    const voice = details["voiceName"] || DEFAULT_VOICE;
+    setVoiceBusy(true);
+    try {
+      const r = await fetch("/api/onboarding/voice-test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, voice }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (r.ok) {
+        alert(j.mock
+          ? "Test calls aren't available in this environment yet."
+          : "Calling your number now — pick up to hear this voice!");
+      } else {
+        alert(j.error || "Couldn't place the test call. Please try again.");
+      }
+    } finally {
+      setVoiceBusy(false);
+    }
   }
 
   async function submitIntake() {
@@ -154,7 +179,7 @@ export default function WelcomePage() {
   // initializes and throws a TDZ ReferenceError when accessed.
   const pricingBox = (
     <div style={s.pricingBox}>
-      <div style={s.pricingTitle}>🎁 14-day free trial</div>
+      <div style={s.pricingTitle}>14-day free trial</div>
       <ul style={s.pricingList}>
         <li><strong>No card needed</strong> to start</li>
         <li><strong>$59.99/mo</strong> for Voice or Text</li>
@@ -189,7 +214,7 @@ export default function WelcomePage() {
         ) : info.status === "onboarded" ? (
           <>
             <div style={s.kicker}>◆ MissedCall · You&apos;re live</div>
-            <h1 style={s.h1}>{biz} is ready to go 🎉</h1>
+            <h1 style={s.h1}>{biz} is ready to go</h1>
             {info.phoneNumber && (
               <div style={s.numberBox}>
                 <div style={s.numberLabel}>Your dedicated number</div>
@@ -208,18 +233,23 @@ export default function WelcomePage() {
         ) : (
           <>
             <div style={s.kicker}>◆ MissedCall</div>
-            <h1 style={s.h1}>We&apos;re setting up {biz} ✨</h1>
+            <h1 style={s.h1}>We&apos;re setting up {biz}</h1>
             <p style={s.sub}>Everything&apos;s on track — here&apos;s exactly where things stand, so
               nothing catches you off guard.</p>
 
             <ol style={s.timeline}>
               <li style={{ ...s.tItem, ...s.tDone }}><span style={s.tMark}>✓</span> You signed up — done</li>
               <li style={{ ...s.tItem, ...s.tActive }}><span style={s.tMarkActive}>●</span> We&apos;re building your number &amp; text-back <em style={s.now}>(now)</em></li>
-              <li style={s.tItem}><span style={s.tMarkPending}>○</span> We email you your number + the 2-minute forwarding step</li>
+              <li style={s.tItem}>
+                <span style={s.tMarkPending}>○</span>
+                <span>Confirmation — we email you your number + the 2-minute forwarding step
+                  <span style={s.timeNote}>(24–72 hours)</span>
+                </span>
+              </li>
               <li style={s.tItem}><span style={s.tMarkPending}>○</span> You&apos;re live — missed calls turn into texts</li>
             </ol>
 
-            <p style={s.reassure}>💡 Finish your quick setup below so we can build your text-back exactly how you want it.</p>
+            <p style={s.reassure}>Finish your quick setup below so we can build your text-back exactly how you want it.</p>
             {renderConversion()}
             {renderCancel()}
           </>
@@ -260,9 +290,9 @@ export default function WelcomePage() {
   // (business basics) are required; step 3 (polish) is optional and skippable.
   function renderSetup() {
     const services: { key: Service; label: string; hint: string }[] = [
-      { key: "text", label: "💬 Text", hint: "Auto text-back on missed calls" },
-      { key: "voice", label: "📞 Voice", hint: "Voicemail / voice menu" },
-      { key: "both", label: "✨ Both", hint: "Text-back + voice" },
+      { key: "text", label: "Text", hint: "Auto text-back on missed calls" },
+      { key: "voice", label: "Voice", hint: "Voicemail / voice menu" },
+      { key: "both", label: "Both", hint: "Text-back + voice" },
     ];
     const showForm = !intakeSubmitted || editingIntake;
 
@@ -303,7 +333,7 @@ export default function WelcomePage() {
     return (
       <div style={s.setupBox}>
         {/* Payoff up front */}
-        <div style={s.trialBanner}>🎁 14-day free trial · <strong>No card needed</strong> · Cancel anytime</div>
+        <div style={s.trialBanner}>14-day free trial · <strong>No card needed</strong> · Cancel anytime</div>
 
         {/* Progress bar */}
         <div style={s.progressWrap}>
@@ -358,10 +388,28 @@ export default function WelcomePage() {
         {step === 3 && (
           <>
             <div style={s.sectionTitle}>{polish.title}</div>
-            <p style={s.optionalNote}>
-              All optional — the more you share, the better we tailor your text-backs. Skip and finish
-              later straight from your email if you&apos;d rather.
-            </p>
+            <p style={s.optionalNote}>The more you share, the better.</p>
+            {(service === "voice" || service === "both") && (
+              <div style={{ marginBottom: 16 }}>
+                <label style={s.fieldLabel}>Pick your call voice</label>
+                <div style={s.radioRow}>
+                  {VOICE_OPTIONS.map((v) => (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() => setDetails((d) => ({ ...d, voiceName: v.id }))}
+                      style={{ ...s.radioBtn, ...(((details["voiceName"] || DEFAULT_VOICE) === v.id) ? s.radioBtnOn : {}) }}
+                    >
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
+                <button style={s.testVoiceBtn} onClick={testVoice} disabled={voiceBusy}>
+                  {voiceBusy ? "Calling…" : "Call me a sample"}
+                </button>
+                <p style={s.payNote}>We&apos;ll call your number and read a short line in this voice so you can hear it live.</p>
+              </div>
+            )}
             {polish.fields.map((f) => renderField(f))}
             <div style={s.navRow}>
               <button style={s.backBtn} onClick={() => setStep(2)}>← Back</button>
@@ -456,8 +504,9 @@ const s: Record<string, React.CSSProperties> = {
   steps: { listStyle: "none", padding: 0, margin: "0 0 8px", display: "flex", flexDirection: "column", gap: 10 },
   step: { background: "#0A0F1E", border: "1px solid #1C2740", borderRadius: 10, padding: "12px 14px", fontSize: 14, lineHeight: 1.5, color: "#C7CEDB" },
   code: { background: "#1B2740", color: "#9FC2FF", padding: "1px 6px", borderRadius: 5, fontSize: 13 },
-  timeline: { listStyle: "none", padding: 0, margin: "0 0 18px", display: "flex", flexDirection: "column", gap: 12 },
-  tItem: { display: "flex", alignItems: "center", gap: 10, fontSize: 15, color: "#7A8397", lineHeight: 1.4 },
+  timeline: { listStyle: "none", padding: 0, margin: "0 0 18px", display: "flex", flexDirection: "column", gap: 14 },
+  tItem: { display: "flex", alignItems: "flex-start", gap: 10, fontSize: 16.5, color: "#7A8397", lineHeight: 1.45 },
+  timeNote: { display: "block", fontSize: 13.5, color: "#7A8397", fontStyle: "normal", marginTop: 2 },
   tDone: { color: "#8FE3B0" },
   tActive: { color: "#E5E9F0", fontWeight: 600 },
   tMark: { color: "#34D399", fontWeight: 800, width: 18, textAlign: "center" },
@@ -481,6 +530,7 @@ const s: Record<string, React.CSSProperties> = {
   chip: { background: "#0A0F1E", border: "1px solid #22304C", borderRadius: 20, padding: "8px 14px", cursor: "pointer", color: "#C7CEDB", fontSize: 13.5 },
   chipOn: { border: "1px solid #34D399", background: "#0F2A1E", color: "#B8F0CF" },
   skipLink: { display: "block", width: "100%", background: "transparent", color: "#7A8397", border: "none", fontSize: 13, cursor: "pointer", textDecoration: "underline", padding: 0, marginTop: 14, textAlign: "center" },
+  testVoiceBtn: { marginTop: 10, background: "#12264A", color: "#9FC2FF", border: "1px solid #3B82F6", borderRadius: 10, padding: "10px 16px", fontSize: 14, fontWeight: 700, cursor: "pointer", width: "100%" },
   howHead: { fontSize: 15.5, fontWeight: 700, marginBottom: 8 },
   howList: { margin: "0 0 18px", paddingLeft: 20, fontSize: 14, lineHeight: 1.6, color: "#C7CEDB" },
   pricingBox: { margin: "16px 0", background: "#0A1F16", border: "1px solid #1F5A3E", borderRadius: 10, padding: "14px 16px" },

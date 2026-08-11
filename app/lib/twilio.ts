@@ -39,6 +39,31 @@ export const sendSMS = async (toPhone: string, message: string, fromPhone?: stri
   }
 };
 
+// Place a short outbound call that speaks a sample line in the given Twilio
+// voice, so a prospect can hear exactly what their callers will hear before
+// choosing. In mock mode (no real creds) we no-op so the flow stays testable.
+export const placeSampleCall = async (
+  toPhone: string,
+  voice: string,
+): Promise<{ success: boolean; sid?: string; mock?: boolean; error?: string }> => {
+  const line =
+    'Hi! This is a sample of the voice that will greet your callers when you miss a call. ' +
+    'If you like it, choose it and finish your setup. Thanks for trying Slimpse!';
+  const twiml = `<Response><Say voice="${voice}" language="en-US">${line}</Say></Response>`;
+
+  if (!hasValidCredentials) {
+    console.log(`[MOCK CALL] Would call ${toPhone} with voice ${voice}`);
+    return { success: true, mock: true };
+  }
+  try {
+    const result = await client!.calls.create({ to: toPhone, from: twilioPhone as string, twiml });
+    return { success: true, sid: result.sid };
+  } catch (error) {
+    console.error('Error placing sample call:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+};
+
 // One-click provisioning: find and buy a US local number, wired to this app's
 // webhooks (voice, call-status, inbound SMS). `areaCode` is a preference — if no
 // number is available there, we fall back to any US local number. In mock mode
