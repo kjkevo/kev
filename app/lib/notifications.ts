@@ -232,9 +232,9 @@ export const sendSignupWelcomeEmail = async (
 
           <h3 style="margin:20px 0 6px;font-size:16px;">How it works</h3>
           <ol style="margin:0 0 16px;padding-left:20px;">
-            <li><strong>Answer a few questions</strong> about your business — only the service type is required, the rest just makes your text-backs better.</li>
-            <li><strong>Send it to us</strong> — we build your custom text-back.</li>
-            <li><strong>Start your service</strong> when you're ready.</li>
+            <li><strong>Answer a few questions</strong> about your business.</li>
+            <li><strong>Send it to us</strong>.</li>
+            <li><strong>Start your service</strong>.</li>
           </ol>
 
           <div style="margin:24px 0;">
