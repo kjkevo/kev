@@ -135,6 +135,21 @@ export default function WelcomePage() {
 
   const biz = info?.businessName || "your business";
 
+  // Defined before `return` so the render helpers below (which run during the
+  // return's JSX evaluation) can read it — a `const` after `return` never
+  // initializes and throws a TDZ ReferenceError when accessed.
+  const pricingBox = (
+    <div style={s.pricingBox}>
+      <div style={s.pricingTitle}>🎁 14-day free trial</div>
+      <ul style={s.pricingList}>
+        <li><strong>No card needed</strong> to start</li>
+        <li><strong>$59.99/mo</strong> for Voice or Text</li>
+        <li><strong>$100/mo</strong> for both Voice + Text</li>
+        <li>Cancel anytime</li>
+      </ul>
+    </div>
+  );
+
   return (
     <main style={s.wrap}>
       <div style={s.card}>
@@ -227,18 +242,6 @@ export default function WelcomePage() {
     return renderSetup();
   }
 
-  const pricingBox = (
-    <div style={s.pricingBox}>
-      <div style={s.pricingTitle}>🎁 14-day free trial</div>
-      <ul style={s.pricingList}>
-        <li><strong>No card needed</strong> to start</li>
-        <li><strong>$59.99/mo</strong> for Voice or Text</li>
-        <li><strong>$100/mo</strong> for both Voice + Text</li>
-        <li>Cancel anytime</li>
-      </ul>
-    </div>
-  );
-
   // The setup form: how it works → questionnaire → pricing.
   function renderSetup() {
     const services: { key: Service; label: string; hint: string }[] = [
@@ -252,9 +255,9 @@ export default function WelcomePage() {
       <div style={s.setupBox}>
         <div style={s.howHead}>How it works</div>
         <ol style={s.howList}>
-          <li>Answer a few questions about your business — only the service type is required.</li>
-          <li>Send it to us — we build your custom text-back.</li>
-          <li>Start your service when you&apos;re ready.</li>
+          <li>Answer a few questions about your business.</li>
+          <li>Send it to us.</li>
+          <li>Start your service.</li>
         </ol>
 
         {showForm ? (
