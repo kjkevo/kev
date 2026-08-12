@@ -352,18 +352,25 @@ export default function WelcomePage() {
         {/* Payoff up front */}
         <div style={s.trialBanner}>14-day free trial · <strong>No card needed</strong> · Cancel anytime</div>
 
-        {/* Progress bar */}
+        {/* Progress bar — tap a completed step to jump back and change it */}
         <div style={s.progressWrap}>
           {steps.map((label, i) => {
             const n = i + 1;
             const state = n < step ? "done" : n === step ? "on" : "todo";
+            const canGoBack = n < step;
             return (
-              <div key={label} style={s.progressItem}>
+              <button
+                key={label}
+                type="button"
+                onClick={() => canGoBack && setStep(n)}
+                disabled={!canGoBack}
+                style={{ ...s.progressItem, background: "transparent", border: "none", padding: 0, cursor: canGoBack ? "pointer" : "default" }}
+              >
                 <div style={{ ...s.progressDot, ...(state === "on" ? s.progressDotOn : state === "done" ? s.progressDotDone : {}) }}>
                   {state === "done" ? "✓" : n}
                 </div>
                 <span style={{ ...s.progressLabel, ...(state === "on" ? s.progressLabelOn : {}) }}>{label}</span>
-              </div>
+              </button>
             );
           })}
         </div>
