@@ -40,6 +40,11 @@ export default function WelcomePage() {
   const [editingIntake, setEditingIntake] = React.useState(false);
   const [step, setStep] = React.useState(1); // 1 = service, 2 = basics, 3 = optional polish
   const [voiceBusy, setVoiceBusy] = React.useState(false);
+  const [playingVoice, setPlayingVoice] = React.useState<string | null>(null);
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+
+  // Stop any preview audio when leaving the page.
+  React.useEffect(() => () => { audioRef.current?.pause(); }, []);
 
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -89,6 +94,18 @@ export default function WelcomePage() {
       const next = cur.includes(option) ? cur.filter((x) => x !== option) : [...cur, option];
       return { ...d, [fieldId]: next.join(", ") };
     });
+  }
+
+  // Play a short in-browser demo clip of the given voice; toggles off if it's
+  // already the one playing. Falls back gracefully if the clip isn't there yet.
+  function previewVoice(v: (typeof VOICE_OPTIONS)[number]) {
+    audioRef.current?.pause();
+    if (playingVoice === v.id) { setPlayingVoice(null); return; }
+    const audio = new Audio(v.file);
+    audioRef.current = audio;
+    audio.onended = () => setPlayingVoice(null);
+    audio.onerror = () => { setPlayingVoice(null); alert("This preview isn't available yet — try \"Call me a sample\" to hear it live."); };
+    audio.play().then(() => setPlayingVoice(v.id)).catch(() => setPlayingVoice(null));
   }
 
   async function testVoice() {
@@ -392,22 +409,26 @@ export default function WelcomePage() {
             {(service === "voice" || service === "both") && (
               <div style={{ marginBottom: 16 }}>
                 <label style={s.fieldLabel}>Pick your call voice</label>
-                <div style={s.radioRow}>
-                  {VOICE_OPTIONS.map((v) => (
-                    <button
-                      key={v.id}
-                      type="button"
-                      onClick={() => setDetails((d) => ({ ...d, voiceName: v.id }))}
-                      style={{ ...s.radioBtn, ...(((details["voiceName"] || DEFAULT_VOICE) === v.id) ? s.radioBtnOn : {}) }}
-                    >
-                      {v.label}
-                    </button>
-                  ))}
+                <p style={s.optionalNote}>Tap Preview to hear each one, then pick your favorite.</p>
+                <div style={s.voiceList}>
+                  {VOICE_OPTIONS.map((v) => {
+                    const selected = (details["voiceName"] || DEFAULT_VOICE) === v.id;
+                    return (
+                      <div key={v.id} style={{ ...s.voiceRow, ...(selected ? s.voiceRowOn : {}) }}>
+                        <button type="button" style={s.voicePlay} onClick={() => previewVoice(v)}>
+                          {playingVoice === v.id ? "Stop" : "Preview"}
+                        </button>
+                        <button type="button" style={s.voiceSelect} onClick={() => setDetails((d) => ({ ...d, voiceName: v.id }))}>
+                          {v.label}
+                        </button>
+                        {selected && <span style={s.voiceChosen}>Selected</span>}
+                      </div>
+                    );
+                  })}
                 </div>
-                <button style={s.testVoiceBtn} onClick={testVoice} disabled={voiceBusy}>
-                  {voiceBusy ? "Calling…" : "Call me a sample"}
+                <button style={s.callLink} onClick={testVoice} disabled={voiceBusy}>
+                  {voiceBusy ? "Calling…" : "Prefer a live call? Call me a sample"}
                 </button>
-                <p style={s.payNote}>We&apos;ll call your number and read a short line in this voice so you can hear it live.</p>
               </div>
             )}
             {polish.fields.map((f) => renderField(f))}
@@ -530,7 +551,13 @@ const s: Record<string, React.CSSProperties> = {
   chip: { background: "#0A0F1E", border: "1px solid #22304C", borderRadius: 20, padding: "8px 14px", cursor: "pointer", color: "#C7CEDB", fontSize: 13.5 },
   chipOn: { border: "1px solid #34D399", background: "#0F2A1E", color: "#B8F0CF" },
   skipLink: { display: "block", width: "100%", background: "transparent", color: "#7A8397", border: "none", fontSize: 13, cursor: "pointer", textDecoration: "underline", padding: 0, marginTop: 14, textAlign: "center" },
-  testVoiceBtn: { marginTop: 10, background: "#12264A", color: "#9FC2FF", border: "1px solid #3B82F6", borderRadius: 10, padding: "10px 16px", fontSize: 14, fontWeight: 700, cursor: "pointer", width: "100%" },
+  voiceList: { display: "flex", flexDirection: "column", gap: 8 },
+  voiceRow: { display: "flex", alignItems: "center", gap: 10, background: "#0A0F1E", border: "1px solid #22304C", borderRadius: 10, padding: "8px 10px" },
+  voiceRowOn: { border: "1px solid #3B82F6", background: "#12264A", boxShadow: "0 0 0 1px #3B82F6" },
+  voicePlay: { background: "#1B2740", color: "#9FC2FF", border: "1px solid #2A3854", borderRadius: 8, padding: "7px 12px", fontSize: 13, fontWeight: 700, cursor: "pointer", minWidth: 78 },
+  voiceSelect: { flex: 1, textAlign: "left", background: "transparent", color: "#E5E9F0", border: "none", fontSize: 14, fontWeight: 600, cursor: "pointer", padding: 0 },
+  voiceChosen: { fontSize: 11.5, fontWeight: 700, color: "#8FE3B0", flexShrink: 0 },
+  callLink: { display: "block", width: "100%", background: "transparent", color: "#8FB8FF", border: "none", fontSize: 13, cursor: "pointer", textDecoration: "underline", padding: 0, marginTop: 12, textAlign: "center" },
   howHead: { fontSize: 15.5, fontWeight: 700, marginBottom: 8 },
   howList: { margin: "0 0 18px", paddingLeft: 20, fontSize: 14, lineHeight: 1.6, color: "#C7CEDB" },
   pricingBox: { margin: "16px 0", background: "#0A1F16", border: "1px solid #1F5A3E", borderRadius: 10, padding: "14px 16px" },
