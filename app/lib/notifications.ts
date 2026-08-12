@@ -243,16 +243,6 @@ export const sendSignupWelcomeEmail = async (
               Open your setup form</a>
           </div>
 
-          <h3 style="margin:20px 0 6px;font-size:16px;">Simple pricing</h3>
-          <ul style="margin:0 0 16px;padding-left:20px;">
-            <li>Start with a <strong>14-day free trial</strong> — <strong>no card needed</strong> to begin</li>
-            <li><strong>$59.99/month</strong> for Voice or Text</li>
-            <li><strong>$100/month</strong> for both Voice + Text</li>
-            <li>Cancel anytime</li>
-          </ul>
-
-          <p style="margin:0 0 10px;font-size:14px;color:#555;">Not ready, or changed your mind? No
-            problem and no charge:</p>
           <div style="margin:0 0 18px;">
             <a href="${statusUrl}&cancel=1" style="display:inline-block;background:#fff;border:1px solid #d9534f;
               color:#d9534f;text-decoration:none;padding:11px 20px;border-radius:10px;font-weight:600;font-size:14px;">
