@@ -48,6 +48,7 @@ export const ONBOARDING_SECTIONS: OnboardingSection[] = [
     fields: [
       { id: 'businessPhone', label: 'Business phone number', type: 'text', placeholder: 'The number your customers call', channel: 'both' },
       { id: 'personalPhone', label: 'Your personal phone number', type: 'text', placeholder: 'Where we send you alerts', channel: 'both' },
+      { id: 'personalEmail', label: 'Your personal email', type: 'text', placeholder: 'you@gmail.com', channel: 'both' },
       { id: 'tone', label: 'What tone should your text backs use?', type: 'radio', options: ['Friendly and casual', 'Professional and direct'], channel: 'text' },
       { id: 'exampleMessages', label: 'An example message you would like customers to get', type: 'textarea', placeholder: 'Sorry we missed your call! We will be right with you. What do you need?', channel: 'text' },
       { id: 'hours', label: 'Hours of operation', type: 'text', placeholder: 'Mon to Fri 8am to 6pm, closed weekends', channel: 'both' },
