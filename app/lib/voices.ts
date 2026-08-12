@@ -13,12 +13,12 @@ export interface VoiceOption {
 }
 
 export const VOICE_OPTIONS: VoiceOption[] = [
-  { id: 'Polly.Joanna-Neural', label: 'Joanna — warm female', file: '/voices/joanna.mp3' },
-  { id: 'Polly.Matthew-Neural', label: 'Matthew — friendly male', file: '/voices/matthew.mp3' },
-  { id: 'Polly.Danielle-Neural', label: 'Danielle — bright female', file: '/voices/danielle.mp3' },
-  { id: 'Polly.Stephen-Neural', label: 'Stephen — confident male', file: '/voices/stephen.mp3' },
-  { id: 'Polly.Ruth-Neural', label: 'Ruth — calm female', file: '/voices/ruth.mp3' },
-  { id: 'Polly.Gregory-Neural', label: 'Gregory — deep male', file: '/voices/gregory.mp3' },
+  { id: 'Polly.Joanna-Neural', label: 'Joanna, warm female', file: '/voices/joanna.mp3' },
+  { id: 'Polly.Matthew-Neural', label: 'Matthew, friendly male', file: '/voices/matthew.mp3' },
+  { id: 'Polly.Danielle-Neural', label: 'Danielle, bright female', file: '/voices/danielle.mp3' },
+  { id: 'Polly.Stephen-Neural', label: 'Stephen, confident male', file: '/voices/stephen.mp3' },
+  { id: 'Polly.Ruth-Neural', label: 'Ruth, calm female', file: '/voices/ruth.mp3' },
+  { id: 'Polly.Gregory-Neural', label: 'Gregory, deep male', file: '/voices/gregory.mp3' },
 ];
 
 export const DEFAULT_VOICE = VOICE_OPTIONS[0].id;

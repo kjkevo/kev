@@ -154,24 +154,6 @@ export default function WelcomePage() {
     }
   }
 
-  async function startCheckout() {
-    if (!token) return;
-    setBillingBusy(true);
-    try {
-      // The price tier (single vs both) is derived server-side from their service.
-      const r = await fetch("/api/billing/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token }),
-      });
-      const j = await r.json().catch(() => ({}));
-      if (j.url) { window.location.href = j.url; return; }
-      alert(j.error || "Couldn't start checkout. Please try again.");
-    } finally {
-      setBillingBusy(false);
-    }
-  }
-
   async function openPortal() {
     if (!token) return;
     setBillingBusy(true);
@@ -196,11 +178,13 @@ export default function WelcomePage() {
   // initializes and throws a TDZ ReferenceError when accessed.
   const pricingBox = (
     <div style={s.pricingBox}>
-      <div style={s.pricingTitle}>14-day free trial</div>
+      <div style={s.pricingTitle}>14 day free trial</div>
       <ul style={s.pricingList}>
         <li><strong>No card needed</strong> to start</li>
-        <li><strong>$59.99/mo</strong> for Voice or Text</li>
-        <li><strong>$100/mo</strong> for both Voice + Text</li>
+        <li>
+          <strong>{service === "both" ? "$100/mo" : "$59.99/mo"}</strong>{" "}
+          for {service === "both" ? "Voice + Text" : service === "voice" ? "Voice" : "Text"}
+        </li>
         <li>Cancel anytime</li>
       </ul>
     </div>
@@ -224,7 +208,7 @@ export default function WelcomePage() {
             <h1 style={s.h1}>
               {info.status === "cancel_requested" ? "Cancellation received" : "Your trial is cancelled"}
             </h1>
-            <p style={s.sub}>No charges, nothing else to do — we&apos;ve stopped your setup for
+            <p style={s.sub}>No charges, nothing else to do. We&apos;ve stopped your setup for
               {" "}{biz}. Changed your mind? Reply to your welcome email and we&apos;ll turn it right
               back on.</p>
           </>
@@ -238,11 +222,11 @@ export default function WelcomePage() {
                 <div style={s.number}>{info.phoneNumber}</div>
               </div>
             )}
-            <p style={s.sub}>One 2-minute step and every missed call gets an instant text-back:</p>
+            <p style={s.sub}>One 2 minute step and every missed call gets an instant text back:</p>
             <ul style={s.steps}>
               <li style={s.step}><strong>Forward when unanswered:</strong> dial <code style={s.code}>*71</code> then your new number</li>
               <li style={s.step}><strong>When busy:</strong> <code style={s.code}>*90</code> · <strong>when unreachable:</strong> <code style={s.code}>*92</code></li>
-              <li style={s.step}>On a VoIP/office phone it&apos;s a settings toggle — reply to your email and we&apos;ll help.</li>
+              <li style={s.step}>On a VoIP or office phone it&apos;s a settings toggle. Reply to your email and we&apos;ll help.</li>
             </ul>
             {renderConversion()}
             {renderCancel()}
@@ -251,22 +235,22 @@ export default function WelcomePage() {
           <>
             <div style={s.kicker}>◆ MissedCall</div>
             <h1 style={s.h1}>We&apos;re setting up {biz}</h1>
-            <p style={s.sub}>Everything&apos;s on track — here&apos;s exactly where things stand, so
+            <p style={s.sub}>Everything&apos;s on track. Here&apos;s exactly where things stand, so
               nothing catches you off guard.</p>
 
             <ol style={s.timeline}>
-              <li style={{ ...s.tItem, ...s.tDone }}><span style={s.tMark}>✓</span> You signed up — done</li>
-              <li style={{ ...s.tItem, ...s.tActive }}><span style={s.tMarkActive}>●</span> We&apos;re building your number &amp; text-back <em style={s.now}>(now)</em></li>
+              <li style={{ ...s.tItem, ...s.tDone }}><span style={s.tMark}>✓</span> You signed up, done</li>
+              <li style={{ ...s.tItem, ...s.tActive }}><span style={s.tMarkActive}>●</span> We&apos;re building your number and text back <em style={s.now}>(now)</em></li>
               <li style={s.tItem}>
                 <span style={s.tMarkPending}>○</span>
-                <span>Confirmation — we email you your number + the 2-minute forwarding step
-                  <span style={s.timeNote}>(24–72 hours)</span>
+                <span>Confirmation, we email you your number plus the 2 minute forwarding step
+                  <span style={s.timeNote}>(24 to 72 hours)</span>
                 </span>
               </li>
-              <li style={s.tItem}><span style={s.tMarkPending}>○</span> You&apos;re live — missed calls turn into texts</li>
+              <li style={s.tItem}><span style={s.tMarkPending}>○</span> You&apos;re live, missed calls turn into texts</li>
             </ol>
 
-            <p style={s.reassure}>Finish your quick setup below so we can build your text-back exactly how you want it.</p>
+            <p style={s.reassure}>Finish your quick setup below so we can build your text back exactly how you want it.</p>
             {renderConversion()}
             {renderCancel()}
           </>
@@ -307,9 +291,9 @@ export default function WelcomePage() {
   // (business basics) are required; step 3 (polish) is optional and skippable.
   function renderSetup() {
     const services: { key: Service; label: string; hint: string }[] = [
-      { key: "text", label: "Text", hint: "Auto text-back on missed calls" },
-      { key: "voice", label: "Voice", hint: "Voicemail / voice menu" },
-      { key: "both", label: "Both", hint: "Text-back + voice" },
+      { key: "text", label: "Text", hint: "Auto text back on missed calls" },
+      { key: "voice", label: "Voice", hint: "Voicemail or voice menu" },
+      { key: "both", label: "Both", hint: "Text back plus voice" },
     ];
     const showForm = !intakeSubmitted || editingIntake;
 
@@ -318,26 +302,14 @@ export default function WelcomePage() {
       return (
         <div style={s.setupBox}>
           <div style={s.intakeDone}>
-            <div style={{ fontWeight: 700, color: "#8FE3B0", marginBottom: 6 }}>✓ Answers sent — we&apos;re on it!</div>
+            <div style={{ fontWeight: 700, color: "#8FE3B0", marginBottom: 6 }}>✓ Answers sent, we&apos;re on it!</div>
             <div style={s.intakeSummary}>
               <strong>Service:</strong>{" "}
               {service === "both" ? "Voice + Text" : service === "voice" ? "Voice" : "Text"}
             </div>
-            <div style={s.intakeSummary}>
-              No card needed right now. We&apos;re building your custom setup and will email you to
-              confirm it looks good. Once you approve, we&apos;ll start your 14-day free trial.
-            </div>
             <button style={s.editLink} onClick={() => { setEditingIntake(true); setStep(1); }}>Edit my answers</button>
           </div>
           {pricingBox}
-          {info?.billingEnabled && (
-            <>
-              <button style={s.payBtn} onClick={startCheckout} disabled={billingBusy}>
-                {billingBusy ? "Loading…" : `Add payment — ${service === "both" ? "$100" : "$59.99"}/mo`}
-              </button>
-              <p style={s.payNote}>Ready to go live now, or keeping your service after the trial? Add your card here — cancel anytime.</p>
-            </>
-          )}
         </div>
       );
     }
@@ -350,7 +322,7 @@ export default function WelcomePage() {
     return (
       <div style={s.setupBox}>
         {/* Payoff up front */}
-        <div style={s.trialBanner}>14-day free trial · <strong>No card needed</strong> · Cancel anytime</div>
+        <div style={s.trialBanner}>14 day free trial · <strong>No card needed</strong> · Cancel anytime</div>
 
         {/* Progress bar — tap a completed step to jump back and change it */}
         <div style={s.progressWrap}>
@@ -438,7 +410,12 @@ export default function WelcomePage() {
                 </button>
               </div>
             )}
-            {polish.fields.map((f) => renderField(f))}
+            {polish.fields
+              .filter((f) =>
+                !f.channel || f.channel === "both" ||
+                (f.channel === "voice" && (service === "voice" || service === "both")) ||
+                (f.channel === "text" && (service === "text" || service === "both")))
+              .map((f) => renderField(f))}
             <div style={s.navRow}>
               <button style={s.backBtn} onClick={() => setStep(2)}>← Back</button>
               <button style={s.nextBtn} onClick={submitIntake} disabled={intakeBusy}>
