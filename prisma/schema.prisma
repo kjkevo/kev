@@ -185,6 +185,9 @@ model BusinessConfig {
   // Per-business Twilio <Say> voice (e.g. Polly.Stephen-Neural). Falls back to
   // the TWILIO_VOICE env default when null.
   voice               String?
+  // When true, inbound texts are answered by the conversational Text AI instead
+  // of just being stored. Off by default; operator opts each business in.
+  aiTextEnabled       Boolean   @default(false)
   // Optional keyword voice menu: caller says a service, Twilio matches a
   // keyword and responds with a spoken reply + a service-specific text-back.
   // Shape: { enabled, prompt, options: [{label,keywords[],reply,sms}], fallbackReply, fallbackSms }
@@ -205,8 +208,27 @@ model BusinessConfig {
 
   missedCalls      MissedCall[]
   leadSubmissions  LeadSubmission[]
+  conversation     ConversationMessage[]
 
   @@index([businessName])
+}
+
+// Channel-agnostic conversation memory: every inbound/outbound message with a
+// contact, so the Text AI (and later Voice AI) share one thread per contact and
+// relay instead of duplicating. channel = 'sms' | 'voice'; role = 'inbound' |
+// 'outbound'.
+model ConversationMessage {
+  id           Int      @id @default(autoincrement())
+  createdAt    DateTime @default(now())
+  businessId   Int
+  contactPhone String
+  channel      String   @default("sms")
+  role         String
+  body         String
+
+  business     BusinessConfig @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, contactPhone, createdAt])
 }
 
 // A prospect business that signed up for a trial via the onboarding flow.

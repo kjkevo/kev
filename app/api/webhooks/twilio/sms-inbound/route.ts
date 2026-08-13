@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyTwilioSignature } from '@/app/lib/twilio';
+import { verifyTwilioSignature, sendSMS } from '@/app/lib/twilio';
 import { prisma } from '@/app/lib/db';
 import { loadBusinessConfig } from '@/app/lib/config';
 import { logSmsResponseToAirtable } from '@/app/lib/airtable';
+import { generateTextReply, aiConfigured } from '@/app/lib/ai';
 
 export async function POST(request: NextRequest) {
   try {
@@ -89,6 +90,59 @@ export async function POST(request: NextRequest) {
       console.log(`Updated lead submission ${leadSubmission.id} with response`);
     } else {
       console.warn(`No matching record found for phone ${from}`);
+    }
+
+    // ─── Conversational Text AI ──────────────────────────────────────────────
+    // If this business has AI text replies on, answer the message (grounded in
+    // their setup) instead of just capturing it. Skips carrier keywords and
+    // degrades to capture-only if AI is off/unconfigured.
+    const KEYWORDS = new Set(['STOP', 'STOPALL', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT', 'START', 'UNSTOP', 'YES', 'HELP', 'INFO']);
+    const isKeyword = KEYWORDS.has(messageBody.trim().toUpperCase());
+
+    if (!isKeyword && to && aiConfigured) {
+      const biz = await prisma.businessConfig.findFirst({ where: { businessPhone: to } });
+      if (biz && biz.active && biz.smsEnabled && biz.aiTextEnabled) {
+        // Loop guard: cap AI replies per contact per hour.
+        const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
+        const recentOut = await prisma.conversationMessage.count({
+          where: { businessId: biz.id, contactPhone: from, role: 'outbound', createdAt: { gt: hourAgo } },
+        });
+        if (recentOut < 15) {
+          const details = biz.signupId != null
+            ? (((await prisma.trialSignup.findUnique({ where: { id: biz.signupId } }))?.onboardingDetails as Record<string, string> | null) || {})
+            : {};
+          const history = await prisma.conversationMessage.findMany({
+            where: { businessId: biz.id, contactPhone: from },
+            orderBy: { createdAt: 'asc' },
+            take: 16,
+          });
+          await prisma.conversationMessage.create({
+            data: { businessId: biz.id, contactPhone: from, channel: 'sms', role: 'inbound', body: messageBody },
+          });
+          const { reply } = await generateTextReply(
+            {
+              businessName: biz.businessName,
+              industry: details.industry,
+              hours: details.hours,
+              services: details.services,
+              notOffered: details.notOffered,
+              faqs: details.faqs,
+              emergency: details.emergencyNotify,
+              tone: details.tone,
+              website: details.websiteUrl,
+              recentMissedCall: Boolean(missedCall),
+            },
+            history.map((h) => ({ role: h.role as 'inbound' | 'outbound', body: h.body })),
+            messageBody,
+          );
+          if (reply) {
+            await sendSMS(from, reply, to).catch((e) => console.error('AI reply send failed:', e));
+            await prisma.conversationMessage.create({
+              data: { businessId: biz.id, contactPhone: from, channel: 'sms', role: 'outbound', body: reply },
+            });
+          }
+        }
+      }
     }
 
     // Return empty TwiML to confirm receipt to Twilio (no reply message sent)

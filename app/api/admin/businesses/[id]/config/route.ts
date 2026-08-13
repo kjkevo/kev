@@ -27,6 +27,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   if (typeof body.voiceGreeting === 'string') data.voiceGreeting = body.voiceGreeting.trim();
   if (typeof body.smsEnabled === 'boolean') data.smsEnabled = body.smsEnabled;
   if (typeof body.voiceEnabled === 'boolean') data.voiceEnabled = body.voiceEnabled;
+  if (typeof body.aiTextEnabled === 'boolean') data.aiTextEnabled = body.aiTextEnabled;
   if (body.voice === null || body.voice === '') data.voice = null;
   else if (isValidVoice(body.voice)) data.voice = body.voice;
 

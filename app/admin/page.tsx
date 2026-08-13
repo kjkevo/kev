@@ -27,6 +27,7 @@ interface Client {
   voiceEnabled: boolean | null;
   voiceGreeting: string | null;
   voice: string | null;
+  aiTextEnabled: boolean | null;
 }
 
 interface SetupDraft {
@@ -36,6 +37,7 @@ interface SetupDraft {
   smsEnabled: boolean;
   voiceEnabled: boolean;
   voice: string;
+  aiTextEnabled: boolean;
 }
 
 interface MenuOptionJSON { label: string; keywords: string[]; reply: string; sms: string }
@@ -417,6 +419,7 @@ export default function AdminBusinessesPage() {
       smsEnabled: c.smsEnabled ?? true,
       voiceEnabled: c.voiceEnabled ?? false,
       voice: c.voice || "",
+      aiTextEnabled: c.aiTextEnabled ?? false,
     });
   }
 
@@ -541,7 +544,15 @@ export default function AdminBusinessesPage() {
           <label style={styles.configToggle}>
             <input type="checkbox" checked={cfg.voiceEnabled} onChange={(e) => set({ voiceEnabled: e.target.checked })} /> Voice enabled
           </label>
+          <label style={styles.configToggle}>
+            <input type="checkbox" checked={cfg.aiTextEnabled} onChange={(e) => set({ aiTextEnabled: e.target.checked })} /> AI text replies
+          </label>
         </div>
+        {cfg.aiTextEnabled && (
+          <div style={styles.configHint}>
+            Inbound texts are answered by the AI, grounded in this client&apos;s setup answers (industry, hours, services, FAQs, emergency rule, tone). Requires ANTHROPIC_API_KEY.
+          </div>
+        )}
 
         {cfg.voiceEnabled && (
           <>
