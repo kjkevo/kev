@@ -49,13 +49,17 @@ export async function POST(request: NextRequest) {
     const firstMessage =
       `Hi, thanks for calling ${biz.businessName}. Quick heads up, this call is answered by an A.I. assistant and may be recorded. How can I help you today?`;
 
+    // The business's chosen voice is an ElevenLabs voice id (what Vapi speaks).
+    const voice = biz.voice ? { provider: '11labs', voiceId: biz.voice } : { provider: 'vapi', voiceId: 'Elliot' };
+
     const overrides = {
       firstMessage,
       model: { messages: [{ role: 'system', content: system }] },
+      voice,
     };
 
-    // Preferred: a base assistant configured once in the Vapi dashboard (model +
-    // voice), overridden per-business here. Falls back to an inline assistant.
+    // Optional: a base assistant configured once in the Vapi dashboard, overridden
+    // per-business here. Otherwise build the whole agent inline.
     const assistantId = process.env.VAPI_ASSISTANT_ID;
     if (assistantId) {
       return NextResponse.json({ assistantId, assistantOverrides: overrides });
@@ -64,7 +68,7 @@ export async function POST(request: NextRequest) {
       assistant: {
         firstMessage,
         model: { provider: 'anthropic', model: 'claude-3-5-haiku-20241022', messages: [{ role: 'system', content: system }] },
-        voice: { provider: 'vapi', voiceId: 'Elliot' },
+        voice,
       },
     });
   }

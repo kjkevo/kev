@@ -49,7 +49,8 @@ export const placeSampleCall = async (
   const line =
     'Hi! This is a sample of the voice that will greet your callers when you miss a call. ' +
     'If you like it, choose it and finish your setup. Thanks for trying Slimpse!';
-  const twiml = `<Response><Say voice="${voice}" language="en-US">${line}</Say></Response>`;
+  const sayVoice = voice && voice.startsWith('Polly.') ? voice : VOICE;
+  const twiml = `<Response><Say voice="${sayVoice}" language="en-US">${line}</Say></Response>`;
 
   if (!hasValidCredentials) {
     console.log(`[MOCK CALL] Would call ${toPhone} with voice ${voice}`);
@@ -140,8 +141,11 @@ const SAY = { voice: VOICE, language: 'en-US' as const };
 
 // Per-call <Say> options: use the business's chosen voice when set, else the
 // env default. Amazon Polly Neural voice ids (e.g. Polly.Stephen-Neural).
+// Twilio <Say> only understands Polly/Google voice ids. Business voices are now
+// ElevenLabs ids (used by Vapi for AI calls), so fall back to the env default
+// here for the static (non-AI) greeting path.
 const sayOpts = (voice?: string | null) =>
-  ({ voice: (voice || VOICE) as 'Polly.Joanna-Neural', language: 'en-US' as const });
+  ({ voice: ((voice && voice.startsWith('Polly.')) ? voice : VOICE) as 'Polly.Joanna-Neural', language: 'en-US' as const });
 
 export const generateCallResponse = (message: string) => {
   const twiml = new twilio.twiml.VoiceResponse();
