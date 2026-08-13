@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
 import { checkAdminAuth } from '@/app/lib/adminAuth';
-import { provisionNumber } from '@/app/lib/twilio';
+import { provisionNumber, attachToMessagingService } from '@/app/lib/twilio';
 
 // POST /api/admin/signups/[id]/provision — the one-click flow: buy a number,
 // wire its webhooks to this app, create the business, mark the signup onboarded,
@@ -49,6 +49,10 @@ export async function POST(
   if (!result.success || !result.phoneNumber) {
     return NextResponse.json({ error: result.error || 'Could not provision a number.' }, { status: 502 });
   }
+
+  // Auto-register the new number under our approved A2P campaign by attaching it
+  // to the Messaging Service — no new brand/campaign per number. Best-effort.
+  if (result.sid) await attachToMessagingService(result.sid).catch(() => {});
 
   // A personalized text-back so the business is ready to go the moment it's live.
   const tradeClause = signup.trade && signup.trade.trim() ? ` about ${signup.trade.trim()}` : '';

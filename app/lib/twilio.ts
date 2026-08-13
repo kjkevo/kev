@@ -64,6 +64,24 @@ export const placeSampleCall = async (
   }
 };
 
+// Attach a freshly bought number to our Messaging Service so it inherits the
+// already-approved A2P brand + campaign — no per-number re-registration. Set
+// TWILIO_MESSAGING_SERVICE_SID (the MG… of the service holding your campaign).
+export const attachToMessagingService = async (
+  phoneNumberSid: string,
+): Promise<{ ok: boolean; error?: string }> => {
+  const msid = process.env.TWILIO_MESSAGING_SERVICE_SID;
+  if (!msid) return { ok: false, error: 'No messaging service configured' };
+  if (!hasValidCredentials) { console.log(`[MOCK] attach ${phoneNumberSid} to ${msid}`); return { ok: true }; }
+  try {
+    await client!.messaging.v1.services(msid).phoneNumbers.create({ phoneNumberSid });
+    return { ok: true };
+  } catch (error) {
+    console.error('Error attaching number to messaging service:', error);
+    return { ok: false, error: error instanceof Error ? error.message : String(error) };
+  }
+};
+
 // One-click provisioning: find and buy a US local number, wired to this app's
 // webhooks (voice, call-status, inbound SMS). `areaCode` is a preference — if no
 // number is available there, we fall back to any US local number. In mock mode
