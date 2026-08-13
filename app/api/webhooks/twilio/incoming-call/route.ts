@@ -46,11 +46,13 @@ export async function POST(request: NextRequest) {
         prompt,
         hints: voiceMenuHints(menu),
         actionUrl: `${origin}/api/webhooks/twilio/voice-gather`,
+        voice: config.voice,
       });
     } else if (active && config?.voiceEnabled) {
       twiml = generateMissedCallTwiML({
         greeting: config.voiceGreeting,
         recordVoicemail: config.recordVoicemail,
+        voice: config.voice,
       });
     } else {
       twiml = generateTextOnlyTwiML();

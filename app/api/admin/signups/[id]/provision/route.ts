@@ -56,6 +56,14 @@ export async function POST(
     `Sorry we missed your call! Thanks for reaching out to {BUSINESS_NAME}${tradeClause}. ` +
     `What can we help you with? We'll be right back with you.`;
 
+  // Pre-fill channel toggles and the chosen voice from what the client picked
+  // on their setup form, so the built service already matches their answers.
+  const service = signup.servicePreference;
+  const details = (signup.onboardingDetails as Record<string, string> | null) || {};
+  const wantsText = service === 'text' || service === 'both' || !service;
+  const wantsVoice = service === 'voice' || service === 'both';
+  const chosenVoice = typeof details.voiceName === 'string' ? details.voiceName : null;
+
   let business;
   try {
     business = await prisma.businessConfig.create({
@@ -65,10 +73,11 @@ export async function POST(
         ownerPhone: signup.mobile,
         ownerEmail: signup.email,
         missedCallMessage,
-        smsEnabled: true,
-        voiceEnabled: false,
-        // Built but OFF: no live texts and no trial clock until you click
-        // "Start 14-day trial" from the dashboard after the client's go-ahead.
+        smsEnabled: wantsText,
+        voiceEnabled: wantsVoice,
+        voice: chosenVoice,
+        // Built but OFF: no live texts and no trial clock until the client
+        // confirms their setup, which starts the 14-day trial.
         active: false,
         signupId: signup.id,
         trialEndsAt: null,

@@ -120,6 +120,11 @@ export const provisionNumber = async (opts: {
 const VOICE = (process.env.TWILIO_VOICE || 'Polly.Joanna-Neural') as 'Polly.Joanna-Neural';
 const SAY = { voice: VOICE, language: 'en-US' as const };
 
+// Per-call <Say> options: use the business's chosen voice when set, else the
+// env default. Amazon Polly Neural voice ids (e.g. Polly.Stephen-Neural).
+const sayOpts = (voice?: string | null) =>
+  ({ voice: (voice || VOICE) as 'Polly.Joanna-Neural', language: 'en-US' as const });
+
 export const generateCallResponse = (message: string) => {
   const twiml = new twilio.twiml.VoiceResponse();
   twiml.say(SAY, message);
@@ -133,25 +138,27 @@ export const generateCallResponse = (message: string) => {
 interface MissedCallTwiMLOptions {
   greeting?: string;
   recordVoicemail?: boolean;
+  voice?: string | null;
 }
 
 // Voice response for businesses that have voice enabled: speak the business's
 // custom greeting and optionally let the caller leave a voicemail.
 export const generateMissedCallTwiML = (options: MissedCallTwiMLOptions = {}) => {
   const greeting = options.greeting || "Thank you for calling. We're not available right now, but we'll text you shortly.";
+  const say = sayOpts(options.voice);
   const twiml = new twilio.twiml.VoiceResponse();
-  twiml.say(SAY, greeting);
+  twiml.say(say, greeting);
   if (options.recordVoicemail) {
     // Spoken recording disclosure, played BEFORE any audio is captured so the
     // caller can consent (or opt out) first — required in two-party-consent
     // states. The caller is given a clear way to avoid being recorded.
-    twiml.say(SAY,
+    twiml.say(say,
       "Please note: your voicemail will be recorded so we can follow up. " +
       "If you do not wish to be recorded, you can hang up now and text us instead. " +
       "To leave a recorded message, please speak after the beep."
     );
     twiml.record({ maxLength: 120, playBeep: true });
-    twiml.say(SAY, "Thank you for your message. We'll get back to you shortly.");
+    twiml.say(say, "Thank you for your message. We'll get back to you shortly.");
   }
   twiml.hangup();
   return twiml.toString();
@@ -165,6 +172,7 @@ export const generateVoiceMenuTwiML = (opts: {
   prompt: string;
   hints?: string;
   actionUrl: string;
+  voice?: string | null;
 }) => {
   const twiml = new twilio.twiml.VoiceResponse();
   const gather = twiml.gather({
@@ -176,7 +184,7 @@ export const generateVoiceMenuTwiML = (opts: {
     numDigits: 1,
     ...(opts.hints ? { hints: opts.hints } : {}),
   });
-  gather.say(SAY, opts.prompt);
+  gather.say(sayOpts(opts.voice), opts.prompt);
   // No input captured -> fall through to the handler for the fallback path.
   twiml.redirect({ method: 'POST' }, opts.actionUrl);
   return twiml.toString();

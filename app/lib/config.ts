@@ -13,6 +13,7 @@ export interface BusinessConfig {
   voiceEnabled: boolean;
   recordVoicemail: boolean;
   voiceGreeting: string;
+  voice?: string | null; // per-business Twilio <Say> voice; null = env default
   voiceMenu?: unknown; // raw JSON menu blob; parse with parseVoiceMenu()
   active: boolean;     // master on/off; false = trial expired/unpaid or disabled
   airtableApiKey?: string;
@@ -57,6 +58,7 @@ function mapRow(config: BusinessConfigRow): BusinessConfig {
     voiceEnabled: config.voiceEnabled ?? defaultConfig.voiceEnabled,
     recordVoicemail: config.recordVoicemail ?? defaultConfig.recordVoicemail,
     voiceGreeting: config.voiceGreeting || defaultConfig.voiceGreeting,
+    voice: (config as { voice?: string | null }).voice ?? null,
     voiceMenu: (config as { voiceMenu?: unknown }).voiceMenu ?? undefined,
     active: (config as { active?: boolean }).active ?? true,
     airtableApiKey: config.airtableApiKey || defaultConfig.airtableApiKey,

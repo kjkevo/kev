@@ -492,6 +492,60 @@ export const sendCheckYourEmailText = async (
   }
 };
 
+// Operator alert: a client reviewed their setup and confirmed — their trial has
+// auto-started, so you can watch it go live.
+export const sendSetupConfirmedAlert = async (
+  info: { businessName: string; phoneNumber: string },
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const transporter = initializeEmailTransporter();
+    if (!transporter) return { success: false, error: 'Email not configured' };
+    const to = process.env.ALERT_EMAIL || process.env.EMAIL_USER;
+    await transporter.sendMail({
+      from: emailFrom(),
+      to,
+      subject: `✅ Setup confirmed — ${info.businessName} is live`,
+      html: `<div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#1a1a1a;line-height:1.5">
+        <h2>${info.businessName} confirmed their setup</h2>
+        <p>Their 14-day free trial has started automatically and their service is now ON.</p>
+        <p><strong>Number:</strong> ${info.phoneNumber}</p>
+        <p>${new Date().toLocaleString()}</p>
+      </div>`,
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending setup-confirmed alert:', error);
+    return { success: false, error: String(error) };
+  }
+};
+
+// Operator alert: a client asked for a change from the review page.
+export const sendChangeRequestedAlert = async (
+  info: { businessName: string; email: string; note: string },
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const transporter = initializeEmailTransporter();
+    if (!transporter) return { success: false, error: 'Email not configured' };
+    const to = process.env.ALERT_EMAIL || process.env.EMAIL_USER;
+    const esc = (v: string) => v.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    await transporter.sendMail({
+      from: emailFrom(),
+      to,
+      subject: `✏️ Change requested — ${info.businessName}`,
+      html: `<div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#1a1a1a;line-height:1.5">
+        <h2>${info.businessName} wants a change before going live</h2>
+        <p><strong>Email:</strong> <a href="mailto:${info.email}">${info.email}</a></p>
+        <p><strong>Their note:</strong><br/><span style="white-space:pre-wrap">${info.note ? esc(info.note) : '(no note left)'}</span></p>
+        <p>Adjust their setup in the dashboard, then re-send their confirmation.</p>
+      </div>`,
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending change-requested alert:', error);
+    return { success: false, error: String(error) };
+  }
+};
+
 // Notify the operator (you) when a client fills out their setup form, so you can
 // build their text-back to match what they asked for. Renders the full
 // questionnaire grouped by section, in the schema's order.

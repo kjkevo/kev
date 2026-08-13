@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { ONBOARDING_SECTIONS } from "@/app/lib/onboardingSchema";
+import { VOICE_OPTIONS } from "@/app/lib/voices";
 
 /* ─── Types ──────────────────────────────────────────────────────────────── */
 
@@ -20,6 +21,21 @@ interface Client {
   category: "paying" | "trial" | "review" | "new";
   stage: string;
   billDate: string | null;
+  missedCallMessage: string | null;
+  leadSubmissionMsg: string | null;
+  smsEnabled: boolean | null;
+  voiceEnabled: boolean | null;
+  voiceGreeting: string | null;
+  voice: string | null;
+}
+
+interface SetupDraft {
+  missedCallMessage: string;
+  leadSubmissionMsg: string;
+  voiceGreeting: string;
+  smsEnabled: boolean;
+  voiceEnabled: boolean;
+  voice: string;
 }
 
 interface MenuOptionJSON { label: string; keywords: string[]; reply: string; sms: string }
@@ -139,6 +155,9 @@ export default function AdminBusinessesPage() {
   const [busyId, setBusyId] = React.useState<string | null>(null);
   const [tab, setTab] = React.useState<string>("overview");
   const [overview, setOverview] = React.useState<OverviewRow[]>([]);
+  const [cfgId, setCfgId] = React.useState<number | null>(null);
+  const [cfg, setCfg] = React.useState<SetupDraft | null>(null);
+  const [cfgSaving, setCfgSaving] = React.useState(false);
 
   const fetchBusinesses = React.useCallback(async () => {
     setLoading(true);
@@ -388,6 +407,35 @@ export default function AdminBusinessesPage() {
     finally { setBusyId(null); }
   }
 
+  function openConfig(c: Client) {
+    if (cfgId === c.businessId) { setCfgId(null); setCfg(null); return; }
+    setCfgId(c.businessId);
+    setCfg({
+      missedCallMessage: c.missedCallMessage || "",
+      leadSubmissionMsg: c.leadSubmissionMsg || "",
+      voiceGreeting: c.voiceGreeting || "",
+      smsEnabled: c.smsEnabled ?? true,
+      voiceEnabled: c.voiceEnabled ?? false,
+      voice: c.voice || "",
+    });
+  }
+
+  async function saveConfig(businessId: number) {
+    if (!cfg) return;
+    setCfgSaving(true); setError(null); setNotice(null);
+    try {
+      const res = await fetch(`/api/admin/businesses/${businessId}/config`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(cfg),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (res.ok) { setNotice("Setup saved."); setCfgId(null); setCfg(null); refreshAll(); }
+      else setError(j.error || `Save failed (${res.status})`);
+    } catch (e) { setError(String(e)); }
+    finally { setCfgSaving(false); }
+  }
+
   function cancelDecision(c: Client, decision: "confirm" | "keep") {
     const msg = decision === "confirm"
       ? `Confirm cancellation for ${c.businessName}? Their service stays off. (Release their Twilio number if you bought one.)`
@@ -468,6 +516,58 @@ export default function AdminBusinessesPage() {
     );
   }
 
+  function renderConfigEditor(businessId: number) {
+    if (!cfg) return null;
+    const set = (patch: Partial<SetupDraft>) => setCfg((prev) => (prev ? { ...prev, ...patch } : prev));
+    return (
+      <div style={styles.configBox}>
+        <div style={styles.configTitle}>Set up their text &amp; voice</div>
+
+        <label style={styles.fieldLabel}>Missed-call text-back</label>
+        <textarea style={styles.textarea} rows={3} value={cfg.missedCallMessage}
+          onChange={(e) => set({ missedCallMessage: e.target.value })}
+          placeholder="Sorry we missed your call! …" />
+        <div style={styles.configHint}>Tip: {"{BUSINESS_NAME}"} auto-fills their name.</div>
+
+        <label style={{ ...styles.fieldLabel, marginTop: 12 }}>Lead confirmation text</label>
+        <textarea style={styles.textarea} rows={2} value={cfg.leadSubmissionMsg}
+          onChange={(e) => set({ leadSubmissionMsg: e.target.value })}
+          placeholder="Hi {NAME}! Thanks for reaching out…" />
+
+        <div style={styles.configRow}>
+          <label style={styles.configToggle}>
+            <input type="checkbox" checked={cfg.smsEnabled} onChange={(e) => set({ smsEnabled: e.target.checked })} /> Text enabled
+          </label>
+          <label style={styles.configToggle}>
+            <input type="checkbox" checked={cfg.voiceEnabled} onChange={(e) => set({ voiceEnabled: e.target.checked })} /> Voice enabled
+          </label>
+        </div>
+
+        {cfg.voiceEnabled && (
+          <>
+            <label style={{ ...styles.fieldLabel, marginTop: 12 }}>Voice greeting (spoken on the call)</label>
+            <textarea style={styles.textarea} rows={2} value={cfg.voiceGreeting}
+              onChange={(e) => set({ voiceGreeting: e.target.value })}
+              placeholder="Thanks for calling! We'll text you right back." />
+
+            <label style={{ ...styles.fieldLabel, marginTop: 12 }}>Call voice</label>
+            <select style={styles.input} value={cfg.voice} onChange={(e) => set({ voice: e.target.value })}>
+              <option value="">Default</option>
+              {VOICE_OPTIONS.map((v) => <option key={v.id} value={v.id}>{v.label}</option>)}
+            </select>
+          </>
+        )}
+
+        <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+          <button style={styles.startTrialBtn} disabled={cfgSaving} onClick={() => saveConfig(businessId)}>
+            {cfgSaving ? "Saving…" : "Save setup"}
+          </button>
+          <button style={styles.smallBtn} onClick={() => { setCfgId(null); setCfg(null); }}>Cancel</button>
+        </div>
+      </div>
+    );
+  }
+
   function renderClientRow(c: Client) {
     const isOpen = openForm === c.signupId;
     const busyProv = busyId === `prov-${c.signupId}`;
@@ -494,6 +594,11 @@ export default function AdminBusinessesPage() {
             {!c.businessId && c.signupId && (
               <button style={styles.provisionBtn} disabled={busyProv} onClick={() => provisionClient(c)}>
                 {busyProv ? "Building…" : "⚡ Provision & build"}
+              </button>
+            )}
+            {c.businessId && (
+              <button style={styles.smallBtn} onClick={() => openConfig(c)}>
+                {cfgId === c.businessId ? "Close setup" : "⚙️ Set up text & voice"}
               </button>
             )}
             {c.businessId && (c.stage === "built" || c.stage === "trial") && (
@@ -535,6 +640,7 @@ export default function AdminBusinessesPage() {
           </div>
         </div>
         {isOpen && renderForm(c)}
+        {cfgId === c.businessId && cfg && renderConfigEditor(c.businessId!)}
       </div>
     );
   }
@@ -881,6 +987,11 @@ const styles: Record<string, React.CSSProperties> = {
   grid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 },
   field: { display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 },
   fieldLabel: { fontSize: 13, color: "#B8C0D0" },
+  configBox: { marginTop: 12, background: "#0B1426", border: "1px solid #24324F", borderRadius: 10, padding: 14 },
+  configTitle: { fontSize: 14, fontWeight: 800, color: "#8FB8FF", marginBottom: 10 },
+  configHint: { fontSize: 12, color: "#7A8397", marginTop: 4 },
+  configRow: { display: "flex", gap: 18, marginTop: 12 },
+  configToggle: { display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "#C7CEDB", cursor: "pointer" },
   input: { background: "#0A0F1E", border: "1px solid #24324F", borderRadius: 8, padding: "10px 12px", color: "#E5E9F0", fontSize: 14, width: "100%" },
   textarea: { background: "#0A0F1E", border: "1px solid #24324F", borderRadius: 8, padding: "10px 12px", color: "#E5E9F0", fontSize: 14, width: "100%", resize: "vertical" },
   toggleRow: { display: "flex", flexWrap: "wrap", gap: 16, margin: "8px 0 16px" },
