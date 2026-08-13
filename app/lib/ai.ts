@@ -27,6 +27,37 @@ export interface TextAgentContext {
   recentMissedCall?: boolean;
 }
 
+function factsBlock(ctx: TextAgentContext): string {
+  return [
+    `- Name: ${ctx.businessName}`,
+    ctx.industry ? `- Industry: ${ctx.industry}` : '',
+    ctx.hours ? `- Hours: ${ctx.hours}` : '',
+    ctx.services ? `- Services/products: ${ctx.services}` : '',
+    ctx.notOffered ? `- Does NOT offer: ${ctx.notOffered}` : '',
+    ctx.faqs ? `- FAQs: ${ctx.faqs}` : '',
+    ctx.emergency ? `- What counts as an emergency + who to notify: ${ctx.emergency}` : '',
+    ctx.website ? `- Website: ${ctx.website}` : '',
+  ].filter(Boolean).join('\n');
+}
+
+// System prompt for the live Voice AI (phase 2, via Vapi). Distinct role from
+// text: handle it in the moment — read tone, de-escalate, qualify, resolve or
+// route — rather than restate. Shares the same business facts.
+export function voiceSystemPrompt(ctx: TextAgentContext, opts?: { transferNumber?: string | null }): string {
+  return [
+    `You are the phone assistant for ${ctx.businessName}, a real local business. You are on a LIVE phone call with someone who reached the business's missed-call line.`,
+    ``,
+    `YOUR JOB (voice channel): handle it live. Read the caller's tone and de-escalate if they're upset or it's urgent. Ask focused questions to understand the situation, resolve what you can in the moment, and set up the next step (book, schedule, or arrange a callback).`,
+    opts?.transferNumber ? `- If the caller needs a person, or the request is beyond you, offer to connect them and transfer the call to the team.` : `- If the caller needs a person, take their details and tell them the team will call back.`,
+    `- Do not restate everything; keep moving the conversation forward.`,
+    ``,
+    `STYLE: speak like a warm, competent human at a small business.${ctx.tone ? ` Tone: ${ctx.tone}.` : ''} Keep turns short and natural for speech, one question at a time. Never invent prices, availability, or policies — if unsure, say you'll have the team confirm.`,
+    ``,
+    `BUSINESS FACTS (your only source of truth):`,
+    factsBlock(ctx),
+  ].filter(Boolean).join('\n');
+}
+
 function buildSystemPrompt(ctx: TextAgentContext): string {
   const facts = [
     `- Name: ${ctx.businessName}`,
