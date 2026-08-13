@@ -37,6 +37,13 @@ export async function GET(request: NextRequest) {
     category: 'paying' | 'trial' | 'review' | 'new' | 'cancel_requested';
     stage: string;
     billDate: string | null;
+    // Built-service config (null until provisioned) for the setup editor.
+    missedCallMessage: string | null;
+    leadSubmissionMsg: string | null;
+    smsEnabled: boolean | null;
+    voiceEnabled: boolean | null;
+    voiceGreeting: string | null;
+    voice: string | null;
   };
 
   const clients: Client[] = [];
@@ -83,6 +90,12 @@ export async function GET(request: NextRequest) {
       category,
       stage,
       billDate,
+      missedCallMessage: b?.missedCallMessage ?? null,
+      leadSubmissionMsg: b?.leadSubmissionMsg ?? null,
+      smsEnabled: b?.smsEnabled ?? null,
+      voiceEnabled: b?.voiceEnabled ?? null,
+      voiceGreeting: b?.voiceGreeting ?? null,
+      voice: b?.voice ?? null,
     });
   }
 

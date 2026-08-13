@@ -20,6 +20,15 @@ interface Info {
   exampleMessages?: string | null;
   onboardingDetails?: Record<string, string> | null;
   intakeSubmitted?: boolean;
+  businessBuilt?: boolean;
+  trialStarted?: boolean;
+  setup?: {
+    missedCallMessage: string;
+    smsEnabled: boolean;
+    voiceEnabled: boolean;
+    voiceGreeting: string;
+    voice: string | null;
+  } | null;
 }
 
 type Service = "" | "voice" | "text" | "both";
@@ -42,6 +51,10 @@ export default function WelcomePage() {
   const [voiceBusy, setVoiceBusy] = React.useState(false);
   const [playingVoice, setPlayingVoice] = React.useState<string | null>(null);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
+  const [confirmingSetup, setConfirmingSetup] = React.useState(false);
+  const [changeOpen, setChangeOpen] = React.useState(false);
+  const [changeNote, setChangeNote] = React.useState("");
+  const [changeSent, setChangeSent] = React.useState(false);
 
   // Stop any preview audio when leaving the page.
   React.useEffect(() => () => { audioRef.current?.pause(); }, []);
@@ -96,6 +109,41 @@ export default function WelcomePage() {
     });
   }
 
+  // Client green-lights their built setup → auto-starts their 14-day trial.
+  async function confirmSetup() {
+    if (!token) return;
+    setConfirmingSetup(true);
+    try {
+      const r = await fetch("/api/onboarding/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (r.ok && j.success) {
+        setInfo((prev) => prev ? { ...prev, status: "onboarded", trialStarted: true, phoneNumber: j.phoneNumber ?? prev.phoneNumber } : prev);
+      } else {
+        alert(j.error || "Couldn't confirm. Please try again.");
+      }
+    } finally {
+      setConfirmingSetup(false);
+    }
+  }
+
+  // Client asks for a tweak before going live → alert the operator.
+  async function requestChange() {
+    if (!token) return;
+    try {
+      const r = await fetch("/api/onboarding/request-change", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, note: changeNote }),
+      });
+      if (r.ok) { setChangeSent(true); setChangeOpen(false); }
+      else alert("Couldn't send. Please try again.");
+    } catch { alert("Couldn't send. Please try again."); }
+  }
+
   // Play a short in-browser demo clip of the given voice; toggles off if it's
   // already the one playing. Falls back gracefully if the clip isn't there yet.
   function previewVoice(v: (typeof VOICE_OPTIONS)[number]) {
@@ -106,6 +154,10 @@ export default function WelcomePage() {
     audio.onended = () => setPlayingVoice(null);
     audio.onerror = () => { setPlayingVoice(null); alert("This preview isn't available yet — try \"Call me a sample\" to hear it live."); };
     audio.play().then(() => setPlayingVoice(v.id)).catch(() => setPlayingVoice(null));
+  }
+
+  function reviewVoiceOption(id?: string | null) {
+    return VOICE_OPTIONS.find((v) => v.id === id) || null;
   }
 
   async function testVoice() {
@@ -230,6 +282,56 @@ export default function WelcomePage() {
             </ul>
             {renderConversion()}
             {renderCancel()}
+          </>
+        ) : info.businessBuilt && !info.trialStarted ? (
+          <>
+            <div style={s.kicker}>◆ MissedCall</div>
+            <h1 style={s.h1}>Review your setup, {biz}</h1>
+            <p style={s.sub}>Here&apos;s what we built for you. Confirm to go live and start your 14 day
+              free trial, or ask us for a change.</p>
+
+            {info.setup?.smsEnabled && (
+              <div style={s.reviewBlock}>
+                <div style={s.reviewLabel}>Your missed call text back</div>
+                <div style={s.reviewValue}>{(info.setup.missedCallMessage || "").replace(/\{BUSINESS_NAME\}/g, biz)}</div>
+              </div>
+            )}
+            {info.setup?.voiceEnabled && (
+              <div style={s.reviewBlock}>
+                <div style={s.reviewLabel}>
+                  Your call greeting{reviewVoiceOption(info.setup.voice) ? ` · ${reviewVoiceOption(info.setup.voice)!.label}` : ""}
+                </div>
+                <div style={s.reviewValue}>{info.setup.voiceGreeting}</div>
+                {reviewVoiceOption(info.setup.voice) && (
+                  <button style={{ ...s.voicePlay, marginTop: 10 }} onClick={() => previewVoice(reviewVoiceOption(info.setup!.voice)!)}>
+                    {playingVoice === info.setup.voice ? "Stop" : "Preview voice"}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {changeSent ? (
+              <div style={{ ...s.intakeDone, marginTop: 16 }}>
+                <div style={{ fontWeight: 700, color: "#8FE3B0" }}>✓ Got it, we&apos;ll tweak it and email you back.</div>
+              </div>
+            ) : changeOpen ? (
+              <div style={s.reviewBlock}>
+                <div style={s.reviewLabel}>What would you like changed?</div>
+                <textarea value={changeNote} onChange={(e) => setChangeNote(e.target.value)}
+                  placeholder="Tell us what to adjust" style={s.textarea} rows={3} />
+                <div style={s.navRow}>
+                  <button style={s.backBtn} onClick={() => setChangeOpen(false)}>Cancel</button>
+                  <button style={s.nextBtn} onClick={requestChange}>Send request</button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ marginTop: 18 }}>
+                <button style={s.payBtn} onClick={confirmSetup} disabled={confirmingSetup}>
+                  {confirmingSetup ? "Starting…" : "Confirm and start my 14 day free trial"}
+                </button>
+                <button style={s.skipLink} onClick={() => setChangeOpen(true)}>Request a change instead</button>
+              </div>
+            )}
           </>
         ) : (
           <>
@@ -535,6 +637,9 @@ const s: Record<string, React.CSSProperties> = {
   chip: { background: "#0A0F1E", border: "1px solid #22304C", borderRadius: 20, padding: "8px 14px", cursor: "pointer", color: "#C7CEDB", fontSize: 13.5 },
   chipOn: { border: "1px solid #34D399", background: "#0F2A1E", color: "#B8F0CF" },
   skipLink: { display: "block", width: "100%", background: "transparent", color: "#7A8397", border: "none", fontSize: 13, cursor: "pointer", textDecoration: "underline", padding: 0, marginTop: 14, textAlign: "center" },
+  reviewBlock: { marginTop: 14, background: "#0B1A2E", border: "1px solid #24406B", borderRadius: 12, padding: "14px 16px" },
+  reviewLabel: { fontSize: 12.5, fontWeight: 700, color: "#8FB8FF", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 },
+  reviewValue: { fontSize: 15, color: "#E5E9F0", lineHeight: 1.5, whiteSpace: "pre-wrap" },
   voiceList: { display: "flex", flexDirection: "column", gap: 8 },
   voiceRow: { display: "flex", alignItems: "center", gap: 10, background: "#0A0F1E", border: "1px solid #22304C", borderRadius: 10, padding: "8px 10px" },
   voiceRowOn: { border: "1px solid #3B82F6", background: "#12264A", boxShadow: "0 0 0 1px #3B82F6" },
