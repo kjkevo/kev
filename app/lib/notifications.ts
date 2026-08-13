@@ -612,14 +612,14 @@ export const sendSetupConfirmationEmail = async (opts: {
   toEmail: string;
   businessName: string;
   channel: string;
-  missedCallMessage: string;
+  missedCallMessage?: string;
   voiceGreeting?: string;
   reviewUrl?: string;
 }): Promise<{ success: boolean; error?: string }> => {
   try {
     const transporter = initializeEmailTransporter();
     if (!transporter) return { success: false, error: 'Email not configured' };
-    const preview = opts.missedCallMessage.replace(/\{BUSINESS_NAME\}/g, opts.businessName);
+    const preview = opts.missedCallMessage ? opts.missedCallMessage.replace(/\{BUSINESS_NAME\}/g, opts.businessName) : '';
     await transporter.sendMail({
       from: emailFrom(),
       to: opts.toEmail,
@@ -627,14 +627,12 @@ export const sendSetupConfirmationEmail = async (opts: {
       html: `
         <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:520px;color:#1a1a1a;line-height:1.6;">
           <h2>Here's your setup, ${opts.businessName} 👀</h2>
-          <p>We've built your missed-call service. Take a look and reply to confirm — once you give the
-            go-ahead, we'll start your <strong>14-day free trial</strong> and turn everything on.</p>
+          <p>We've built your missed-call service. Take a look and reply to confirm, or if you have any
+            edits, once you give the go-ahead, we'll start your <strong>14-day free trial</strong>.</p>
           <p><strong>Service:</strong> ${opts.channel}</p>
-          <p><strong>The text your callers will get:</strong></p>
-          <blockquote style="border-left:3px solid #2F6BFF;padding-left:12px;color:#333;white-space:pre-wrap;">${preview}</blockquote>
+          ${preview ? `<p><strong>The text your callers will get:</strong></p><blockquote style="border-left:3px solid #2F6BFF;padding-left:12px;color:#333;white-space:pre-wrap;">${preview}</blockquote>` : ''}
           ${opts.voiceGreeting ? `<p><strong>What callers hear:</strong></p><blockquote style="border-left:3px solid #2F6BFF;padding-left:12px;color:#333;">${opts.voiceGreeting}</blockquote>` : ''}
           ${opts.reviewUrl ? `<p><a href="${opts.reviewUrl}" style="color:#2F6BFF;">View your setup page</a></p>` : ''}
-          <p style="font-size:14px;color:#555;">Want a tweak? Just reply with what to change and we'll fix it before going live.</p>
         </div>`,
     });
     return { success: true };
