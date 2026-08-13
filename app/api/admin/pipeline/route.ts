@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
     voiceEnabled: boolean | null;
     voiceGreeting: string | null;
     voice: string | null;
+    aiTextEnabled: boolean | null;
   };
 
   const clients: Client[] = [];
@@ -96,6 +97,7 @@ export async function GET(request: NextRequest) {
       voiceEnabled: b?.voiceEnabled ?? null,
       voiceGreeting: b?.voiceGreeting ?? null,
       voice: b?.voice ?? null,
+      aiTextEnabled: b?.aiTextEnabled ?? null,
     });
   }
 
