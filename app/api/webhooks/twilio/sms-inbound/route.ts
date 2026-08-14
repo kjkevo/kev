@@ -3,7 +3,7 @@ import { verifyTwilioSignature, sendSMS } from '@/app/lib/twilio';
 import { prisma } from '@/app/lib/db';
 import { loadBusinessConfig } from '@/app/lib/config';
 import { logSmsResponseToAirtable } from '@/app/lib/airtable';
-import { generateTextReply, aiConfigured } from '@/app/lib/ai';
+import { generateTextReply, aiConfigured, agentContextFrom } from '@/app/lib/ai';
 import { detectEmergency } from '@/app/lib/emergency';
 import { sendEmergencyAlertToOwner } from '@/app/lib/notifications';
 
@@ -136,18 +136,7 @@ export async function POST(request: NextRequest) {
               data: { businessId: biz.id, contactPhone: from, channel: 'sms', role: 'inbound', body: messageBody },
             });
             const { reply } = await generateTextReply(
-              {
-                businessName: biz.businessName,
-                industry: details.industry,
-                hours: details.hours,
-                services: details.services,
-                notOffered: details.notOffered,
-                faqs: details.faqs,
-                emergency: details.emergencyNotify,
-                tone: details.tone,
-                website: details.websiteUrl,
-                recentMissedCall: Boolean(missedCall),
-              },
+              { ...agentContextFrom(biz, details), recentMissedCall: Boolean(missedCall) },
               history.map((h) => ({ role: h.role as 'inbound' | 'outbound', body: h.body })),
               messageBody,
             );

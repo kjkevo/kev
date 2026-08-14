@@ -188,12 +188,18 @@ export default function WelcomePage() {
     if (!token) return;
     if (!service) { alert("Please choose Text, Voice, or Both."); setStep(1); return; }
     if (!(details["industry"] || "").trim()) { alert("Please tell us your industry."); setStep(2); return; }
+    // If they want voice, always save a concrete voice pick (default to the
+    // first one) so a voice is never left unset just because they didn't tap.
+    const outDetails = { ...details };
+    if ((service === "voice" || service === "both") && !outDetails.voiceName) {
+      outDetails.voiceName = DEFAULT_VOICE;
+    }
     setIntakeBusy(true);
     try {
       const r = await fetch("/api/onboarding/intake", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, service, details }),
+        body: JSON.stringify({ token, service, details: outDetails }),
       });
       const j = await r.json().catch(() => ({}));
       if (r.ok && j.success) {
@@ -483,16 +489,21 @@ export default function WelcomePage() {
                     return (
                       <div key={v.id} style={{ ...s.voiceRow, ...(selected ? s.voiceRowOn : {}) }}>
                         <button type="button" style={s.voicePlay} onClick={() => previewVoice(v)}>
-                          {playingVoice === v.id ? "Stop" : "Preview"}
+                          {playingVoice === v.id ? "Stop" : "▶ Preview"}
                         </button>
-                        <button type="button" style={s.voiceSelect} onClick={() => setDetails((d) => ({ ...d, voiceName: v.id }))}>
-                          {v.label}
+                        <span style={s.voiceName}>{v.label}</span>
+                        <button
+                          type="button"
+                          style={selected ? s.voiceSelectedBtn : s.voiceSelectBtn}
+                          onClick={() => setDetails((d) => ({ ...d, voiceName: v.id }))}
+                        >
+                          {selected ? "✓ Selected" : "Select"}
                         </button>
-                        {selected && <span style={s.voiceChosen}>Selected</span>}
                       </div>
                     );
                   })}
                 </div>
+                <p style={s.optionalNote}>Tap <strong>Select</strong> on the voice you want — it&apos;s saved with your answers.</p>
                 <button style={s.callLink} onClick={testVoice} disabled={voiceBusy}>
                   {voiceBusy ? "Calling…" : "Prefer a live call? Call me a sample"}
                 </button>
@@ -791,6 +802,9 @@ const s: Record<string, React.CSSProperties> = {
   voiceRowOn: { border: "1px solid #3B82F6", background: "#12264A", boxShadow: "0 0 0 1px #3B82F6" },
   voicePlay: { background: "#1B2740", color: "#9FC2FF", border: "1px solid #2A3854", borderRadius: 8, padding: "7px 12px", fontSize: 13, fontWeight: 700, cursor: "pointer", minWidth: 78 },
   voiceSelect: { flex: 1, textAlign: "left", background: "transparent", color: "#E5E9F0", border: "none", fontSize: 14, fontWeight: 600, cursor: "pointer", padding: 0 },
+  voiceName: { flex: 1, textAlign: "left", color: "#E5E9F0", fontSize: 14, fontWeight: 600, minWidth: 0 },
+  voiceSelectBtn: { background: "#12264A", color: "#9FC2FF", border: "1px solid #24406B", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", flexShrink: 0 },
+  voiceSelectedBtn: { background: "#0F2A1E", color: "#8FE3B0", border: "1px solid #1F5A3E", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 800, cursor: "pointer", flexShrink: 0 },
   voiceChosen: { fontSize: 11.5, fontWeight: 700, color: "#8FE3B0", flexShrink: 0 },
   callLink: { display: "block", width: "100%", background: "transparent", color: "#8FB8FF", border: "none", fontSize: 13, cursor: "pointer", textDecoration: "underline", padding: 0, marginTop: 12, textAlign: "center" },
   howHead: { fontSize: 15.5, fontWeight: 700, marginBottom: 8 },

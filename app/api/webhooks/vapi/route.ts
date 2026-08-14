@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
-import { voiceSystemPrompt, voiceFirstMessage } from '@/app/lib/ai';
+import { voiceSystemPrompt, voiceFirstMessage, agentContextFrom } from '@/app/lib/ai';
 import { detectEmergency } from '@/app/lib/emergency';
 import { sendEmergencyAlertToOwner } from '@/app/lib/notifications';
 
@@ -32,20 +32,7 @@ export async function POST(request: NextRequest) {
       : {};
     const transferNumber = details.personalPhone || biz.ownerPhone || null;
 
-    const system = voiceSystemPrompt(
-      {
-        businessName: biz.businessName,
-        industry: details.industry,
-        hours: details.hours,
-        services: details.services,
-        notOffered: details.notOffered,
-        faqs: details.faqs,
-        emergency: details.emergencyNotify,
-        tone: details.tone,
-        website: details.websiteUrl,
-      },
-      { transferNumber },
-    );
+    const system = voiceSystemPrompt(agentContextFrom(biz, details), { transferNumber });
 
     // Missed-call opener + two-party-consent (Illinois) AI + recording disclosure.
     const firstMessage = voiceFirstMessage(biz.businessName);

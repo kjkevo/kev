@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
 import { checkAdminAuth } from '@/app/lib/adminAuth';
-import { voiceSystemPrompt, voiceFirstMessage } from '@/app/lib/ai';
+import { voiceSystemPrompt, voiceFirstMessage, agentContextFrom } from '@/app/lib/ai';
 import { VOICE_OPTIONS } from '@/app/lib/voices';
 
 export const dynamic = 'force-dynamic';
@@ -28,27 +28,16 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
   const transferNumber = details.personalPhone || biz.ownerPhone || null;
 
-  const systemPrompt = voiceSystemPrompt(
-    {
-      businessName: biz.businessName,
-      industry: details.industry,
-      hours: details.hours,
-      services: details.services,
-      notOffered: details.notOffered,
-      faqs: details.faqs,
-      emergency: details.emergencyNotify,
-      tone: details.tone,
-      website: details.websiteUrl,
-    },
-    { transferNumber },
-  );
+  const systemPrompt = voiceSystemPrompt(agentContextFrom(biz, details), { transferNumber });
 
   const firstMessage = voiceFirstMessage(biz.businessName);
 
   // The client's picked voice is an ElevenLabs voice id (what Vapi speaks with).
   const chosen = biz.voice ? VOICE_OPTIONS.find((v) => v.id === biz.voice) : null;
 
-  const appUrl = (process.env.APP_URL || process.env.NEXTAUTH_URL || '').replace(/\/$/, '');
+  // Use the real request origin so the Server URL shows the live domain (not a
+  // stale localhost/env value) when pasted into Vapi.
+  const appUrl = request.nextUrl.origin.replace(/\/$/, '');
 
   return NextResponse.json({
     businessName: biz.businessName,

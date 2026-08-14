@@ -16,6 +16,7 @@ export interface AiTurn {
 export interface TextAgentContext {
   businessName: string;
   industry?: string | null;
+  description?: string | null;
   hours?: string | null;
   services?: string | null;
   notOffered?: string | null;
@@ -23,19 +24,54 @@ export interface TextAgentContext {
   emergency?: string | null;
   tone?: string | null;
   website?: string | null;
+  location?: string | null;
+  businessPhone?: string | null;
+  // What to collect from every caller/texter (e.g. "Name, Phone, Reason, Address").
+  collect?: string | null;
+  // A sample text the business wants customers to get — used as a style guide.
+  exampleMessage?: string | null;
   // Whether this contact just missed a call (so we relay, not cold-open).
   recentMissedCall?: boolean;
+}
+
+// Build the shared agent context from a business + its stored onboarding
+// answers, so the live SMS webhook, the live Vapi webhook, and the admin
+// Copy-Vapi panel all ground the assistant in exactly the same facts.
+export function agentContextFrom(
+  biz: { businessName: string },
+  details: Record<string, string>,
+): TextAgentContext {
+  const location = [details.address, details.city, details.state, details.zip, details.country]
+    .map((x) => (x || '').trim()).filter(Boolean).join(', ');
+  return {
+    businessName: biz.businessName,
+    industry: details.industry,
+    description: details.description,
+    hours: details.hours,
+    services: details.services,
+    notOffered: details.notOffered,
+    faqs: details.faqs,
+    emergency: details.emergencyNotify,
+    website: details.websiteUrl,
+    location: location || undefined,
+    businessPhone: details.businessPhone,
+    collect: details.leadInfo,
+    exampleMessage: details.exampleMessages,
+  };
 }
 
 function factsBlock(ctx: TextAgentContext): string {
   return [
     `- Name: ${ctx.businessName}`,
-    ctx.industry ? `- Industry: ${ctx.industry}` : '',
-    ctx.hours ? `- Hours: ${ctx.hours}` : '',
+    ctx.industry ? `- Industry / trade: ${ctx.industry}` : '',
+    ctx.description ? `- About: ${ctx.description}` : '',
     ctx.services ? `- Services/products: ${ctx.services}` : '',
     ctx.notOffered ? `- Does NOT offer: ${ctx.notOffered}` : '',
+    ctx.hours ? `- Hours: ${ctx.hours}` : '',
+    ctx.location ? `- Location / service area: ${ctx.location}` : '',
+    ctx.businessPhone ? `- Main business phone: ${ctx.businessPhone}` : '',
     ctx.faqs ? `- FAQs: ${ctx.faqs}` : '',
-    ctx.emergency ? `- What counts as an emergency + who to notify: ${ctx.emergency}` : '',
+    ctx.emergency ? `- What counts as an emergency: ${ctx.emergency}` : '',
     ctx.website ? `- Website: ${ctx.website}` : '',
   ].filter(Boolean).join('\n');
 }
@@ -44,14 +80,24 @@ function factsBlock(ctx: TextAgentContext): string {
 // text: handle it in the moment — read tone, de-escalate, qualify, resolve or
 // route — rather than restate. Shares the same business facts.
 export function voiceSystemPrompt(ctx: TextAgentContext, opts?: { transferNumber?: string | null }): string {
+  const collect = ctx.collect && ctx.collect.trim() ? ctx.collect.trim() : 'their name, phone number, and the reason for their call';
   return [
-    `You are the phone assistant for ${ctx.businessName}, a real local business. You are on a LIVE phone call with someone who reached the business's missed-call line.`,
+    `You are the phone assistant for ${ctx.businessName}, a real local business. You are on a LIVE phone call with someone who called and reached the business's missed-call line (the team could not pick up).`,
     ``,
-    `YOUR JOB (voice channel): handle it live. Read the caller's tone and de-escalate if they're upset or it's urgent. Ask focused questions to understand the situation, resolve what you can in the moment, and set up the next step (book, schedule, or arrange a callback).`,
-    opts?.transferNumber ? `- If the caller needs a person, or the request is beyond you, offer to connect them and transfer the call to the team.` : `- If the caller needs a person, take their details and tell them the team will call back.`,
-    `- Do not restate everything; keep moving the conversation forward.`,
+    `IDENTITY & HONESTY:`,
+    `- You are an A.I. assistant answering because the team couldn't get to the phone. If asked, say so plainly. Never claim to be a specific person or to physically do the work yourself.`,
+    `- Use ONLY the business facts below. Never invent prices, availability, policies, or services. If you don't know, say you'll have the team confirm and follow up.`,
     ``,
-    `STYLE: speak like a warm, competent human at a small business.${ctx.tone ? ` Tone: ${ctx.tone}.` : ''} Keep turns short and natural for speech, one question at a time. Never invent prices, availability, or policies — if unsure, say you'll have the team confirm.`,
+    `YOUR JOB (voice channel): handle it live. Read the caller's tone and de-escalate if they're upset or it's urgent. Ask focused questions to understand what they need, answer what you can from the facts, and set up the next step (book, schedule, or arrange a callback).`,
+    `- Collect from the caller before the call ends: ${collect}.`,
+    opts?.transferNumber ? `- If the caller needs a person, or the request is beyond you, offer to connect them and transfer the call to the team.` : `- If the caller needs a person, take their details and tell them the team will call back shortly.`,
+    ctx.emergency
+      ? `- EMERGENCY RULE: if the situation matches "${ctx.emergency}", treat it as urgent — reassure the caller, tell them you're alerting the team right now, and make sure you have their name, number, and address.`
+      : `- If the situation sounds urgent or unsafe, treat it as an emergency: reassure the caller and tell them you're alerting the team right away.`,
+    `- Don't restate everything; keep moving forward, one question at a time.`,
+    ``,
+    `STYLE: speak like a warm, competent human at a small business. Keep turns short and natural for speech. Never read out URLs or long numbers unless asked.`,
+    ctx.exampleMessage ? `- The business likes this style; match its warmth: "${ctx.exampleMessage.trim()}"` : '',
     ``,
     `BUSINESS FACTS (your only source of truth):`,
     factsBlock(ctx),
@@ -72,37 +118,31 @@ export function voiceFirstMessage(businessName: string): string {
 }
 
 function buildSystemPrompt(ctx: TextAgentContext): string {
-  const facts = [
-    `- Name: ${ctx.businessName}`,
-    ctx.industry ? `- Industry: ${ctx.industry}` : '',
-    ctx.hours ? `- Hours: ${ctx.hours}` : '',
-    ctx.services ? `- Services/products: ${ctx.services}` : '',
-    ctx.notOffered ? `- Does NOT offer: ${ctx.notOffered}` : '',
-    ctx.faqs ? `- FAQs: ${ctx.faqs}` : '',
-    ctx.emergency ? `- What counts as an emergency + who to notify: ${ctx.emergency}` : '',
-    ctx.website ? `- Website: ${ctx.website}` : '',
-  ].filter(Boolean).join('\n');
-
+  const collect = ctx.collect && ctx.collect.trim() ? ctx.collect.trim() : 'their name, phone number, and the reason for reaching out';
   return [
     `You are the SMS assistant for ${ctx.businessName}, a real local business. You reply to customers by text on the business's behalf.`,
     ``,
-    `YOUR JOB (text channel): move the conversation forward with concrete next steps — answer quick questions, share info, collect what's needed, and set up the next action (booking, a callback, or a resolution). Do not just restate what was already said.`,
+    `YOUR JOB (text channel): move the conversation forward with concrete next steps — answer quick questions from the facts, collect what's needed, and set up the next action (booking, a callback, or a resolution). Do not just restate what was already said.`,
+    `- Try to collect: ${collect}.`,
     ``,
     `RELAY, DON'T DUPLICATE:`,
     ctx.recentMissedCall
       ? `- This person just called and reached your missed-call line. Acknowledge that briefly and move to the next step. Do NOT open with a generic "how can we help you today?" as if this were a cold text.`
       : `- If they reference an earlier call or text, build on it. Don't make them start over.`,
-    `- If the situation is urgent or emotional (emergency, flooding, safety, an upset caller), stop volleying texts — tell them you're flagging it to the team right now and offer to call them.`,
+    ctx.emergency
+      ? `- EMERGENCY RULE: if the situation matches "${ctx.emergency}", stop volleying texts — tell them you're flagging it to the team right now and offer to call them.`
+      : `- If the situation is urgent or emotional (emergency, flooding, safety, an upset customer), stop volleying texts — tell them you're flagging it to the team right now and offer to call them.`,
     ``,
     `STYLE:`,
-    `- Text like a helpful human at a small business.${ctx.tone ? ` Tone: ${ctx.tone}.` : ''}`,
+    `- Text like a helpful human at a small business.`,
+    ctx.exampleMessage ? `- Match the tone of this example the business gave: "${ctx.exampleMessage.trim()}"` : '',
     `- Keep it short: 1-2 sentences, under ~300 characters. No markdown, no emojis unless the customer uses them.`,
     `- Only use the facts below. Never invent prices, availability, policies, or services. If you don't know, say you'll check with the team and get back to them.`,
     `- Don't claim to have booked or scheduled anything you can't actually do — say the team will confirm the details.`,
     ``,
     `BUSINESS FACTS (your only source of truth):`,
-    facts,
-  ].join('\n');
+    factsBlock(ctx),
+  ].filter(Boolean).join('\n');
 }
 
 // Generate a text reply. Returns { reply: null } (never throws) when AI is off

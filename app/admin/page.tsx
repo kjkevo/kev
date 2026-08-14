@@ -738,6 +738,12 @@ export default function AdminBusinessesPage() {
     const busyProv = busyId === `prov-${c.signupId}`;
     const busyStart = busyId === `start-${c.businessId}`;
     const busyConf = busyId === `conf-${c.businessId}`;
+    // What channels this client wants — from the built config if provisioned,
+    // else from their form pick — so the setup button reads "text", "voice", or
+    // "text & voice" and each single-channel client gets the right button.
+    const wantsVoice = c.businessId ? Boolean(c.voiceEnabled) : (c.servicePreference === "voice" || c.servicePreference === "both");
+    const wantsText = c.businessId ? Boolean(c.smsEnabled) : (c.servicePreference === "text" || c.servicePreference === "both");
+    const setupChannels = wantsVoice && wantsText ? "text & voice" : wantsVoice ? "voice" : "text";
     return (
       <div key={`${c.signupId}-${c.businessId}`} style={styles.pipeRow}>
         <div style={styles.pipeHead}>
@@ -764,7 +770,7 @@ export default function AdminBusinessesPage() {
             )}
             {c.businessId && (
               <button style={styles.smallBtn} onClick={() => openConfig(c)}>
-                {cfgId === c.businessId ? "Close setup" : "⚙️ Set up text & voice"}
+                {cfgId === c.businessId ? "Close setup" : `⚙️ Set up ${setupChannels}`}
               </button>
             )}
             {c.businessId && (
@@ -815,17 +821,24 @@ export default function AdminBusinessesPage() {
             )}
           </div>
         </div>
-        {isOpen && renderForm(c)}
-        {c.businessId != null && cfgId === c.businessId && cfg && renderConfigEditor(c.businessId)}
-        {c.businessId != null && vapiId === c.businessId && renderVapiPanel()}
-        {c.businessId != null && preId === c.businessId && renderPreflightPanel()}
+        {(isOpen
+          || (c.businessId != null && cfgId === c.businessId && cfg)
+          || (c.businessId != null && vapiId === c.businessId)
+          || (c.businessId != null && preId === c.businessId)) && (
+          <div style={styles.panelWrap}>
+            {isOpen && <div style={styles.panelCol}>{renderForm(c)}</div>}
+            {c.businessId != null && cfgId === c.businessId && cfg && <div style={styles.panelCol}>{renderConfigEditor(c.businessId)}</div>}
+            {c.businessId != null && vapiId === c.businessId && <div style={styles.panelCol}>{renderVapiPanel()}</div>}
+            {c.businessId != null && preId === c.businessId && <div style={styles.panelCol}>{renderPreflightPanel()}</div>}
+          </div>
+        )}
       </div>
     );
   }
 
   function renderBucket(title: string, subtitle: string, list: Client[]) {
     return (
-      <section style={styles.card}>
+      <section style={styles.cardWide}>
         <h2 style={styles.h2}>{title}{list.length > 0 ? ` (${list.length})` : ""}</h2>
         <p style={styles.muted}>{subtitle}</p>
         {list.length === 0 ? <p style={styles.mutedSmall}>None.</p> : list.map(renderClientRow)}
@@ -1167,6 +1180,9 @@ const styles: Record<string, React.CSSProperties> = {
   container: { maxWidth: 820, margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 },
   header: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 },
   card: { background: "#0E1526", border: "1px solid #1E2A44", borderRadius: 12, padding: 20, maxWidth: 460, margin: "0 auto", width: "100%" },
+  cardWide: { background: "#0E1526", border: "1px solid #1E2A44", borderRadius: 12, padding: 20, maxWidth: 820, margin: "0 auto", width: "100%" },
+  panelWrap: { display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-start", marginTop: 4 },
+  panelCol: { flex: "1 1 320px", minWidth: 280 },
   h1: { fontSize: 24, fontWeight: 700, margin: 0 },
   h2: { fontSize: 18, fontWeight: 600, margin: "0 0 16px" },
   muted: { color: "#8A93A6", fontSize: 14, margin: "4px 0 16px" },
@@ -1189,13 +1205,13 @@ const styles: Record<string, React.CSSProperties> = {
   formActions: { display: "flex", gap: 10 },
   primaryBtn: { background: "#3B82F6", color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 14, fontWeight: 600, cursor: "pointer", width: "100%" },
   ghostBtn: { background: "transparent", color: "#B8C0D0", border: "1px solid #24324F", borderRadius: 8, padding: "10px 16px", fontSize: 14, cursor: "pointer" },
-  smallBtn: { background: "#1B2740", color: "#E5E9F0", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 13, cursor: "pointer" },
-  smallDangerBtn: { background: "#3A1620", color: "#F7A8B8", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 13, cursor: "pointer" },
+  smallBtn: { background: "#1B2740", color: "#E5E9F0", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12.5, cursor: "pointer", whiteSpace: "nowrap" },
+  smallDangerBtn: { background: "#3A1620", color: "#F7A8B8", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12.5, cursor: "pointer", whiteSpace: "nowrap" },
   row: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderTop: "1px solid #1A2338" },
   rowTitle: { fontSize: 15, fontWeight: 600 },
   rowSub: { fontSize: 13, color: "#8A93A6", marginTop: 2 },
   rowStamp: { fontSize: 12, color: "#6B7688", marginTop: 3, fontWeight: 600 },
-  rowActions: { display: "flex", gap: 8 },
+  rowActions: { display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" },
   statGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 12 },
   stat: { background: "#0A0F1E", border: "1px solid #1C2740", borderRadius: 10, padding: "14px 16px" },
   statValue: { fontSize: 24, fontWeight: 800, letterSpacing: -0.5 },
@@ -1208,11 +1224,11 @@ const styles: Record<string, React.CSSProperties> = {
   healthLabel: { fontSize: 13, fontWeight: 700 },
   pipeRow: { borderTop: "1px solid #16233B", padding: "12px 0" },
   pipeHead: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" },
-  startTrialBtn: { background: "#22C55E", color: "#04220F", border: "none", borderRadius: 8, padding: "7px 12px", fontSize: 13, fontWeight: 800, cursor: "pointer" },
+  startTrialBtn: { background: "#22C55E", color: "#04220F", border: "none", borderRadius: 8, padding: "7px 12px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap" },
   formPanel: { marginTop: 10, background: "#0A0F1E", border: "1px solid #1C2740", borderRadius: 10, padding: "12px 14px" },
   formSectionTitle: { fontSize: 12, fontWeight: 800, color: "#8FB8FF", textTransform: "uppercase", letterSpacing: 0.5, margin: "8px 0 4px" },
   formLine: { fontSize: 13.5, color: "#C7CEDB", lineHeight: 1.5, marginTop: 4, whiteSpace: "pre-wrap" },
-  provisionBtn: { background: "#12B886", color: "#04140D", border: "none", borderRadius: 6, padding: "8px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer" },
+  provisionBtn: { background: "#12B886", color: "#04140D", border: "none", borderRadius: 6, padding: "8px 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" },
   pillNew: { background: "#12301F", color: "#8FE3B0", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999, marginLeft: 6, verticalAlign: "middle" },
   pillDone: { background: "#1B2740", color: "#9FC2FF", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999, marginLeft: 6, verticalAlign: "middle" },
   vapiBox: { marginTop: 12, background: "#0B1426", border: "1px solid #2A3C5F", borderRadius: 10, padding: 14 },
