@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
 import { voiceSystemPrompt, voiceFirstMessage } from '@/app/lib/ai';
+import { detectEmergency } from '@/app/lib/emergency';
+import { sendEmergencyAlertToOwner } from '@/app/lib/notifications';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,6 +85,18 @@ export async function POST(request: NextRequest) {
       await prisma.conversationMessage.create({
         data: { businessId: biz.id, contactPhone: callerNumber, channel: 'voice', role: 'inbound', body: note.slice(0, 4000) },
       }).catch(() => {});
+
+      // If the call looks like an emergency, escalate to the owner right away.
+      const details = biz.signupId != null
+        ? (((await prisma.trialSignup.findUnique({ where: { id: biz.signupId } }))?.onboardingDetails as Record<string, string> | null) || {})
+        : {};
+      if (detectEmergency(`${summary}\n${transcript}`, details.emergencyNotify)) {
+        await sendEmergencyAlertToOwner(
+          { phone: details.personalPhone || biz.ownerPhone, email: details.personalEmail || biz.ownerEmail },
+          biz.businessName,
+          { customerPhone: callerNumber, message: summary || transcript, channel: 'voice' },
+        ).catch((e) => console.error('Emergency alert (voice) failed:', e));
+      }
     }
     return NextResponse.json({ ok: true });
   }

@@ -4,6 +4,8 @@ import { prisma } from '@/app/lib/db';
 import { loadBusinessConfig } from '@/app/lib/config';
 import { logSmsResponseToAirtable } from '@/app/lib/airtable';
 import { generateTextReply, aiConfigured } from '@/app/lib/ai';
+import { detectEmergency } from '@/app/lib/emergency';
+import { sendEmergencyAlertToOwner } from '@/app/lib/notifications';
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,6 +23,7 @@ export async function POST(request: NextRequest) {
     }
 
     const from = paramsObj.From || '';
+    const to = paramsObj.To || '';
     const messageBody = paramsObj.Body || '';
     const messageSid = paramsObj.MessageSid || '';
 
@@ -92,54 +95,68 @@ export async function POST(request: NextRequest) {
       console.warn(`No matching record found for phone ${from}`);
     }
 
-    // ─── Conversational Text AI ──────────────────────────────────────────────
-    // If this business has AI text replies on, answer the message (grounded in
-    // their setup) instead of just capturing it. Skips carrier keywords and
-    // degrades to capture-only if AI is off/unconfigured.
+    // ─── Emergency escalation + conversational Text AI ───────────────────────
+    // Skip carrier keywords (STOP/HELP/etc). Otherwise, for an active texting
+    // business: (1) if the message looks like an emergency, alert the owner
+    // immediately — regardless of whether AI replies are on; (2) if AI text is
+    // on, answer the message grounded in their setup.
     const KEYWORDS = new Set(['STOP', 'STOPALL', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT', 'START', 'UNSTOP', 'YES', 'HELP', 'INFO']);
     const isKeyword = KEYWORDS.has(messageBody.trim().toUpperCase());
 
-    if (!isKeyword && to && aiConfigured) {
+    if (!isKeyword && to) {
       const biz = await prisma.businessConfig.findFirst({ where: { businessPhone: to } });
-      if (biz && biz.active && biz.smsEnabled && biz.aiTextEnabled) {
-        // Loop guard: cap AI replies per contact per hour.
-        const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
-        const recentOut = await prisma.conversationMessage.count({
-          where: { businessId: biz.id, contactPhone: from, role: 'outbound', createdAt: { gt: hourAgo } },
-        });
-        if (recentOut < 15) {
-          const details = biz.signupId != null
-            ? (((await prisma.trialSignup.findUnique({ where: { id: biz.signupId } }))?.onboardingDetails as Record<string, string> | null) || {})
-            : {};
-          const history = await prisma.conversationMessage.findMany({
-            where: { businessId: biz.id, contactPhone: from },
-            orderBy: { createdAt: 'asc' },
-            take: 16,
+      if (biz && biz.active && biz.smsEnabled) {
+        const details = biz.signupId != null
+          ? (((await prisma.trialSignup.findUnique({ where: { id: biz.signupId } }))?.onboardingDetails as Record<string, string> | null) || {})
+          : {};
+
+        // (1) Emergency → notify the owner right away (SMS + email).
+        if (detectEmergency(messageBody, details.emergencyNotify)) {
+          await sendEmergencyAlertToOwner(
+            { phone: details.personalPhone || biz.ownerPhone, email: details.personalEmail || biz.ownerEmail },
+            biz.businessName,
+            { customerPhone: from, message: messageBody, channel: 'text' },
+          ).catch((e) => console.error('Emergency alert failed:', e));
+        }
+
+        // (2) Conversational AI reply (only if enabled + configured).
+        if (aiConfigured && biz.aiTextEnabled) {
+          // Loop guard: cap AI replies per contact per hour.
+          const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
+          const recentOut = await prisma.conversationMessage.count({
+            where: { businessId: biz.id, contactPhone: from, role: 'outbound', createdAt: { gt: hourAgo } },
           });
-          await prisma.conversationMessage.create({
-            data: { businessId: biz.id, contactPhone: from, channel: 'sms', role: 'inbound', body: messageBody },
-          });
-          const { reply } = await generateTextReply(
-            {
-              businessName: biz.businessName,
-              industry: details.industry,
-              hours: details.hours,
-              services: details.services,
-              notOffered: details.notOffered,
-              faqs: details.faqs,
-              emergency: details.emergencyNotify,
-              tone: details.tone,
-              website: details.websiteUrl,
-              recentMissedCall: Boolean(missedCall),
-            },
-            history.map((h) => ({ role: h.role as 'inbound' | 'outbound', body: h.body })),
-            messageBody,
-          );
-          if (reply) {
-            await sendSMS(from, reply, to).catch((e) => console.error('AI reply send failed:', e));
-            await prisma.conversationMessage.create({
-              data: { businessId: biz.id, contactPhone: from, channel: 'sms', role: 'outbound', body: reply },
+          if (recentOut < 15) {
+            const history = await prisma.conversationMessage.findMany({
+              where: { businessId: biz.id, contactPhone: from },
+              orderBy: { createdAt: 'asc' },
+              take: 16,
             });
+            await prisma.conversationMessage.create({
+              data: { businessId: biz.id, contactPhone: from, channel: 'sms', role: 'inbound', body: messageBody },
+            });
+            const { reply } = await generateTextReply(
+              {
+                businessName: biz.businessName,
+                industry: details.industry,
+                hours: details.hours,
+                services: details.services,
+                notOffered: details.notOffered,
+                faqs: details.faqs,
+                emergency: details.emergencyNotify,
+                tone: details.tone,
+                website: details.websiteUrl,
+                recentMissedCall: Boolean(missedCall),
+              },
+              history.map((h) => ({ role: h.role as 'inbound' | 'outbound', body: h.body })),
+              messageBody,
+            );
+            if (reply) {
+              await sendSMS(from, reply, to).catch((e) => console.error('AI reply send failed:', e));
+              await prisma.conversationMessage.create({
+                data: { businessId: biz.id, contactPhone: from, channel: 'sms', role: 'outbound', body: reply },
+              });
+            }
           }
         }
       }

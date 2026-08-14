@@ -210,6 +210,66 @@ export const sendTextFailureAlertToOwner = async (
   return { emailSent, smsSent };
 };
 
+// Real-time emergency escalation. When an inbound text (or a voice-call summary)
+// looks like an emergency, we immediately reach the business owner on BOTH their
+// phone (SMS, for speed) and email (survives a Twilio hiccup), with the caller's
+// number so they can call back right away. This is the actual "notify the
+// business" mechanism behind the emergency question on the setup form. A copy
+// goes to the operator ALERT_EMAIL during launch so nothing is missed.
+export const sendEmergencyAlertToOwner = async (
+  owner: { phone?: string | null; email?: string | null },
+  businessName: string,
+  detail: { customerPhone: string; message: string; channel: 'text' | 'voice' },
+): Promise<{ smsSent: boolean; emailSent: boolean }> => {
+  const when = new Date().toLocaleString();
+  const via = detail.channel === 'voice' ? 'call' : 'text';
+  const snippet = detail.message.length > 300 ? `${detail.message.slice(0, 300)}…` : detail.message;
+  let smsSent = false;
+  let emailSent = false;
+
+  // Fast path: SMS the owner's phone.
+  if (owner.phone) {
+    try {
+      await sendSMS(
+        owner.phone,
+        `🚨 ${businessName}: possible EMERGENCY from a ${via} by ${detail.customerPhone}. "${snippet}" — call them back ASAP.`,
+      );
+      smsSent = true;
+    } catch (error) {
+      console.error('Emergency SMS to owner failed:', error);
+    }
+  }
+
+  // Backup: email the owner (and the operator during launch).
+  try {
+    const transporter = initializeEmailTransporter();
+    if (transporter && (owner.email || process.env.ALERT_EMAIL)) {
+      const recipients = new Set<string>();
+      if (owner.email) recipients.add(owner.email);
+      if (process.env.ALERT_EMAIL) recipients.add(process.env.ALERT_EMAIL);
+      await transporter.sendMail({
+        from: emailFrom(),
+        to: Array.from(recipients).join(', '),
+        subject: `🚨 Possible emergency for ${businessName} — call ${detail.customerPhone}`,
+        html: `
+          <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:520px;color:#1a1a1a;line-height:1.6;">
+            <h2 style="color:#b00020">Possible emergency ${via}</h2>
+            <p>A customer contacted <strong>${businessName}</strong> and it looks urgent. Reach out right away.</p>
+            <p><strong>Customer:</strong> <a href="tel:${detail.customerPhone}">${detail.customerPhone}</a></p>
+            <p><strong>What they said:</strong><br/><span style="white-space:pre-wrap">${snippet.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span></p>
+            <p><strong>Time:</strong> ${when}</p>
+            <hr /><p style="font-size:13px;color:#666">Automatic emergency alert from your Slimpse assistant.</p>
+          </div>`,
+      });
+      emailSent = true;
+    }
+  } catch (error) {
+    console.error('Emergency email to owner failed:', error);
+  }
+
+  return { smsSent, emailSent };
+};
+
 // Sent to the person who just signed up: warm instructions plus a big button to
 // their setup form, where they tell us what service they want (voice/text/both)
 // and example messages, then start service or cancel.
