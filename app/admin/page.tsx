@@ -21,6 +21,7 @@ interface Client {
   category: "paying" | "trial" | "review" | "new";
   stage: string;
   billDate: string | null;
+  submittedAt: string | null;
   missedCallMessage: string | null;
   leadSubmissionMsg: string | null;
   smsEnabled: boolean | null;
@@ -748,6 +749,7 @@ export default function AdminBusinessesPage() {
               {c.active === false && c.businessId ? " · ⏸️ OFF" : ""}
             </div>
             <div style={styles.rowSub}>{c.mobile} · {c.email}{c.trade ? ` · ${c.trade}` : ""}</div>
+            {c.submittedAt && <div style={styles.rowStamp}>🕒 {fmtDateTime(c.submittedAt)}</div>}
           </div>
           <div style={styles.rowActions}>
             {c.intakeSubmitted && (
@@ -1114,6 +1116,14 @@ function fmtDate(iso: string | null): string {
   return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
+// Date + time, e.g. "Aug 14, 2026 · 12:07 PM" — for when a review came in.
+function fmtDateTime(iso: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return `${d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })} · ${d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`;
+}
+
 // A short billing/trial label for a business row.
 function billingLabel(b: Business): string {
   const sub = b.subscriptionStatus;
@@ -1184,6 +1194,7 @@ const styles: Record<string, React.CSSProperties> = {
   row: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderTop: "1px solid #1A2338" },
   rowTitle: { fontSize: 15, fontWeight: 600 },
   rowSub: { fontSize: 13, color: "#8A93A6", marginTop: 2 },
+  rowStamp: { fontSize: 12, color: "#6B7688", marginTop: 3, fontWeight: 600 },
   rowActions: { display: "flex", gap: 8 },
   statGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 12 },
   stat: { background: "#0A0F1E", border: "1px solid #1C2740", borderRadius: 10, padding: "14px 16px" },

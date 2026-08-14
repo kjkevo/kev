@@ -510,9 +510,6 @@ export default function WelcomePage() {
                 {intakeBusy ? "Sending…" : intakeSubmitted ? "Update my answers" : "Finish setup"}
               </button>
             </div>
-            <button style={s.skipLink} onClick={submitIntake} disabled={intakeBusy}>
-              Skip these — finish later
-            </button>
           </>
         )}
       </div>

@@ -37,6 +37,8 @@ export async function GET(request: NextRequest) {
     category: 'paying' | 'trial' | 'review' | 'new' | 'cancel_requested';
     stage: string;
     billDate: string | null;
+    // When they came in: form-submission time if submitted, else signup time.
+    submittedAt: string | null;
     // Built-service config (null until provisioned) for the setup editor.
     missedCallMessage: string | null;
     leadSubmissionMsg: string | null;
@@ -91,6 +93,7 @@ export async function GET(request: NextRequest) {
       category,
       stage,
       billDate,
+      submittedAt: (s.intakeSubmittedAt ?? s.createdAt).toISOString(),
       missedCallMessage: b?.missedCallMessage ?? null,
       leadSubmissionMsg: b?.leadSubmissionMsg ?? null,
       smsEnabled: b?.smsEnabled ?? null,
