@@ -40,6 +40,18 @@ interface SetupDraft {
   aiTextEnabled: boolean;
 }
 
+interface VapiSetup {
+  businessName: string;
+  businessPhone: string;
+  voiceEnabled: boolean;
+  systemPrompt: string;
+  firstMessage: string;
+  model: { provider: string; name: string };
+  voice: { provider: string; voiceId: string | null; label: string };
+  transferNumber: string | null;
+  serverUrl: string;
+}
+
 interface MenuOptionJSON { label: string; keywords: string[]; reply: string; sms: string }
 interface VoiceMenuJSON {
   enabled?: boolean;
@@ -160,6 +172,10 @@ export default function AdminBusinessesPage() {
   const [cfgId, setCfgId] = React.useState<number | null>(null);
   const [cfg, setCfg] = React.useState<SetupDraft | null>(null);
   const [cfgSaving, setCfgSaving] = React.useState(false);
+  const [vapiId, setVapiId] = React.useState<number | null>(null);
+  const [vapi, setVapi] = React.useState<VapiSetup | null>(null);
+  const [vapiLoading, setVapiLoading] = React.useState(false);
+  const [copied, setCopied] = React.useState<string | null>(null);
 
   const fetchBusinesses = React.useCallback(async () => {
     setLoading(true);
@@ -439,6 +455,28 @@ export default function AdminBusinessesPage() {
     finally { setCfgSaving(false); }
   }
 
+  async function openVapi(businessId: number) {
+    if (vapiId === businessId) { setVapiId(null); setVapi(null); return; }
+    setVapiId(businessId); setVapi(null); setVapiLoading(true); setError(null);
+    try {
+      const res = await fetch(`/api/admin/businesses/${businessId}/vapi-setup`);
+      const j = await res.json().catch(() => ({}));
+      if (res.ok) setVapi(j);
+      else { setError(j.error || `Couldn't build Vapi setup (${res.status})`); setVapiId(null); }
+    } catch (e) { setError(String(e)); setVapiId(null); }
+    finally { setVapiLoading(false); }
+  }
+
+  async function copyText(label: string, text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(label);
+      setTimeout(() => setCopied((c) => (c === label ? null : c)), 1500);
+    } catch {
+      setError("Couldn't copy — select the text and copy manually.");
+    }
+  }
+
   function cancelDecision(c: Client, decision: "confirm" | "keep") {
     const msg = decision === "confirm"
       ? `Confirm cancellation for ${c.businessName}? Their service stays off. (Release their Twilio number if you bought one.)`
@@ -579,6 +617,65 @@ export default function AdminBusinessesPage() {
     );
   }
 
+  function renderVapiPanel() {
+    const copyBtn = (label: string, text: string) => (
+      <button type="button" style={styles.copyBtn} onClick={() => copyText(label, text)}>
+        {copied === label ? "✓ Copied" : "Copy"}
+      </button>
+    );
+    if (vapiLoading || !vapi) {
+      return <div style={styles.vapiBox}><div style={styles.configHint}>Building Vapi setup…</div></div>;
+    }
+    return (
+      <div style={styles.vapiBox}>
+        <div style={styles.vapiTitle}>📞 Vapi setup — paste these into a new Vapi assistant</div>
+        <div style={styles.configHint}>
+          In Vapi: <strong>Assistants → Create</strong>. Set Model = Anthropic ({vapi.model.name}),
+          paste the two boxes below, set Voice, Save. Then <strong>Phone Numbers → {vapi.businessPhone || "your number"} →
+          Assistant →</strong> pick it. That&apos;s the whole setup.
+        </div>
+        {!vapi.voiceEnabled && (
+          <div style={styles.vapiWarn}>⚠️ Voice is turned OFF for this business. Turn it on in &quot;Set up text &amp; voice&quot; before you rely on the call.</div>
+        )}
+
+        <div style={styles.vapiField}>
+          <div style={styles.vapiFieldHead}>
+            <span style={styles.fieldLabel}>Voice (ElevenLabs)</span>
+            {vapi.voice.voiceId && copyBtn("voiceId", vapi.voice.voiceId)}
+          </div>
+          <div style={styles.vapiInline}>
+            Provider <strong>{vapi.voice.provider}</strong> · {vapi.voice.label}
+            {vapi.voice.voiceId ? <> · ID <code style={styles.code}>{vapi.voice.voiceId}</code></> : null}
+          </div>
+        </div>
+
+        <div style={styles.vapiField}>
+          <div style={styles.vapiFieldHead}>
+            <span style={styles.fieldLabel}>First Message</span>
+            {copyBtn("first", vapi.firstMessage)}
+          </div>
+          <textarea style={styles.vapiTextarea} rows={3} readOnly value={vapi.firstMessage} />
+        </div>
+
+        <div style={styles.vapiField}>
+          <div style={styles.vapiFieldHead}>
+            <span style={styles.fieldLabel}>System Prompt</span>
+            {copyBtn("system", vapi.systemPrompt)}
+          </div>
+          <textarea style={styles.vapiTextarea} rows={12} readOnly value={vapi.systemPrompt} />
+        </div>
+
+        <div style={styles.vapiField}>
+          <div style={styles.vapiFieldHead}>
+            <span style={styles.fieldLabel}>Server URL (optional — for the automated path)</span>
+            {copyBtn("server", vapi.serverUrl)}
+          </div>
+          <div style={styles.vapiInline}><code style={styles.code}>{vapi.serverUrl}</code></div>
+        </div>
+      </div>
+    );
+  }
+
   function renderClientRow(c: Client) {
     const isOpen = openForm === c.signupId;
     const busyProv = busyId === `prov-${c.signupId}`;
@@ -610,6 +707,11 @@ export default function AdminBusinessesPage() {
             {c.businessId && (
               <button style={styles.smallBtn} onClick={() => openConfig(c)}>
                 {cfgId === c.businessId ? "Close setup" : "⚙️ Set up text & voice"}
+              </button>
+            )}
+            {c.businessId && (
+              <button style={styles.smallBtn} onClick={() => openVapi(c.businessId!)}>
+                {vapiId === c.businessId ? "Close Vapi" : "📞 Copy Vapi setup"}
               </button>
             )}
             {c.businessId && (c.stage === "built" || c.stage === "trial") && (
@@ -652,6 +754,7 @@ export default function AdminBusinessesPage() {
         </div>
         {isOpen && renderForm(c)}
         {cfgId === c.businessId && cfg && renderConfigEditor(c.businessId!)}
+        {vapiId === c.businessId && renderVapiPanel()}
       </div>
     );
   }
@@ -1039,6 +1142,15 @@ const styles: Record<string, React.CSSProperties> = {
   provisionBtn: { background: "#12B886", color: "#04140D", border: "none", borderRadius: 6, padding: "8px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer" },
   pillNew: { background: "#12301F", color: "#8FE3B0", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999, marginLeft: 6, verticalAlign: "middle" },
   pillDone: { background: "#1B2740", color: "#9FC2FF", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999, marginLeft: 6, verticalAlign: "middle" },
+  vapiBox: { marginTop: 12, background: "#0B1426", border: "1px solid #2A3C5F", borderRadius: 10, padding: 14 },
+  vapiTitle: { fontSize: 14, fontWeight: 800, color: "#8FB8FF", marginBottom: 8 },
+  vapiWarn: { background: "#2A2110", color: "#F5C518", border: "1px solid #5A4A1F", borderRadius: 8, padding: "8px 10px", fontSize: 12.5, margin: "10px 0" },
+  vapiField: { marginTop: 14 },
+  vapiFieldHead: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 },
+  vapiInline: { fontSize: 13, color: "#C7CEDB", lineHeight: 1.5 },
+  vapiTextarea: { background: "#070C18", border: "1px solid #24324F", borderRadius: 8, padding: "10px 12px", color: "#D7DEEC", fontSize: 12.5, width: "100%", resize: "vertical", fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", lineHeight: 1.5 },
+  copyBtn: { background: "#1B2740", color: "#9FC2FF", border: "1px solid #2A3C5F", borderRadius: 6, padding: "4px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer" },
+  code: { background: "#070C18", border: "1px solid #24324F", borderRadius: 4, padding: "1px 6px", fontSize: 12, color: "#9FC2FF", wordBreak: "break-all" },
   error: { color: "#F7A8B8", fontSize: 14, marginTop: 12 },
   errorBanner: { background: "#3A1620", color: "#F7A8B8", padding: "10px 14px", borderRadius: 8, fontSize: 14 },
   noticeBanner: { background: "#12301F", color: "#8FE3B0", padding: "10px 14px", borderRadius: 8, fontSize: 14 },
