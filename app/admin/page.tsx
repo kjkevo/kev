@@ -814,9 +814,9 @@ export default function AdminBusinessesPage() {
           </div>
         </div>
         {isOpen && renderForm(c)}
-        {cfgId === c.businessId && cfg && renderConfigEditor(c.businessId!)}
-        {vapiId === c.businessId && renderVapiPanel()}
-        {preId === c.businessId && renderPreflightPanel()}
+        {c.businessId != null && cfgId === c.businessId && cfg && renderConfigEditor(c.businessId)}
+        {c.businessId != null && vapiId === c.businessId && renderVapiPanel()}
+        {c.businessId != null && preId === c.businessId && renderPreflightPanel()}
       </div>
     );
   }
