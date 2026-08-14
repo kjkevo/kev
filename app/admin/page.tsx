@@ -45,6 +45,8 @@ interface VapiSetup {
   businessName: string;
   businessPhone: string;
   voiceEnabled: boolean;
+  websiteEnhanced?: boolean;
+  websiteSummary?: string | null;
   systemPrompt: string;
   firstMessage: string;
   model: { provider: string; name: string };
@@ -675,6 +677,9 @@ export default function AdminBusinessesPage() {
         {!vapi.voiceEnabled && (
           <div style={styles.vapiWarn}>⚠️ Voice is turned OFF for this business. Turn it on in &quot;Set up text &amp; voice&quot; before you rely on the call.</div>
         )}
+        {vapi.websiteEnhanced
+          ? <div style={styles.vapiGood}>✨ Enhanced with website facts — the System Prompt below already includes what we pulled from their site.</div>
+          : <div style={styles.configHint}>Tip: run “🌐 Scan website” to pull their site into this prompt and make the assistant sharper.</div>}
 
         <div style={styles.vapiField}>
           <div style={styles.vapiFieldHead}>
@@ -1253,6 +1258,7 @@ const styles: Record<string, React.CSSProperties> = {
   vapiBox: { marginTop: 12, background: "#0B1426", border: "1px solid #2A3C5F", borderRadius: 10, padding: 14 },
   vapiTitle: { fontSize: 14, fontWeight: 800, color: "#8FB8FF", marginBottom: 8 },
   vapiWarn: { background: "#2A2110", color: "#F5C518", border: "1px solid #5A4A1F", borderRadius: 8, padding: "8px 10px", fontSize: 12.5, margin: "10px 0" },
+  vapiGood: { background: "#0F2A1E", color: "#8FE3B0", border: "1px solid #1F5A3E", borderRadius: 8, padding: "8px 10px", fontSize: 12.5, margin: "10px 0" },
   vapiField: { marginTop: 14 },
   vapiFieldHead: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 },
   vapiInline: { fontSize: 13, color: "#C7CEDB", lineHeight: 1.5 },

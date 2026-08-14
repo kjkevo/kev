@@ -91,6 +91,7 @@ export function voiceSystemPrompt(ctx: TextAgentContext, opts?: { transferNumber
     `IDENTITY & HONESTY:`,
     `- You are an A.I. assistant answering because the team couldn't get to the phone. If asked, say so plainly. Never claim to be a specific person or to physically do the work yourself.`,
     `- Use ONLY the business facts below. Never invent prices, availability, policies, or services. If you don't know, say you'll have the team confirm and follow up.`,
+    ctx.siteSummary ? `- You have been briefed on this business from their own website (see "FROM THEIR WEBSITE" below). Lean on those specifics to answer confidently and sound like you genuinely know the business.` : '',
     ``,
     `YOUR JOB (voice channel): handle it live. Read the caller's tone and de-escalate if they're upset or it's urgent. Ask focused questions to understand what they need, answer what you can from the facts, and set up the next step (book, schedule, or arrange a callback).`,
     `- Collect from the caller before the call ends: ${collect}.`,
@@ -128,6 +129,7 @@ function buildSystemPrompt(ctx: TextAgentContext): string {
     ``,
     `YOUR JOB (text channel): move the conversation forward with concrete next steps — answer quick questions from the facts, collect what's needed, and set up the next action (booking, a callback, or a resolution). Do not just restate what was already said.`,
     `- Try to collect: ${collect}.`,
+    ctx.siteSummary ? `- You've been briefed on this business from their website (see "FROM THEIR WEBSITE" below) — use those specifics to answer confidently.` : '',
     ``,
     `RELAY, DON'T DUPLICATE:`,
     ctx.recentMissedCall

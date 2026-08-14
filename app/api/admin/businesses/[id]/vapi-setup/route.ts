@@ -39,10 +39,14 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   // stale localhost/env value) when pasted into Vapi.
   const appUrl = request.nextUrl.origin.replace(/\/$/, '');
 
+  const siteSummary = (details.websiteSummary || '').trim();
+
   return NextResponse.json({
     businessName: biz.businessName,
     businessPhone: biz.businessPhone,
     voiceEnabled: biz.voiceEnabled,
+    websiteEnhanced: Boolean(siteSummary),
+    websiteSummary: siteSummary || null,
     systemPrompt,
     firstMessage,
     model: { provider: 'Anthropic', name: 'claude-3-5-haiku-20241022' },
