@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
 import { checkAdminAuth } from '@/app/lib/adminAuth';
-import { voiceSystemPrompt } from '@/app/lib/ai';
+import { voiceSystemPrompt, voiceFirstMessage } from '@/app/lib/ai';
 import { VOICE_OPTIONS } from '@/app/lib/voices';
 
 export const dynamic = 'force-dynamic';
@@ -43,8 +43,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     { transferNumber },
   );
 
-  const firstMessage =
-    `Hi, thanks for calling ${biz.businessName}. Quick heads up, this call is answered by an A.I. assistant and may be recorded. How can I help you today?`;
+  const firstMessage = voiceFirstMessage(biz.businessName);
 
   // The client's picked voice is an ElevenLabs voice id (what Vapi speaks with).
   const chosen = biz.voice ? VOICE_OPTIONS.find((v) => v.id === biz.voice) : null;

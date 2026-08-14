@@ -58,6 +58,19 @@ export function voiceSystemPrompt(ctx: TextAgentContext, opts?: { transferNumber
   ].filter(Boolean).join('\n');
 }
 
+// The Voice AI only answers AFTER the business misses the call (the line is
+// forwarded on no-answer), so it opens by acknowledging that — not as if it were
+// the main line picking up. Carries the Illinois two-party AI + recording
+// disclosure. Shared by the live Vapi webhook and the admin Copy-Vapi panel so
+// the two never drift.
+export function voiceFirstMessage(businessName: string): string {
+  return (
+    `Hi! Thanks for calling ${businessName}. The team couldn't get to the phone right now, ` +
+    `so I'm their A.I. assistant and I can help you out. Quick heads up, this call may be recorded. ` +
+    `What can I help you with?`
+  );
+}
+
 function buildSystemPrompt(ctx: TextAgentContext): string {
   const facts = [
     `- Name: ${ctx.businessName}`,

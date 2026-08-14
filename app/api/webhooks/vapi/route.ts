@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
-import { voiceSystemPrompt } from '@/app/lib/ai';
+import { voiceSystemPrompt, voiceFirstMessage } from '@/app/lib/ai';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,9 +45,8 @@ export async function POST(request: NextRequest) {
       { transferNumber },
     );
 
-    // Two-party-consent (Illinois) AI + recording disclosure up front.
-    const firstMessage =
-      `Hi, thanks for calling ${biz.businessName}. Quick heads up, this call is answered by an A.I. assistant and may be recorded. How can I help you today?`;
+    // Missed-call opener + two-party-consent (Illinois) AI + recording disclosure.
+    const firstMessage = voiceFirstMessage(biz.businessName);
 
     // The business's chosen voice is an ElevenLabs voice id (what Vapi speaks).
     const voice = biz.voice ? { provider: '11labs', voiceId: biz.voice } : { provider: 'vapi', voiceId: 'Elliot' };
