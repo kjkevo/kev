@@ -3,6 +3,7 @@
 import * as React from "react";
 import { ONBOARDING_SECTIONS, type OnboardingField } from "@/app/lib/onboardingSchema";
 import { VOICE_OPTIONS, DEFAULT_VOICE } from "@/app/lib/voices";
+import { buildSamples, SAMPLE_EXPECTATIONS, type SampleConversation } from "@/app/lib/sampleConversations";
 
 // Public trial status page reached from the welcome email (/welcome?t=<token>).
 // Shows what's happening in plain language and lets them cancel — no login.
@@ -285,30 +286,15 @@ export default function WelcomePage() {
           </>
         ) : info.businessBuilt && !info.trialStarted ? (
           <>
-            <div style={s.kicker}>◆ MissedCall</div>
+            <div style={s.kicker}>◆ Slimpse</div>
             <h1 style={s.h1}>Review your setup, {biz}</h1>
-            <p style={s.sub}>Here&apos;s what we built for you. Confirm to go live and start your 14 day
-              free trial, or ask us for a change.</p>
+            <p style={s.sub}>Here&apos;s what we built for you and how it&apos;ll sound to your customers.
+              Confirm to go live and start your 14 day free trial, or ask us for a change.</p>
 
-            {info.setup?.smsEnabled && (
-              <div style={s.reviewBlock}>
-                <div style={s.reviewLabel}>Your missed call text back</div>
-                <div style={s.reviewValue}>{(info.setup.missedCallMessage || "").replace(/\{BUSINESS_NAME\}/g, biz)}</div>
-              </div>
-            )}
-            {info.setup?.voiceEnabled && (
-              <div style={s.reviewBlock}>
-                <div style={s.reviewLabel}>
-                  Your call greeting{reviewVoiceOption(info.setup.voice) ? ` · ${reviewVoiceOption(info.setup.voice)!.label}` : ""}
-                </div>
-                <div style={s.reviewValue}>{info.setup.voiceGreeting}</div>
-                {reviewVoiceOption(info.setup.voice) && (
-                  <button style={{ ...s.voicePlay, marginTop: 10 }} onClick={() => previewVoice(reviewVoiceOption(info.setup!.voice)!)}>
-                    {playingVoice === info.setup.voice ? "Stop" : "Preview voice"}
-                  </button>
-                )}
-              </div>
-            )}
+            {renderGetting()}
+            {renderConfirmInfo()}
+            {renderEmergency()}
+            {renderSamples()}
 
             {changeSent ? (
               <div style={{ ...s.intakeDone, marginTop: 16 }}>
@@ -575,6 +561,145 @@ export default function WelcomePage() {
     );
   }
 
+  // ── Review-page blocks (shown once the business is built, before trial) ──
+
+  function channelText(): string {
+    const sms = info?.setup?.smsEnabled, voice = info?.setup?.voiceEnabled;
+    if (sms && voice) return "Voice + Text";
+    if (voice) return "Voice";
+    if (sms) return "Text";
+    return "—";
+  }
+
+  // Block 1 — "What you're getting": channels, number, chosen voice.
+  function renderGetting() {
+    const v = reviewVoiceOption(info?.setup?.voice);
+    return (
+      <div style={s.reviewBlock}>
+        <div style={s.reviewLabel}>What you&apos;re getting</div>
+        <div style={s.getRow}><span style={s.getKey}>Service</span><span style={s.getVal}>{channelText()}</span></div>
+        {info?.phoneNumber && (
+          <div style={s.getRow}><span style={s.getKey}>Your number</span><span style={s.getVal}>{info.phoneNumber}</span></div>
+        )}
+        {info?.setup?.voiceEnabled && (
+          <div style={s.getRow}>
+            <span style={s.getKey}>Call voice</span>
+            <span style={s.getVal}>
+              {v ? v.label : "Default"}
+              {v && (
+                <button style={s.voiceMini} onClick={() => previewVoice(v)}>
+                  {playingVoice === v.id ? "Stop" : "▶ Hear it"}
+                </button>
+              )}
+            </span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Block 2 — "Confirm your details": the messages we'll send + the facts the
+  // assistant will use. Anything wrong → "Request a change" below.
+  function renderConfirmInfo() {
+    const d = info?.onboardingDetails || {};
+    const facts: { label: string; value: string }[] = [
+      { label: "Industry", value: d.industry },
+      { label: "Hours", value: d.hours },
+      { label: "About", value: d.description },
+    ].filter((x): x is { label: string; value: string } => Boolean(x.value && x.value.trim()));
+    return (
+      <div style={s.reviewBlock}>
+        <div style={s.reviewLabel}>Confirm your details</div>
+        {info?.setup?.smsEnabled && (
+          <div style={s.factItem}>
+            <div style={s.factKey}>Missed-call text</div>
+            <div style={s.factVal}>{(info.setup.missedCallMessage || "").replace(/\{BUSINESS_NAME\}/g, biz)}</div>
+          </div>
+        )}
+        {info?.setup?.voiceEnabled && info.setup.voiceGreeting && (
+          <div style={s.factItem}>
+            <div style={s.factKey}>Call greeting</div>
+            <div style={s.factVal}>{info.setup.voiceGreeting}</div>
+          </div>
+        )}
+        {facts.map((f) => (
+          <div key={f.label} style={s.factItem}>
+            <div style={s.factKey}>{f.label}</div>
+            <div style={s.factVal}>{f.value}</div>
+          </div>
+        ))}
+        <div style={s.factNote}>Something off? Use <strong>Request a change</strong> below and we&apos;ll fix it before you go live.</div>
+      </div>
+    );
+  }
+
+  // Block 3 — emergency handling, called out on its own (highest-stakes rule).
+  function renderEmergency() {
+    const em = (info?.onboardingDetails?.emergencyNotify || "").trim();
+    if (!em) {
+      return (
+        <div style={s.emptyEmergency}>
+          <div style={s.reviewLabel}>⚠️ Emergencies</div>
+          <div style={s.factVal}>You haven&apos;t told us what counts as an emergency yet. Add it with
+            <strong> Request a change</strong> so urgent calls get flagged to you right away.</div>
+        </div>
+      );
+    }
+    return (
+      <div style={s.emergencyBlock}>
+        <div style={s.reviewLabel}>🚨 Emergency handling</div>
+        <div style={s.factVal}>When a caller matches this, we flag it to you right away:</div>
+        <div style={s.emergencyQuote}>{em}</div>
+        <div style={s.factNote}>Make sure this is right — it decides which calls get escalated immediately.</div>
+      </div>
+    );
+  }
+
+  // Block 4 — three sample conversations rendered from their own facts, plus a
+  // short "what to expect" note. No AI call; deterministic and instant.
+  function renderSamples() {
+    const samples: SampleConversation[] = buildSamples({
+      businessName: biz,
+      industry: info?.onboardingDetails?.industry,
+      hours: info?.onboardingDetails?.hours,
+      emergencyNotify: info?.onboardingDetails?.emergencyNotify,
+      tone: info?.onboardingDetails?.tone,
+      missedCallMessage: info?.setup?.missedCallMessage,
+      voiceGreeting: info?.setup?.voiceGreeting,
+      smsEnabled: Boolean(info?.setup?.smsEnabled),
+      voiceEnabled: Boolean(info?.setup?.voiceEnabled),
+    });
+    return (
+      <div style={s.reviewBlock}>
+        <div style={s.reviewLabel}>How it&apos;ll sound to your customers</div>
+        <p style={s.samplesIntro}>A few examples, built from your answers, so there are no surprises.</p>
+        {samples.map((c, i) => (
+          <div key={i} style={s.sampleCard}>
+            <div style={s.sampleHead}>
+              <span style={s.sampleBadge}>{c.channel === "voice" ? "📞 Call" : "💬 Text"}</span>
+              <span style={s.sampleTitle}>{c.title}</span>
+            </div>
+            {c.turns.map((t, j) =>
+              t.who === "note" ? (
+                <div key={j} style={s.sampleNote}>{t.text}</div>
+              ) : (
+                <div key={j} style={{ ...s.bubbleRow, justifyContent: t.who === "customer" ? "flex-start" : "flex-end" }}>
+                  <div style={{ ...s.bubble, ...(t.who === "customer" ? s.bubbleCustomer : s.bubbleAi) }}>{t.text}</div>
+                </div>
+              )
+            )}
+          </div>
+        ))}
+        <div style={s.expectBox}>
+          <div style={s.expectHead}>What to expect</div>
+          <ul style={s.expectList}>
+            {SAMPLE_EXPECTATIONS.map((e, i) => <li key={i}>{e}</li>)}
+          </ul>
+        </div>
+      </div>
+    );
+  }
+
   function renderCancel() {
     return (
       <div style={s.cancelZone}>
@@ -640,6 +765,30 @@ const s: Record<string, React.CSSProperties> = {
   reviewBlock: { marginTop: 14, background: "#0B1A2E", border: "1px solid #24406B", borderRadius: 12, padding: "14px 16px" },
   reviewLabel: { fontSize: 12.5, fontWeight: 700, color: "#8FB8FF", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 },
   reviewValue: { fontSize: 15, color: "#E5E9F0", lineHeight: 1.5, whiteSpace: "pre-wrap" },
+  getRow: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "7px 0", borderTop: "1px solid #16233B", fontSize: 14 },
+  getKey: { color: "#98A2B6", fontWeight: 600 },
+  getVal: { color: "#E5E9F0", fontWeight: 700, textAlign: "right", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" },
+  voiceMini: { background: "#1B2740", color: "#9FC2FF", border: "1px solid #2A3854", borderRadius: 7, padding: "4px 9px", fontSize: 12, fontWeight: 700, cursor: "pointer" },
+  factItem: { marginTop: 10 },
+  factKey: { fontSize: 12, color: "#8FB8FF", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 3 },
+  factVal: { fontSize: 14.5, color: "#E5E9F0", lineHeight: 1.5, whiteSpace: "pre-wrap" },
+  factNote: { fontSize: 12.5, color: "#7A8397", lineHeight: 1.5, marginTop: 12 },
+  emergencyBlock: { marginTop: 14, background: "#2A1614", border: "1px solid #6B3320", borderRadius: 12, padding: "14px 16px" },
+  emergencyQuote: { fontSize: 14.5, color: "#FBCBA4", background: "#1E0F0C", border: "1px solid #5A2C1C", borderRadius: 8, padding: "10px 12px", margin: "8px 0", lineHeight: 1.5, whiteSpace: "pre-wrap" },
+  emptyEmergency: { marginTop: 14, background: "#2A2110", border: "1px solid #5A4A1F", borderRadius: 12, padding: "14px 16px" },
+  samplesIntro: { fontSize: 13, color: "#98A2B6", lineHeight: 1.5, margin: "6px 0 12px" },
+  sampleCard: { background: "#0A0F1E", border: "1px solid #1C2740", borderRadius: 10, padding: "12px", marginBottom: 12 },
+  sampleHead: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 },
+  sampleBadge: { fontSize: 11.5, fontWeight: 800, color: "#9FC2FF", background: "#12264A", border: "1px solid #24406B", borderRadius: 20, padding: "2px 9px", flexShrink: 0 },
+  sampleTitle: { fontSize: 13, fontWeight: 700, color: "#C7CEDB" },
+  sampleNote: { fontSize: 12, color: "#7A8397", fontStyle: "italic", textAlign: "center", margin: "6px 0", lineHeight: 1.45 },
+  bubbleRow: { display: "flex", margin: "5px 0" },
+  bubble: { maxWidth: "82%", fontSize: 13.5, lineHeight: 1.45, padding: "8px 11px", borderRadius: 13 },
+  bubbleCustomer: { background: "#1B2740", color: "#E5E9F0", borderBottomLeftRadius: 4 },
+  bubbleAi: { background: "#1E4620", color: "#CDEFD0", borderBottomRightRadius: 4 },
+  expectBox: { background: "#0F1A2E", border: "1px solid #24324F", borderRadius: 10, padding: "12px 14px", marginTop: 6 },
+  expectHead: { fontSize: 13, fontWeight: 800, color: "#8FB8FF", marginBottom: 6 },
+  expectList: { margin: 0, paddingLeft: 18, fontSize: 13, lineHeight: 1.6, color: "#C7CEDB" },
   voiceList: { display: "flex", flexDirection: "column", gap: 8 },
   voiceRow: { display: "flex", alignItems: "center", gap: 10, background: "#0A0F1E", border: "1px solid #22304C", borderRadius: 10, padding: "8px 10px" },
   voiceRowOn: { border: "1px solid #3B82F6", background: "#12264A", boxShadow: "0 0 0 1px #3B82F6" },
