@@ -491,6 +491,20 @@ export default function AdminBusinessesPage() {
     finally { setPreLoading(false); }
   }
 
+  async function runScan(c: Client) {
+    if (!c.businessId) return;
+    setError(null); setNotice(null); setBusyId(`scan-${c.businessId}`);
+    try {
+      const res = await fetch(`/api/admin/businesses/${c.businessId}/scan-website`, { method: "POST" });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) { setError(j.error || `Scan failed (${res.status})`); return; }
+      if (j.scanned) setNotice(`✅ Scanned ${j.website} — the assistants now use its details.`);
+      else setError(`⚠️ Couldn't scan ${j.website || "the website"}: ${j.error || "no usable content"}. Fill their facts manually.`);
+      refreshAll();
+    } catch (e) { setError(String(e)); }
+    finally { setBusyId(null); }
+  }
+
   async function copyText(label: string, text: string) {
     try {
       await navigator.clipboard.writeText(text);
@@ -781,6 +795,11 @@ export default function AdminBusinessesPage() {
             {c.businessId && (
               <button style={styles.smallBtn} onClick={() => openPreflight(c.businessId!)}>
                 {preId === c.businessId ? "Close preflight" : "🚦 Preflight check"}
+              </button>
+            )}
+            {c.businessId && c.onboardingDetails?.websiteUrl && (
+              <button style={styles.smallBtn} disabled={busyId === `scan-${c.businessId}`} onClick={() => runScan(c)}>
+                {busyId === `scan-${c.businessId}` ? "Scanning…" : "🌐 Scan website"}
               </button>
             )}
             {c.businessId && (c.stage === "built" || c.stage === "trial") && (

@@ -27,6 +27,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     ? await prisma.trialSignup.findUnique({ where: { id: biz.signupId } })
     : null;
   const pref = signup?.servicePreference || null; // "voice" | "text" | "both"
+  const details = ((signup?.onboardingDetails as Record<string, string> | null) || {});
 
   const checks: Check[] = [];
   const info = await getNumberInfo(biz.businessPhone);
@@ -115,6 +116,18 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         ? `Signed up for ${label(wantSms, wantVoice)} and that’s what’s on.`
         : `Signed up for ${label(wantSms, wantVoice)} but configured as ${label(biz.smsEnabled, biz.voiceEnabled)}.`,
     });
+  }
+
+  // Website scan status (only if they gave a website).
+  const website = (details.websiteUrl || '').trim();
+  if (website) {
+    if (details.websiteSummary && details.websiteSummary.trim()) {
+      checks.push({ id: 'website', label: 'Website scanned', status: 'pass', detail: 'The assistants are grounded in facts pulled from their website.' });
+    } else if (details.websiteScanNote) {
+      checks.push({ id: 'website', label: 'Website scan', status: 'warn', detail: details.websiteScanNote });
+    } else {
+      checks.push({ id: 'website', label: 'Website scan', status: 'warn', detail: `Website on file (${website}) but not scanned yet — use “Scan website”.` });
+    }
   }
 
   const summary = {

@@ -30,6 +30,8 @@ export interface TextAgentContext {
   collect?: string | null;
   // A sample text the business wants customers to get — used as a style guide.
   exampleMessage?: string | null;
+  // Facts distilled from the business's website (see summarizeWebsite).
+  siteSummary?: string | null;
   // Whether this contact just missed a call (so we relay, not cold-open).
   recentMissedCall?: boolean;
 }
@@ -57,6 +59,7 @@ export function agentContextFrom(
     businessPhone: details.businessPhone,
     collect: details.leadInfo,
     exampleMessage: details.exampleMessages,
+    siteSummary: details.websiteSummary,
   };
 }
 
@@ -73,6 +76,7 @@ function factsBlock(ctx: TextAgentContext): string {
     ctx.faqs ? `- FAQs: ${ctx.faqs}` : '',
     ctx.emergency ? `- What counts as an emergency: ${ctx.emergency}` : '',
     ctx.website ? `- Website: ${ctx.website}` : '',
+    ctx.siteSummary ? `\nFROM THEIR WEBSITE (use these details when relevant):\n${ctx.siteSummary}` : '',
   ].filter(Boolean).join('\n');
 }
 
@@ -182,5 +186,47 @@ export async function generateTextReply(
   } catch (error) {
     console.error('Text AI error:', error);
     return { reply: null, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+// Distill a business's website text into a compact facts sheet the phone/text
+// assistants can rely on. Returns null (never throws) when AI is off or the call
+// fails, so website scanning degrades gracefully.
+export async function summarizeWebsite(
+  businessName: string,
+  rawText: string,
+): Promise<{ summary: string | null; error?: string }> {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) return { summary: null, error: 'AI not configured' };
+  const text = rawText.slice(0, 16000);
+  if (!text.trim()) return { summary: null, error: 'No readable text on the page' };
+
+  const system =
+    `You extract facts from a local business's website so a phone/text assistant can answer customers accurately. ` +
+    `Output a concise plain-text facts sheet for ${businessName} — no preamble, no markdown headers. ` +
+    `Cover only what is actually on the page: services/products offered, anything they explicitly do NOT do, ` +
+    `service area or locations, hours, pricing or free-estimate policies, guarantees/licensing, and 3-6 likely FAQs with short answers. ` +
+    `Use short bullet-style lines. Never invent anything. Keep it under 250 words. ` +
+    `If the text is not actually this business's site (parked page, error), reply exactly: NO_USABLE_CONTENT.`;
+
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({ model: MODEL, max_tokens: 700, system, messages: [{ role: 'user', content: text }] }),
+    });
+    if (!res.ok) {
+      const t = await res.text().catch(() => '');
+      return { summary: null, error: `AI ${res.status}: ${t.slice(0, 200)}` };
+    }
+    const data = await res.json();
+    const out = Array.isArray(data?.content)
+      ? data.content.filter((b: { type?: string }) => b.type === 'text').map((b: { text?: string }) => b.text || '').join('').trim()
+      : '';
+    if (!out || out.includes('NO_USABLE_CONTENT')) return { summary: null, error: 'No usable content found on the site' };
+    return { summary: out };
+  } catch (error) {
+    console.error('Website summarize error:', error);
+    return { summary: null, error: error instanceof Error ? error.message : String(error) };
   }
 }

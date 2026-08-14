@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
 import { checkAdminAuth } from '@/app/lib/adminAuth';
 import { provisionNumber, attachToMessagingService } from '@/app/lib/twilio';
+import { scanWebsite } from '@/app/lib/website';
 
 // POST /api/admin/signups/[id]/provision — the one-click flow: buy a number,
 // wire its webhooks to this app, create the business, mark the signup onboarded,
@@ -98,11 +99,31 @@ export async function POST(
     return NextResponse.json({ error: 'Number bought, but creating the business failed. Add it manually.' }, { status: 500 });
   }
 
+  // If they gave a website, scan it now so both assistants are grounded in it.
+  // Best-effort: on success store the facts sheet; on failure store a note so
+  // the operator can see it (Preflight surfaces it) and fill facts by hand.
+  const detailsOut: Record<string, string> = { ...details };
+  const website = (details.websiteUrl || '').trim();
+  if (website) {
+    try {
+      const scan = await scanWebsite(website, signup.businessName);
+      if (scan.summary) {
+        detailsOut.websiteSummary = scan.summary;
+        delete detailsOut.websiteScanNote;
+      } else {
+        detailsOut.websiteScanNote = `Could not scan ${website} on ${new Date().toISOString()}: ${scan.error || 'no usable content'}`;
+      }
+    } catch (e) {
+      detailsOut.websiteScanNote = `Website scan errored for ${website}: ${e instanceof Error ? e.message : String(e)}`;
+    }
+  }
+
   await prisma.trialSignup.update({
     where: { id },
     data: {
       // Not 'onboarded' yet — that means live. Provisioning just builds it.
       status: 'contacted',
+      onboardingDetails: detailsOut,
       notes: `${signup.notes ? signup.notes + '\n' : ''}Built (number ${result.phoneNumber}) on ${new Date().toISOString()}${result.mock ? ' (MOCK — Twilio not configured)' : ''}`,
     },
   });
