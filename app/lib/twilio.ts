@@ -83,6 +83,38 @@ export const attachToMessagingService = async (
   }
 };
 
+// Look up a live number's current webhook config by its phone number, so the
+// preflight check can verify it's actually wired the way we expect. Returns null
+// when creds are missing (mock) or the number isn't in the account.
+export const getNumberInfo = async (
+  phoneNumber: string,
+): Promise<{ sid: string; smsUrl: string; voiceUrl: string; friendlyName: string } | null> => {
+  if (!hasValidCredentials) return null;
+  try {
+    const list = await client!.incomingPhoneNumbers.list({ phoneNumber, limit: 1 });
+    const n = list[0];
+    if (!n) return null;
+    return { sid: n.sid, smsUrl: n.smsUrl || '', voiceUrl: n.voiceUrl || '', friendlyName: n.friendlyName || '' };
+  } catch (error) {
+    console.error('Error fetching number info:', error);
+    return null;
+  }
+};
+
+// Is this number attached to our A2P Messaging Service? (So its texts inherit
+// the approved brand/campaign instead of being carrier-filtered.)
+export const isOnMessagingService = async (phoneNumberSid: string): Promise<boolean | null> => {
+  const msid = process.env.TWILIO_MESSAGING_SERVICE_SID;
+  if (!msid || !hasValidCredentials) return null;
+  try {
+    const members = await client!.messaging.v1.services(msid).phoneNumbers.list({ limit: 1000 });
+    return members.some((m) => m.sid === phoneNumberSid);
+  } catch (error) {
+    console.error('Error checking messaging service membership:', error);
+    return null;
+  }
+};
+
 // One-click provisioning: find and buy a US local number, wired to this app's
 // webhooks (voice, call-status, inbound SMS). `areaCode` is a preference — if no
 // number is available there, we fall back to any US local number. In mock mode

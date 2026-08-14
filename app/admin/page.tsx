@@ -52,6 +52,14 @@ interface VapiSetup {
   serverUrl: string;
 }
 
+interface PreflightCheck { id: string; label: string; status: "pass" | "warn" | "fail" | "skip"; detail: string }
+interface Preflight {
+  businessName: string;
+  businessPhone: string;
+  summary: { pass: number; warn: number; fail: number; skip: number };
+  checks: PreflightCheck[];
+}
+
 interface MenuOptionJSON { label: string; keywords: string[]; reply: string; sms: string }
 interface VoiceMenuJSON {
   enabled?: boolean;
@@ -176,6 +184,9 @@ export default function AdminBusinessesPage() {
   const [vapi, setVapi] = React.useState<VapiSetup | null>(null);
   const [vapiLoading, setVapiLoading] = React.useState(false);
   const [copied, setCopied] = React.useState<string | null>(null);
+  const [preId, setPreId] = React.useState<number | null>(null);
+  const [pre, setPre] = React.useState<Preflight | null>(null);
+  const [preLoading, setPreLoading] = React.useState(false);
 
   const fetchBusinesses = React.useCallback(async () => {
     setLoading(true);
@@ -467,6 +478,18 @@ export default function AdminBusinessesPage() {
     finally { setVapiLoading(false); }
   }
 
+  async function openPreflight(businessId: number) {
+    if (preId === businessId) { setPreId(null); setPre(null); return; }
+    setPreId(businessId); setPre(null); setPreLoading(true); setError(null);
+    try {
+      const res = await fetch(`/api/admin/businesses/${businessId}/preflight`);
+      const j = await res.json().catch(() => ({}));
+      if (res.ok) setPre(j);
+      else { setError(j.error || `Preflight failed (${res.status})`); setPreId(null); }
+    } catch (e) { setError(String(e)); setPreId(null); }
+    finally { setPreLoading(false); }
+  }
+
   async function copyText(label: string, text: string) {
     try {
       await navigator.clipboard.writeText(text);
@@ -676,6 +699,39 @@ export default function AdminBusinessesPage() {
     );
   }
 
+  function renderPreflightPanel() {
+    if (preLoading || !pre) {
+      return <div style={styles.vapiBox}><div style={styles.configHint}>Running preflight…</div></div>;
+    }
+    const icon = (s: PreflightCheck["status"]) => (s === "pass" ? "✅" : s === "warn" ? "🟡" : s === "fail" ? "🔴" : "⚪️");
+    const { summary } = pre;
+    const headline = summary.fail > 0
+      ? `${summary.fail} to fix before launch`
+      : summary.warn > 0 ? `${summary.warn} to double-check` : "All clear — ready to launch";
+    return (
+      <div style={styles.vapiBox}>
+        <div style={styles.vapiTitle}>🚦 Preflight — {pre.businessPhone || "no number"}</div>
+        <div style={{ ...styles.configHint, color: summary.fail > 0 ? "#F7A8B8" : summary.warn > 0 ? "#F5C518" : "#8FE3B0", fontWeight: 700 }}>
+          {headline}
+        </div>
+        <div style={{ marginTop: 8 }}>
+          {pre.checks.map((c) => (
+            <div key={c.id} style={styles.preRow}>
+              <span style={styles.preIcon}>{icon(c.status)}</span>
+              <span style={{ minWidth: 0 }}>
+                <span style={styles.preLabel}>{c.label}</span>
+                <span style={styles.preDetail}>{c.detail}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+        {summary.skip > 0 && (
+          <div style={styles.configHint}>⚪️ = couldn&apos;t check here (env not configured). These verify on production.</div>
+        )}
+      </div>
+    );
+  }
+
   function renderClientRow(c: Client) {
     const isOpen = openForm === c.signupId;
     const busyProv = busyId === `prov-${c.signupId}`;
@@ -712,6 +768,11 @@ export default function AdminBusinessesPage() {
             {c.businessId && (
               <button style={styles.smallBtn} onClick={() => openVapi(c.businessId!)}>
                 {vapiId === c.businessId ? "Close Vapi" : "📞 Copy Vapi setup"}
+              </button>
+            )}
+            {c.businessId && (
+              <button style={styles.smallBtn} onClick={() => openPreflight(c.businessId!)}>
+                {preId === c.businessId ? "Close preflight" : "🚦 Preflight check"}
               </button>
             )}
             {c.businessId && (c.stage === "built" || c.stage === "trial") && (
@@ -755,6 +816,7 @@ export default function AdminBusinessesPage() {
         {isOpen && renderForm(c)}
         {cfgId === c.businessId && cfg && renderConfigEditor(c.businessId!)}
         {vapiId === c.businessId && renderVapiPanel()}
+        {preId === c.businessId && renderPreflightPanel()}
       </div>
     );
   }
@@ -1151,6 +1213,10 @@ const styles: Record<string, React.CSSProperties> = {
   vapiTextarea: { background: "#070C18", border: "1px solid #24324F", borderRadius: 8, padding: "10px 12px", color: "#D7DEEC", fontSize: 12.5, width: "100%", resize: "vertical", fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", lineHeight: 1.5 },
   copyBtn: { background: "#1B2740", color: "#9FC2FF", border: "1px solid #2A3C5F", borderRadius: 6, padding: "4px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer" },
   code: { background: "#070C18", border: "1px solid #24324F", borderRadius: 4, padding: "1px 6px", fontSize: 12, color: "#9FC2FF", wordBreak: "break-all" },
+  preRow: { display: "flex", gap: 8, alignItems: "flex-start", padding: "8px 0", borderTop: "1px solid #16233B" },
+  preIcon: { flexShrink: 0, fontSize: 13, lineHeight: "18px" },
+  preLabel: { display: "block", fontSize: 13, fontWeight: 700, color: "#E5E9F0" },
+  preDetail: { display: "block", fontSize: 12.5, color: "#8A93A6", lineHeight: 1.45, marginTop: 1 },
   error: { color: "#F7A8B8", fontSize: 14, marginTop: 12 },
   errorBanner: { background: "#3A1620", color: "#F7A8B8", padding: "10px 14px", borderRadius: 8, fontSize: 14 },
   noticeBanner: { background: "#12301F", color: "#8FE3B0", padding: "10px 14px", borderRadius: 8, fontSize: 14 },
