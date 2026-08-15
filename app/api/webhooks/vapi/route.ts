@@ -26,6 +26,10 @@ export async function POST(request: NextRequest) {
       ? await prisma.businessConfig.findFirst({ where: { businessPhone: calledNumber } })
       : null;
     if (!biz) return NextResponse.json({ error: 'No business for this number.' }, { status: 200 });
+    // Master off-switch: if the business is turned off/removed/cancelled in the
+    // dashboard (active=false), the AI does NOT answer. So "Turn off" or "Remove"
+    // instantly stops voice too — you don't have to also detach it in Vapi.
+    if (!biz.active) return NextResponse.json({ error: 'This business is not active.' }, { status: 200 });
 
     const details = biz.signupId != null
       ? (((await prisma.trialSignup.findUnique({ where: { id: biz.signupId } }))?.onboardingDetails as Record<string, string> | null) || {})

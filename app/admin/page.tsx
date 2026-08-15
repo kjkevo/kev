@@ -668,12 +668,16 @@ export default function AdminBusinessesPage() {
     }
     return (
       <div style={styles.vapiBox}>
-        <div style={styles.vapiTitle}>📞 Vapi setup — paste these into a new Vapi assistant</div>
-        <div style={styles.configHint}>
-          In Vapi: <strong>Assistants → Create</strong>. Set Model = Anthropic ({vapi.model.name}),
-          paste the two boxes below, set Voice, Save. Then <strong>Phone Numbers → {vapi.businessPhone || "your number"} →
-          Assistant →</strong> pick it. That&apos;s the whole setup.
-        </div>
+        <div style={styles.vapiTitle}>📞 Vapi setup — 2-minute onboarding</div>
+        <ol style={styles.vapiSteps}>
+          <li><strong>Assistants → Create.</strong> Model = Anthropic ({vapi.model.name}).</li>
+          <li>Paste <strong>First Message</strong> + <strong>System Prompt</strong> (boxes below).</li>
+          <li>Voice = <strong>11Labs</strong> + the Voice ID below.{!vapi.voice.voiceId ? " (Pick a voice first in ⚙️ Set up.)" : ""}</li>
+          <li><strong>Phone Numbers → Import</strong> → connect Twilio → add <strong>{vapi.businessPhone || "this number"}</strong>.</li>
+          <li>On that number: <strong>Inbound Assistant</strong> = the one you just made. <strong>Publish.</strong></li>
+          <li>Back here: run <strong>🚦 Preflight</strong> → “Voice routing (Vapi)” should turn ✅. Then call it.</li>
+        </ol>
+        <div style={styles.configHint}>To offboard later: dashboard <strong>Turn off / Remove</strong> stops the AI instantly; then delete the number in Vapi &amp; release it in Twilio.</div>
         {!vapi.voiceEnabled && (
           <div style={styles.vapiWarn}>⚠️ Voice is turned OFF for this business. Turn it on in &quot;Set up text &amp; voice&quot; before you rely on the call.</div>
         )}
@@ -1259,6 +1263,7 @@ const styles: Record<string, React.CSSProperties> = {
   vapiTitle: { fontSize: 14, fontWeight: 800, color: "#8FB8FF", marginBottom: 8 },
   vapiWarn: { background: "#2A2110", color: "#F5C518", border: "1px solid #5A4A1F", borderRadius: 8, padding: "8px 10px", fontSize: 12.5, margin: "10px 0" },
   vapiGood: { background: "#0F2A1E", color: "#8FE3B0", border: "1px solid #1F5A3E", borderRadius: 8, padding: "8px 10px", fontSize: 12.5, margin: "10px 0" },
+  vapiSteps: { margin: "8px 0 6px", paddingLeft: 20, fontSize: 12.5, lineHeight: 1.7, color: "#C7CEDB" },
   vapiField: { marginTop: 14 },
   vapiFieldHead: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 },
   vapiInline: { fontSize: 13, color: "#C7CEDB", lineHeight: 1.5 },
