@@ -240,7 +240,9 @@ export const sendEmergencyAlertToOwner = async (
 ): Promise<{ smsSent: boolean; emailSent: boolean }> => {
   const when = new Date().toLocaleString();
   const via = detail.channel === 'voice' ? 'call' : 'text';
-  const snippet = detail.message.length > 300 ? `${detail.message.slice(0, 300)}…` : detail.message;
+  // Keep it a short summary, never a full transcript dump.
+  const clean = detail.message.replace(/\s+/g, ' ').trim();
+  const snippet = clean.length > 160 ? `${clean.slice(0, 160)}…` : clean;
   let smsSent = false;
   let emailSent = false;
 

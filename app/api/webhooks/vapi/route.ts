@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
 import { voiceSystemPrompt, voiceFirstMessage, agentContextFrom, composeFollowUpText } from '@/app/lib/ai';
-import { detectEmergency } from '@/app/lib/emergency';
+import { detectEmergency, callerTurns } from '@/app/lib/emergency';
 import { sendEmergencyAlertToOwner, sendCallFollowUpText } from '@/app/lib/notifications';
 
 export const dynamic = 'force-dynamic';
@@ -81,11 +81,14 @@ export async function POST(request: NextRequest) {
       const details = biz.signupId != null
         ? (((await prisma.trialSignup.findUnique({ where: { id: biz.signupId } }))?.onboardingDetails as Record<string, string> | null) || {})
         : {};
-      if (detectEmergency(`${summary}\n${transcript}`, details.emergencyNotify)) {
+      // Detect on the CALLER's words only (not the AI's), and alert with the
+      // short summary — never the whole transcript.
+      const callerSaid = callerTurns(transcript);
+      if (callerSaid && detectEmergency(callerSaid, details.emergencyNotify)) {
         await sendEmergencyAlertToOwner(
           { phone: details.personalPhone || biz.ownerPhone, email: details.personalEmail || biz.ownerEmail },
           biz.businessName,
-          { customerPhone: callerNumber, message: summary || transcript, channel: 'voice' },
+          { customerPhone: callerNumber, message: summary || callerSaid, channel: 'voice' },
         ).catch((e) => console.error('Emergency alert (voice) failed:', e));
       }
 
