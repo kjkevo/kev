@@ -210,6 +210,23 @@ export const sendTextFailureAlertToOwner = async (
   return { emailSent, smsSent };
 };
 
+// Send the post-call follow-up text to the caller (recap + next step), from the
+// business's own number, with the standard opt-out footer.
+export const sendCallFollowUpText = async (
+  callerPhone: string,
+  businessName: string,
+  fromPhone: string | undefined,
+  body: string,
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    await sendSMS(callerPhone, withComplianceFooter(body, businessName), fromPhone);
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending post-call follow-up text:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+};
+
 // Real-time emergency escalation. When an inbound text (or a voice-call summary)
 // looks like an emergency, we immediately reach the business owner on BOTH their
 // phone (SMS, for speed) and email (survives a Twilio hiccup), with the caller's

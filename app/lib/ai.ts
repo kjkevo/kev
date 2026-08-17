@@ -191,6 +191,38 @@ export async function generateTextReply(
   }
 }
 
+// After a voice call, compose a short, friendly follow-up SMS to the caller —
+// a quick recap + next step in the business's voice. Returns null (never throws)
+// when AI is off or the call fails, so the caller just doesn't get a text.
+export async function composeFollowUpText(
+  businessName: string,
+  callNotes: string,
+): Promise<string | null> {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key || !callNotes.trim()) return null;
+  const system =
+    `Write a single friendly SMS from ${businessName} to a customer who just called. ` +
+    `1-2 sentences, under 300 characters, no markdown, no emojis unless natural. ` +
+    `Briefly acknowledge what they called about and state the next step (someone will follow up / their request is logged). ` +
+    `Do not invent prices, times, or promises. Do not add a signature or "Reply STOP" — that's added automatically. ` +
+    `Output only the message text.`;
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({ model: MODEL, max_tokens: 200, system, messages: [{ role: 'user', content: callNotes.slice(0, 4000) }] }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const out = Array.isArray(data?.content)
+      ? data.content.filter((b: { type?: string }) => b.type === 'text').map((b: { text?: string }) => b.text || '').join('').trim()
+      : '';
+    return out || null;
+  } catch {
+    return null;
+  }
+}
+
 // Distill a business's website text into a compact facts sheet the phone/text
 // assistants can rely on. Returns null (never throws) when AI is off or the call
 // fails, so website scanning degrades gracefully.

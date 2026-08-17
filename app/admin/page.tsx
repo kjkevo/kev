@@ -55,6 +55,10 @@ interface VapiSetup {
   serverUrl: string;
 }
 
+interface ConvMessage { at: string; channel: string; role: string; body: string }
+interface ConvThread { contactPhone: string; lastAt: string; messages: ConvMessage[] }
+interface Conversations { businessName: string; threads: ConvThread[] }
+
 interface PreflightCheck { id: string; label: string; status: "pass" | "warn" | "fail" | "skip"; detail: string }
 interface Preflight {
   businessName: string;
@@ -190,6 +194,9 @@ export default function AdminBusinessesPage() {
   const [preId, setPreId] = React.useState<number | null>(null);
   const [pre, setPre] = React.useState<Preflight | null>(null);
   const [preLoading, setPreLoading] = React.useState(false);
+  const [convId, setConvId] = React.useState<number | null>(null);
+  const [conv, setConv] = React.useState<Conversations | null>(null);
+  const [convLoading, setConvLoading] = React.useState(false);
 
   const fetchBusinesses = React.useCallback(async () => {
     setLoading(true);
@@ -493,6 +500,18 @@ export default function AdminBusinessesPage() {
     finally { setPreLoading(false); }
   }
 
+  async function openConversations(businessId: number) {
+    if (convId === businessId) { setConvId(null); setConv(null); return; }
+    setConvId(businessId); setConv(null); setConvLoading(true); setError(null);
+    try {
+      const res = await fetch(`/api/admin/businesses/${businessId}/conversations`);
+      const j = await res.json().catch(() => ({}));
+      if (res.ok) setConv(j);
+      else { setError(j.error || `Couldn't load conversations (${res.status})`); setConvId(null); }
+    } catch (e) { setError(String(e)); setConvId(null); }
+    finally { setConvLoading(false); }
+  }
+
   async function runScan(c: Client) {
     if (!c.businessId) return;
     setError(null); setNotice(null); setBusyId(`scan-${c.businessId}`);
@@ -758,6 +777,32 @@ export default function AdminBusinessesPage() {
     );
   }
 
+  function renderConversationsPanel() {
+    if (convLoading || !conv) {
+      return <div style={styles.vapiBox}><div style={styles.configHint}>Loading conversations…</div></div>;
+    }
+    if (conv.threads.length === 0) {
+      return <div style={styles.vapiBox}><div style={styles.vapiTitle}>💬 Conversations</div><div style={styles.configHint}>No calls or texts yet. Voice recaps appear here after calls (needs the assistant&apos;s Server URL pointed at Slimpse), and texts appear as they come in.</div></div>;
+    }
+    return (
+      <div style={styles.vapiBox}>
+        <div style={styles.vapiTitle}>💬 Conversations</div>
+        {conv.threads.map((t) => (
+          <div key={t.contactPhone} style={styles.convThread}>
+            <div style={styles.convContact}>{t.contactPhone} · <span style={{ color: "#7A8397", fontWeight: 400 }}>{fmtDateTime(t.lastAt)}</span></div>
+            {t.messages.map((m, i) => (
+              <div key={i} style={{ ...styles.convBubbleRow, justifyContent: m.role === "inbound" ? "flex-start" : "flex-end" }}>
+                <div style={{ ...styles.convBubble, ...(m.role === "inbound" ? styles.convIn : styles.convOut) }}>
+                  <span style={styles.convBadge}>{m.channel === "voice" ? "📞" : "💬"}</span> {m.body}
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   function renderClientRow(c: Client) {
     const isOpen = openForm === c.signupId;
     const busyProv = busyId === `prov-${c.signupId}`;
@@ -813,6 +858,11 @@ export default function AdminBusinessesPage() {
                 {busyId === `scan-${c.businessId}` ? "Scanning…" : "🌐 Scan website"}
               </button>
             )}
+            {c.businessId && (
+              <button style={styles.smallBtn} onClick={() => openConversations(c.businessId!)}>
+                {convId === c.businessId ? "Close chats" : "💬 Conversations"}
+              </button>
+            )}
             {c.businessId && (c.stage === "built" || c.stage === "trial") && (
               <button style={styles.smallBtn} disabled={busyConf} onClick={() => sendConfirmation(c)}>
                 {busyConf ? "Sending…" : "✉️ Send confirmation"}
@@ -854,12 +904,14 @@ export default function AdminBusinessesPage() {
         {(isOpen
           || (c.businessId != null && cfgId === c.businessId && cfg)
           || (c.businessId != null && vapiId === c.businessId)
-          || (c.businessId != null && preId === c.businessId)) && (
+          || (c.businessId != null && preId === c.businessId)
+          || (c.businessId != null && convId === c.businessId)) && (
           <div style={styles.panelWrap}>
             {isOpen && <div style={styles.panelCol}>{renderForm(c)}</div>}
             {c.businessId != null && cfgId === c.businessId && cfg && <div style={styles.panelCol}>{renderConfigEditor(c.businessId)}</div>}
             {c.businessId != null && vapiId === c.businessId && <div style={styles.panelCol}>{renderVapiPanel()}</div>}
             {c.businessId != null && preId === c.businessId && <div style={styles.panelCol}>{renderPreflightPanel()}</div>}
+            {c.businessId != null && convId === c.businessId && <div style={styles.panelCol}>{renderConversationsPanel()}</div>}
           </div>
         )}
       </div>
@@ -1276,6 +1328,13 @@ const styles: Record<string, React.CSSProperties> = {
   preIcon: { flexShrink: 0, fontSize: 13, lineHeight: "18px" },
   preLabel: { display: "block", fontSize: 13, fontWeight: 700, color: "#E5E9F0" },
   preDetail: { display: "block", fontSize: 12.5, color: "#8A93A6", lineHeight: 1.45, marginTop: 1 },
+  convThread: { borderTop: "1px solid #16233B", padding: "10px 0", marginTop: 6 },
+  convContact: { fontSize: 12.5, fontWeight: 700, color: "#9FC2FF", marginBottom: 6 },
+  convBubbleRow: { display: "flex", margin: "4px 0" },
+  convBubble: { maxWidth: "85%", fontSize: 12.5, lineHeight: 1.4, padding: "7px 10px", borderRadius: 10 },
+  convIn: { background: "#1B2740", color: "#E5E9F0", borderBottomLeftRadius: 3 },
+  convOut: { background: "#1E4620", color: "#CDEFD0", borderBottomRightRadius: 3 },
+  convBadge: { opacity: 0.8, marginRight: 2 },
   error: { color: "#F7A8B8", fontSize: 14, marginTop: 12 },
   errorBanner: { background: "#3A1620", color: "#F7A8B8", padding: "10px 14px", borderRadius: 8, fontSize: 14 },
   noticeBanner: { background: "#12301F", color: "#8FE3B0", padding: "10px 14px", borderRadius: 8, fontSize: 14 },

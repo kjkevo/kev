@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
-import { voiceSystemPrompt, voiceFirstMessage, agentContextFrom } from '@/app/lib/ai';
+import { voiceSystemPrompt, voiceFirstMessage, agentContextFrom, composeFollowUpText } from '@/app/lib/ai';
 import { detectEmergency } from '@/app/lib/emergency';
-import { sendEmergencyAlertToOwner } from '@/app/lib/notifications';
+import { sendEmergencyAlertToOwner, sendCallFollowUpText } from '@/app/lib/notifications';
 
 export const dynamic = 'force-dynamic';
 
@@ -87,6 +87,17 @@ export async function POST(request: NextRequest) {
           biz.businessName,
           { customerPhone: callerNumber, message: summary || transcript, channel: 'voice' },
         ).catch((e) => console.error('Emergency alert (voice) failed:', e));
+      }
+
+      // Text the caller a friendly recap + next step right after the call.
+      if (biz.active && biz.smsEnabled) {
+        const followUp = await composeFollowUpText(biz.businessName, note);
+        if (followUp) {
+          await sendCallFollowUpText(callerNumber, biz.businessName, biz.businessPhone, followUp).catch(() => {});
+          await prisma.conversationMessage.create({
+            data: { businessId: biz.id, contactPhone: callerNumber, channel: 'sms', role: 'outbound', body: followUp },
+          }).catch(() => {});
+        }
       }
     }
     return NextResponse.json({ ok: true });
