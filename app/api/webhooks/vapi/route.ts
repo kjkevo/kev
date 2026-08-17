@@ -89,8 +89,9 @@ export async function POST(request: NextRequest) {
         ).catch((e) => console.error('Emergency alert (voice) failed:', e));
       }
 
-      // Text the caller a friendly recap + next step right after the call.
-      if (biz.active && biz.smsEnabled) {
+      // Text the caller a friendly recap + next step right after the call
+      // (unless the business opted out of post-call texts).
+      if (biz.active && biz.smsEnabled && biz.postCallText) {
         const followUp = await composeFollowUpText(biz.businessName, note);
         if (followUp) {
           await sendCallFollowUpText(callerNumber, biz.businessName, biz.businessPhone, followUp).catch(() => {});

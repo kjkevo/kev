@@ -29,6 +29,7 @@ interface Client {
   voiceGreeting: string | null;
   voice: string | null;
   aiTextEnabled: boolean | null;
+  postCallText: boolean | null;
 }
 
 interface SetupDraft {
@@ -39,6 +40,7 @@ interface SetupDraft {
   voiceEnabled: boolean;
   voice: string;
   aiTextEnabled: boolean;
+  postCallText: boolean;
 }
 
 interface VapiSetup {
@@ -457,6 +459,7 @@ export default function AdminBusinessesPage() {
       voiceEnabled: c.voiceEnabled ?? false,
       voice: c.voice || "",
       aiTextEnabled: c.aiTextEnabled ?? false,
+      postCallText: c.postCallText ?? true,
     });
   }
 
@@ -647,6 +650,11 @@ export default function AdminBusinessesPage() {
             <input type="checkbox" checked={cfg.aiTextEnabled} onChange={(e) => set({ aiTextEnabled: e.target.checked })} /> AI text replies
           </label>
         </div>
+        {cfg.voiceEnabled && (
+          <label style={{ ...styles.configToggle, marginTop: 10 }}>
+            <input type="checkbox" checked={cfg.postCallText} onChange={(e) => set({ postCallText: e.target.checked })} /> Text the caller a recap after each call
+          </label>
+        )}
         {cfg.aiTextEnabled && (
           <div style={styles.configHint}>
             Inbound texts are answered by the AI, grounded in this client&apos;s setup answers (industry, hours, services, FAQs, emergency rule, tone). Requires ANTHROPIC_API_KEY.
