@@ -496,14 +496,16 @@ export default function AdminBusinessesPage() {
   async function runScan(c: Client) {
     if (!c.businessId) return;
     setError(null); setNotice(null); setBusyId(`scan-${c.businessId}`);
+    const done = () => { if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" }); };
     try {
       const res = await fetch(`/api/admin/businesses/${c.businessId}/scan-website`, { method: "POST" });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok) { setError(j.error || `Scan failed (${res.status})`); return; }
-      if (j.scanned) setNotice(`✅ Scanned ${j.website} — the assistants now use its details.`);
+      if (!res.ok) { setError(j.error || `Scan failed (${res.status})`); done(); return; }
+      if (j.scanned) setNotice(`✅ Scanned ${j.website} — the assistants now use its details (${j.chars ?? 0} chars read).`);
       else setError(`⚠️ Couldn't scan ${j.website || "the website"}: ${j.error || "no usable content"}. Fill their facts manually.`);
       refreshAll();
-    } catch (e) { setError(String(e)); }
+      done();
+    } catch (e) { setError(String(e)); done(); }
     finally { setBusyId(null); }
   }
 

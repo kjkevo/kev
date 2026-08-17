@@ -4,6 +4,8 @@ import { checkAdminAuth } from '@/app/lib/adminAuth';
 import { scanWebsite } from '@/app/lib/website';
 
 export const dynamic = 'force-dynamic';
+// Fetching a few pages + summarizing can take longer than the default budget.
+export const maxDuration = 60;
 
 // POST /api/admin/businesses/[id]/scan-website — fetch the client's website and
 // distill it into a facts sheet the assistants use. Stores the result in the

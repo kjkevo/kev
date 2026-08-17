@@ -40,7 +40,7 @@ function htmlToText(html: string): string {
     .trim();
 }
 
-async function fetchText(url: string, timeoutMs = 8000): Promise<string> {
+async function fetchText(url: string, timeoutMs = 6000): Promise<string> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -70,7 +70,9 @@ export async function scanWebsite(
   if (!base) return { summary: null, error: 'That website address does not look valid.' };
 
   const origin = new URL(base).origin;
-  const candidates = [base, `${origin}/about`, `${origin}/services`, `${origin}/contact`];
+  // Homepage first (usually enough), then a couple likely info pages. Stop as
+  // soon as we have plenty, to stay within the serverless time budget.
+  const candidates = [base, `${origin}/services`, `${origin}/about`];
 
   const seen = new Set<string>();
   let combined = '';
@@ -79,7 +81,7 @@ export async function scanWebsite(
     seen.add(url);
     const text = await fetchText(url);
     if (text) combined += `\n\n[${url}]\n${text}`;
-    if (combined.length > 18000) break;
+    if (combined.length > 9000) break; // homepage alone is usually plenty
   }
 
   const trimmed = combined.trim();
