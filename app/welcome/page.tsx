@@ -284,7 +284,7 @@ export default function WelcomePage() {
             <p style={s.sub}>One 2 minute step and every missed call gets an instant text back:</p>
             <ul style={s.steps}>
               <li style={s.step}><strong>Forward when unanswered:</strong> dial <code style={s.code}>*71</code> then your new number</li>
-              <li style={s.step}><strong>When busy:</strong> <code style={s.code}>*90</code> · <strong>when unreachable:</strong> <code style={s.code}>*92</code></li>
+              <li style={s.step}><strong>When busy:</strong> dial <code style={s.code}>*90</code> then your new number</li>
               <li style={s.step}>On a VoIP or office phone it&apos;s a settings toggle. Reply to your email and we&apos;ll help.</li>
             </ul>
             {renderConversion()}

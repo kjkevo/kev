@@ -688,11 +688,9 @@ export const sendSetupConfirmationEmail = async (opts: {
           <ul style="margin:0 0 8px;padding-left:20px;">
             <li><strong>When unanswered:</strong> dial <code>*71</code> then ${opts.phoneNumber}</li>
             <li><strong>When busy:</strong> dial <code>*90</code> then ${opts.phoneNumber}</li>
-            <li><strong>When unreachable:</strong> dial <code>*92</code> then ${opts.phoneNumber}</li>
           </ul>
           <p style="margin:0 0 6px;font-size:14px;color:#555;">On a VoIP or office phone it's a settings toggle
-            instead of a dial code — reply to this email and we'll walk you through it. To turn forwarding
-            off later, dial <code>*73</code>.</p>` : '';
+            instead of a dial code — reply to this email and we'll walk you through it.</p>` : '';
     await transporter.sendMail({
       from: emailFrom(),
       to: opts.toEmail,
@@ -740,7 +738,6 @@ export const sendProvisionedWelcome = async (
         <ul>
           <li><strong>When unanswered:</strong> dial <code>*71</code> then ${newNumber}</li>
           <li><strong>When busy:</strong> dial <code>*90</code> then ${newNumber}</li>
-          <li><strong>When unreachable:</strong> dial <code>*92</code> then ${newNumber}</li>
         </ul>
         <p>On a VoIP or office phone system it's a settings toggle instead of a dial code —
           just reply to this email and we'll walk you through it.</p>
