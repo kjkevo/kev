@@ -115,6 +115,25 @@ export const isOnMessagingService = async (phoneNumberSid: string): Promise<bool
   }
 };
 
+// Read how our Messaging Service handles INBOUND texts. When a number is in a
+// Messaging Service, the service governs inbound routing unless it's set to
+// "defer to the sender's (number's) webhook". Lets Preflight check the right
+// place instead of only the number-level webhook.
+export const getMessagingServiceInbound = async (): Promise<{ inboundUrl: string; deferToNumber: boolean } | null> => {
+  const msid = process.env.TWILIO_MESSAGING_SERVICE_SID;
+  if (!msid || !hasValidCredentials) return null;
+  try {
+    const svc = await client!.messaging.v1.services(msid).fetch();
+    return {
+      inboundUrl: svc.inboundRequestUrl || '',
+      deferToNumber: Boolean((svc as { useInboundWebhookOnNumber?: boolean }).useInboundWebhookOnNumber),
+    };
+  } catch (error) {
+    console.error('Error fetching messaging service inbound config:', error);
+    return null;
+  }
+};
+
 // One-click provisioning: find and buy a US local number, wired to this app's
 // webhooks (voice, call-status, inbound SMS). `areaCode` is a preference — if no
 // number is available there, we fall back to any US local number. In mock mode

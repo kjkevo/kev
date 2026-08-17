@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
 import { checkAdminAuth } from '@/app/lib/adminAuth';
-import { getNumberInfo, isOnMessagingService } from '@/app/lib/twilio';
+import { getNumberInfo, isOnMessagingService, getMessagingServiceInbound } from '@/app/lib/twilio';
 import { isValidVoice } from '@/app/lib/voices';
 
 export const dynamic = 'force-dynamic';
@@ -42,14 +42,26 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     checks.push({ id: 'number', label: 'Number connected', status: 'skip', detail: 'Twilio is not configured in this environment, so live wiring cannot be checked here.' });
   }
 
-  // 2) SMS webhook (only meaningful if text is on)
+  // 2) SMS webhook (only meaningful if text is on). When the number is in a
+  // Messaging Service, the SERVICE governs inbound routing (unless it defers to
+  // the number's own webhook), so check whichever one actually applies.
   if (biz.smsEnabled) {
-    if (!info) {
+    const svc = await getMessagingServiceInbound();
+    const serviceGoverns = Boolean(svc && !svc.deferToNumber);
+    const governingUrl = serviceGoverns ? (svc!.inboundUrl || '') : (info ? info.smsUrl : '');
+    const canCheck = serviceGoverns || Boolean(info);
+    const ok = governingUrl.includes('/api/webhooks/twilio/sms-inbound');
+    if (!canCheck) {
       checks.push({ id: 'sms-webhook', label: 'Text webhook', status: twilioLive ? 'fail' : 'skip', detail: twilioLive ? 'No number to check.' : 'Twilio not configured here.' });
-    } else if (info.smsUrl.includes('/api/webhooks/twilio/sms-inbound')) {
-      checks.push({ id: 'sms-webhook', label: 'Text webhook', status: 'pass', detail: 'Incoming texts route to Slimpse.' });
+    } else if (ok) {
+      checks.push({ id: 'sms-webhook', label: 'Text webhook', status: 'pass', detail: serviceGoverns ? 'Inbound texts route to Slimpse via your Messaging Service.' : 'Incoming texts route to Slimpse.' });
     } else {
-      checks.push({ id: 'sms-webhook', label: 'Text webhook', status: 'fail', detail: `Number's "A message comes in" webhook is "${info.smsUrl || 'unset'}", not the Slimpse sms-inbound URL.` });
+      checks.push({
+        id: 'sms-webhook', label: 'Text webhook', status: 'fail',
+        detail: serviceGoverns
+          ? `Your Messaging Service inbound webhook is "${governingUrl || 'unset'}", not the Slimpse sms-inbound URL.`
+          : `Number's "A message comes in" webhook is "${governingUrl || 'unset'}", not the Slimpse sms-inbound URL.`,
+      });
     }
   }
 
