@@ -675,11 +675,24 @@ export const sendSetupConfirmationEmail = async (opts: {
   missedCallMessage?: string;
   voiceGreeting?: string;
   reviewUrl?: string;
+  phoneNumber?: string;
 }): Promise<{ success: boolean; error?: string }> => {
   try {
     const transporter = initializeEmailTransporter();
     if (!transporter) return { success: false, error: 'Email not configured' };
     const preview = opts.missedCallMessage ? opts.missedCallMessage.replace(/\{BUSINESS_NAME\}/g, opts.businessName) : '';
+    const forwarding = opts.phoneNumber ? `
+          <h3 style="margin:22px 0 6px;">One 2-minute step to go live: call forwarding</h3>
+          <p style="margin:0 0 8px;">So calls you can't answer roll to your new number, set up "forward
+            when unanswered" on your business phone:</p>
+          <ul style="margin:0 0 8px;padding-left:20px;">
+            <li><strong>When unanswered:</strong> dial <code>*71</code> then ${opts.phoneNumber}</li>
+            <li><strong>When busy:</strong> dial <code>*90</code> then ${opts.phoneNumber}</li>
+            <li><strong>When unreachable:</strong> dial <code>*92</code> then ${opts.phoneNumber}</li>
+          </ul>
+          <p style="margin:0 0 6px;font-size:14px;color:#555;">On a VoIP or office phone it's a settings toggle
+            instead of a dial code — reply to this email and we'll walk you through it. To turn forwarding
+            off later, dial <code>*73</code>.</p>` : '';
     await transporter.sendMail({
       from: emailFrom(),
       to: opts.toEmail,
@@ -690,9 +703,11 @@ export const sendSetupConfirmationEmail = async (opts: {
           <p>We've built your missed-call service. Take a look and reply to confirm, or if you have any
             edits, once you give the go-ahead, we'll start your <strong>14-day free trial</strong>.</p>
           <p><strong>Service:</strong> ${opts.channel}</p>
+          ${opts.phoneNumber ? `<p><strong>Your dedicated number:</strong> ${opts.phoneNumber}</p>` : ''}
           ${preview ? `<p><strong>The text your callers will get:</strong></p><blockquote style="border-left:3px solid #2F6BFF;padding-left:12px;color:#333;white-space:pre-wrap;">${preview}</blockquote>` : ''}
           ${opts.voiceGreeting ? `<p><strong>What callers hear:</strong></p><blockquote style="border-left:3px solid #2F6BFF;padding-left:12px;color:#333;">${opts.voiceGreeting}</blockquote>` : ''}
-          ${opts.reviewUrl ? `<p><a href="${opts.reviewUrl}" style="color:#2F6BFF;">View your setup page</a></p>` : ''}
+          ${forwarding}
+          ${opts.reviewUrl ? `<p style="margin-top:16px"><a href="${opts.reviewUrl}" style="color:#2F6BFF;">View your setup page</a></p>` : ''}
         </div>`,
     });
     return { success: true };

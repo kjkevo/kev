@@ -31,6 +31,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     toEmail: business.ownerEmail,
     businessName: business.businessName,
     channel,
+    phoneNumber: business.businessPhone,
     // Only include each channel's preview when that channel is actually on, so
     // the email matches exactly what the client picked (Text / Voice / Both).
     missedCallMessage: business.smsEnabled ? business.missedCallMessage : undefined,
