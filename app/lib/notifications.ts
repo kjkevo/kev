@@ -685,9 +685,7 @@ export const sendIntakeSubmittedAlert = async (signup: {
   }
 };
 
-// Sent to the client after you BUILD their service, so they can confirm it looks
-// right before you start their trial.
-export const sendSetupConfirmationEmail = async (opts: {
+export interface SetupConfirmationOpts {
   toEmail: string;
   businessName: string;
   channel: string;
@@ -697,10 +695,15 @@ export const sendSetupConfirmationEmail = async (opts: {
   phoneNumber?: string;
   smsEnabled?: boolean;
   voiceEnabled?: boolean;
-}): Promise<{ success: boolean; error?: string }> => {
-  try {
-    const transporter = initializeEmailTransporter();
-    if (!transporter) return { success: false, error: 'Email not configured' };
+  // Operator overrides from the "Review & send" flow.
+  subject?: string;
+  customNote?: string;
+}
+
+// Build the setup-confirmation email WITHOUT sending it, so the operator can
+// preview (and edit the subject / add a personal note) before it goes out.
+export function renderSetupConfirmationEmail(opts: SetupConfirmationOpts): { subject: string; html: string } {
+    const esc = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const preview = opts.missedCallMessage ? opts.missedCallMessage.replace(/\{BUSINESS_NAME\}/g, opts.businessName) : '';
     const hasText = opts.smsEnabled ?? Boolean(opts.missedCallMessage);
     const hasVoice = opts.voiceEnabled ?? Boolean(opts.voiceGreeting);
@@ -741,13 +744,16 @@ export const sendSetupConfirmationEmail = async (opts: {
           </ul>
           <p style="margin:0 0 6px;font-size:14px;color:#555;">On a VoIP or office phone it's a settings toggle
             instead of a dial code — reply to this email and we'll walk you through it.</p>` : '';
-    await transporter.sendMail({
-      from: emailFrom(),
-      to: opts.toEmail,
-      subject: `Your ${opts.businessName} setup is ready — does this look right?`,
-      html: `
+    const note = opts.customNote && opts.customNote.trim()
+      ? `<p style="background:#F0F6FF;border-left:3px solid #2F6BFF;padding:10px 12px;margin:0 0 14px;white-space:pre-wrap;">${esc(opts.customNote.trim())}</p>`
+      : '';
+    const subject = (opts.subject && opts.subject.trim())
+      ? opts.subject.trim()
+      : `Your ${opts.businessName} setup is ready — does this look right?`;
+    const html = `
         <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:520px;color:#1a1a1a;line-height:1.6;">
           <h2>Here's your setup, ${opts.businessName} 👀</h2>
+          ${note}
           <p>We've built your missed-call service. Take a look and reply to confirm, or if you have any
             edits, once you give the go-ahead, we'll start your <strong>14-day free trial</strong>.</p>
           <p><strong>Service:</strong> ${opts.channel}</p>
@@ -760,8 +766,20 @@ export const sendSetupConfirmationEmail = async (opts: {
           ${forwarding}
           ${stayInLoop}
           ${opts.reviewUrl ? `<p style="margin-top:16px"><a href="${opts.reviewUrl}" style="color:#2F6BFF;">View your setup page</a></p>` : ''}
-        </div>`,
-    });
+        </div>`;
+    return { subject, html };
+}
+
+// Sent to the client after you BUILD their service, so they can confirm it looks
+// right before you start their trial. Renders (with any operator edits) then sends.
+export const sendSetupConfirmationEmail = async (
+  opts: SetupConfirmationOpts,
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const transporter = initializeEmailTransporter();
+    if (!transporter) return { success: false, error: 'Email not configured' };
+    const { subject, html } = renderSetupConfirmationEmail(opts);
+    await transporter.sendMail({ from: emailFrom(), to: opts.toEmail, subject, html });
     return { success: true };
   } catch (error) {
     console.error('Error sending setup confirmation email:', error);

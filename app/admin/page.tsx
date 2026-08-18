@@ -199,6 +199,12 @@ export default function AdminBusinessesPage() {
   const [convId, setConvId] = React.useState<number | null>(null);
   const [conv, setConv] = React.useState<Conversations | null>(null);
   const [convLoading, setConvLoading] = React.useState(false);
+  const [confId, setConfId] = React.useState<number | null>(null);
+  const [confPreview, setConfPreview] = React.useState<{ to: string; subject: string; html: string } | null>(null);
+  const [confSubject, setConfSubject] = React.useState("");
+  const [confNote, setConfNote] = React.useState("");
+  const [confLoading, setConfLoading] = React.useState(false);
+  const [confSending, setConfSending] = React.useState(false);
 
   const fetchBusinesses = React.useCallback(async () => {
     setLoading(true);
@@ -503,6 +509,44 @@ export default function AdminBusinessesPage() {
     finally { setPreLoading(false); }
   }
 
+  async function fetchConfPreview(businessId: number, subject?: string, customNote?: string) {
+    setConfLoading(true);
+    try {
+      const res = await fetch(`/api/admin/businesses/${businessId}/confirmation-preview`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subject, customNote }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (res.ok) { setConfPreview(j); return j; }
+      setError(j.error || `Preview failed (${res.status})`);
+    } catch (e) { setError(String(e)); }
+    finally { setConfLoading(false); }
+    return null;
+  }
+
+  async function openConfirm(c: Client) {
+    if (!c.businessId) return;
+    if (confId === c.businessId) { setConfId(null); setConfPreview(null); return; }
+    setConfId(c.businessId); setConfPreview(null); setConfNote(""); setConfSubject(""); setError(null);
+    const j = await fetchConfPreview(c.businessId);
+    if (j?.subject) setConfSubject(j.subject);
+  }
+
+  async function sendConfirmEmail(c: Client) {
+    if (!c.businessId) return;
+    setConfSending(true); setError(null); setNotice(null);
+    try {
+      const res = await fetch(`/api/admin/businesses/${c.businessId}/send-confirmation`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subject: confSubject, customNote: confNote }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (res.ok) { setNotice(`Confirmation email sent to ${c.email}.`); setConfId(null); setConfPreview(null); refreshAll(); }
+      else setError(j.error || `Send failed (${res.status})`);
+    } catch (e) { setError(String(e)); }
+    finally { setConfSending(false); }
+  }
+
   async function openConversations(businessId: number) {
     if (convId === businessId) { setConvId(null); setConv(null); return; }
     setConvId(businessId); setConv(null); setConvLoading(true); setError(null);
@@ -559,10 +603,6 @@ export default function AdminBusinessesPage() {
     postAction(`start-${c.businessId}`, `/api/admin/businesses/${c.businessId}/start-trial`,
       `${c.businessName} is live — 14-day free trial started. We emailed them their number.`,
       `Start ${c.businessName}'s 14-day free trial now?\n\nThis turns their service ON and emails them their number + forwarding steps.`);
-  }
-  function sendConfirmation(c: Client) {
-    postAction(`conf-${c.businessId}`, `/api/admin/businesses/${c.businessId}/send-confirmation`,
-      `Confirmation email sent to ${c.email}.`);
   }
   function cancelSubscription(c: Client) {
     postAction(`sub-${c.businessId}`, `/api/admin/businesses/${c.businessId}/cancel-subscription`,
@@ -785,6 +825,35 @@ export default function AdminBusinessesPage() {
     );
   }
 
+  function renderConfirmPanel(c: Client) {
+    return (
+      <div style={styles.vapiBox}>
+        <div style={styles.vapiTitle}>✉️ Review &amp; send — to {confPreview?.to || c.email}</div>
+        <div style={styles.configHint}>Edit the subject or add a personal note, preview, then send. Nothing goes out until you click Send.</div>
+
+        <label style={{ ...styles.fieldLabel, marginTop: 10 }}>Subject</label>
+        <input style={styles.input} value={confSubject} onChange={(e) => setConfSubject(e.target.value)} />
+
+        <label style={{ ...styles.fieldLabel, marginTop: 10 }}>Personal note (optional — shows at the top of the email)</label>
+        <textarea style={styles.textarea} rows={3} value={confNote} onChange={(e) => setConfNote(e.target.value)}
+          placeholder="Hey Jordan — great chatting earlier. Here's your setup…" />
+
+        <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+          <button style={styles.smallBtn} disabled={confLoading || !c.businessId} onClick={() => fetchConfPreview(c.businessId!, confSubject, confNote)}>
+            {confLoading ? "Loading…" : "↻ Update preview"}
+          </button>
+          <button style={styles.startTrialBtn} disabled={confSending} onClick={() => sendConfirmEmail(c)}>
+            {confSending ? "Sending…" : "Send email"}
+          </button>
+          <button style={styles.smallBtn} onClick={() => { setConfId(null); setConfPreview(null); }}>Cancel</button>
+        </div>
+
+        <div style={styles.emailPreviewLabel}>Preview (exactly what the client receives)</div>
+        <div style={styles.emailPreview} dangerouslySetInnerHTML={{ __html: confPreview?.html || "<p style='color:#888'>Loading preview…</p>" }} />
+      </div>
+    );
+  }
+
   function renderConversationsPanel() {
     if (convLoading || !conv) {
       return <div style={styles.vapiBox}><div style={styles.configHint}>Loading conversations…</div></div>;
@@ -815,7 +884,6 @@ export default function AdminBusinessesPage() {
     const isOpen = openForm === c.signupId;
     const busyProv = busyId === `prov-${c.signupId}`;
     const busyStart = busyId === `start-${c.businessId}`;
-    const busyConf = busyId === `conf-${c.businessId}`;
     // What channels this client wants — from the built config if provisioned,
     // else from their form pick — so the setup button reads "text", "voice", or
     // "text & voice" and each single-channel client gets the right button.
@@ -872,8 +940,8 @@ export default function AdminBusinessesPage() {
               </button>
             )}
             {c.businessId && (c.stage === "built" || c.stage === "trial") && (
-              <button style={styles.smallBtn} disabled={busyConf} onClick={() => sendConfirmation(c)}>
-                {busyConf ? "Sending…" : "✉️ Send confirmation"}
+              <button style={styles.smallBtn} onClick={() => openConfirm(c)}>
+                {confId === c.businessId ? "Close review" : "✉️ Review & send"}
               </button>
             )}
             {c.businessId && (c.stage === "built" || c.stage === "trial_ended") && (
@@ -913,13 +981,15 @@ export default function AdminBusinessesPage() {
           || (c.businessId != null && cfgId === c.businessId && cfg)
           || (c.businessId != null && vapiId === c.businessId)
           || (c.businessId != null && preId === c.businessId)
-          || (c.businessId != null && convId === c.businessId)) && (
+          || (c.businessId != null && convId === c.businessId)
+          || (c.businessId != null && confId === c.businessId)) && (
           <div style={styles.panelWrap}>
             {isOpen && <div style={styles.panelCol}>{renderForm(c)}</div>}
             {c.businessId != null && cfgId === c.businessId && cfg && <div style={styles.panelCol}>{renderConfigEditor(c.businessId)}</div>}
             {c.businessId != null && vapiId === c.businessId && <div style={styles.panelCol}>{renderVapiPanel()}</div>}
             {c.businessId != null && preId === c.businessId && <div style={styles.panelCol}>{renderPreflightPanel()}</div>}
             {c.businessId != null && convId === c.businessId && <div style={styles.panelCol}>{renderConversationsPanel()}</div>}
+            {c.businessId != null && confId === c.businessId && <div style={styles.panelCol}>{renderConfirmPanel(c)}</div>}
           </div>
         )}
       </div>
@@ -1343,6 +1413,8 @@ const styles: Record<string, React.CSSProperties> = {
   convIn: { background: "#1B2740", color: "#E5E9F0", borderBottomLeftRadius: 3 },
   convOut: { background: "#1E4620", color: "#CDEFD0", borderBottomRightRadius: 3 },
   convBadge: { opacity: 0.8, marginRight: 2 },
+  emailPreviewLabel: { fontSize: 12, color: "#8A93A6", fontWeight: 700, margin: "14px 0 6px" },
+  emailPreview: { background: "#ffffff", color: "#1a1a1a", border: "1px solid #24324F", borderRadius: 8, padding: 14, maxHeight: 440, overflow: "auto", fontSize: 14 },
   error: { color: "#F7A8B8", fontSize: 14, marginTop: 12 },
   errorBanner: { background: "#3A1620", color: "#F7A8B8", padding: "10px 14px", borderRadius: 8, fontSize: 14 },
   noticeBanner: { background: "#12301F", color: "#8FE3B0", padding: "10px 14px", borderRadius: 8, fontSize: 14 },

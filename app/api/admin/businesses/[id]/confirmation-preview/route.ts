@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
 import { checkAdminAuth } from '@/app/lib/adminAuth';
-import { sendSetupConfirmationEmail } from '@/app/lib/notifications';
+import { renderSetupConfirmationEmail } from '@/app/lib/notifications';
 
 export const dynamic = 'force-dynamic';
 
-// POST /api/admin/businesses/[id]/send-confirmation — email the client the setup
-// you built so they can confirm it looks good before you start their trial.
+// POST /api/admin/businesses/[id]/confirmation-preview — render the setup
+// confirmation email (with the operator's optional subject/note edits) so it
+// can be reviewed BEFORE sending. Does not send anything.
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   const denied = checkAdminAuth(request);
   if (denied) return denied;
@@ -17,12 +18,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const business = await prisma.businessConfig.findUnique({ where: { id } });
   if (!business) return NextResponse.json({ error: 'Business not found' }, { status: 404 });
 
-  // Optional operator edits from the "Review & send" flow.
   const body = await request.json().catch(() => ({}));
   const subject = typeof body.subject === 'string' ? body.subject : undefined;
   const customNote = typeof body.customNote === 'string' ? body.customNote : undefined;
 
-  // Link back to their setup page if we can find the token.
   let reviewUrl = '';
   if (business.signupId != null) {
     const signup = await prisma.trialSignup.findUnique({ where: { id: business.signupId }, select: { token: true } });
@@ -32,21 +31,19 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const channel = business.voiceEnabled && business.smsEnabled ? 'Voice + Text'
     : business.voiceEnabled ? 'Voice' : 'Text';
 
-  const result = await sendSetupConfirmationEmail({
+  const { subject: renderedSubject, html } = renderSetupConfirmationEmail({
     toEmail: business.ownerEmail,
     businessName: business.businessName,
     channel,
     phoneNumber: business.businessPhone,
     smsEnabled: business.smsEnabled,
     voiceEnabled: business.voiceEnabled,
-    subject,
-    customNote,
-    // Only include each channel's preview when that channel is actually on, so
-    // the email matches exactly what the client picked (Text / Voice / Both).
     missedCallMessage: business.smsEnabled ? business.missedCallMessage : undefined,
     voiceGreeting: business.voiceEnabled ? business.voiceGreeting : undefined,
     reviewUrl,
+    subject,
+    customNote,
   });
-  if (!result.success) return NextResponse.json({ error: result.error || 'Could not send' }, { status: 502 });
-  return NextResponse.json({ success: true });
+
+  return NextResponse.json({ to: business.ownerEmail, subject: renderedSubject, html });
 }
