@@ -95,6 +95,7 @@ export function voiceSystemPrompt(ctx: TextAgentContext, opts?: { transferNumber
     ``,
     `YOUR JOB (voice channel): handle it live. Read the caller's tone and de-escalate if they're upset or it's urgent. Ask focused questions to understand what they need, answer what you can from the facts, and set up the next step (book, schedule, or arrange a callback).`,
     `- Collect from the caller before the call ends: ${collect}.`,
+    `- You CANNOT access a calendar or book appointments yourself. If they want to schedule, capture their preferred day/time and details and say the team will confirm the exact appointment. Never say an appointment is booked or confirmed.`,
     opts?.transferNumber ? `- If the caller needs a person, or the request is beyond you, offer to connect them and transfer the call to the team.` : `- If the caller needs a person, take their details and tell them the team will call back shortly.`,
     ctx.emergency
       ? `- EMERGENCY RULE: if the situation matches "${ctx.emergency}", treat it as urgent — reassure the caller, tell them you're alerting the team right now, and make sure you have their name, number, and address.`
