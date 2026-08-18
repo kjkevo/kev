@@ -704,68 +704,87 @@ export interface SetupConfirmationOpts {
 // preview (and edit the subject / add a personal note) before it goes out.
 export function renderSetupConfirmationEmail(opts: SetupConfirmationOpts): { subject: string; html: string } {
     const esc = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const preview = opts.missedCallMessage ? opts.missedCallMessage.replace(/\{BUSINESS_NAME\}/g, opts.businessName) : '';
+    const preview = opts.missedCallMessage ? esc(opts.missedCallMessage.replace(/\{BUSINESS_NAME\}/g, opts.businessName)) : '';
+    const greeting = opts.voiceGreeting ? esc(opts.voiceGreeting) : '';
     const hasText = opts.smsEnabled ?? Boolean(opts.missedCallMessage);
     const hasVoice = opts.voiceEnabled ?? Boolean(opts.voiceGreeting);
+    const name = esc(opts.businessName);
 
-    // Set expectations so nothing surprises them once they're live.
-    const howItWorks = `
-          <h3 style="margin:22px 0 6px;">How it works</h3>
-          <ul style="margin:0 0 8px;padding-left:20px;font-size:14px;">
-            <li><strong>Only calls you can't answer</strong> come to us — if you pick up, we're never involved.</li>
-            ${hasText ? `<li>Missed calls get an <strong>instant text back</strong>, and the conversation can keep going by text.</li>` : ''}
-            ${hasVoice ? `<li>Missed calls are <strong>answered by your assistant</strong>, which helps the caller and takes their details.</li>` : ''}
-            <li>Every caller's <strong>name, number, and reason</strong> is captured, so you never lose a lead.</li>
-          </ul>`;
-
-    const whatItDoes = `
-          <h3 style="margin:22px 0 6px;">What your assistant does — and what it won't</h3>
-          <ul style="margin:0 0 8px;padding-left:20px;font-size:14px;">
-            <li>Answers common questions from the info you gave us (hours, services, area).</li>
-            <li>Flags anything <strong>urgent</strong> to you right away by text and email.</li>
-            <li>It <strong>won't quote prices or make promises</strong> it can't keep — it says your team will confirm.</li>
-            <li>It takes <strong>appointment requests</strong> and passes them to you to confirm — it doesn't book your calendar directly.</li>
-          </ul>`;
-
-    const aiNote = hasVoice
-      ? `<p style="margin:0 0 6px;font-size:13px;color:#555;">To keep you compliant, callers are told up front that they've reached an automated assistant and the call may be recorded.</p>`
-      : '';
-
-    const stayInLoop = `
-          <p style="font-size:14px;">You'll see every call and text as it happens, and can reply to this email anytime to tweak how your assistant sounds.</p>
-          <p style="font-size:13px;color:#555;">Your 14-day free trial starts when you confirm — no card needed, cancel anytime. Customers can always reply STOP to opt out of texts.</p>`;
-    const forwarding = opts.phoneNumber ? `
-          <h3 style="margin:22px 0 6px;">One 2-minute step to go live: call forwarding</h3>
-          <p style="margin:0 0 8px;">So calls you can't answer roll to your new number, set up "forward
-            when unanswered" on your business phone:</p>
-          <ul style="margin:0 0 8px;padding-left:20px;">
-            <li><strong>When unanswered:</strong> dial <code>*71</code> then ${opts.phoneNumber}</li>
-            <li><strong>When busy:</strong> dial <code>*90</code> then ${opts.phoneNumber}</li>
-          </ul>
-          <p style="margin:0 0 6px;font-size:14px;color:#555;">On a VoIP or office phone it's a settings toggle
-            instead of a dial code — reply to this email and we'll walk you through it.</p>` : '';
     const note = opts.customNote && opts.customNote.trim()
-      ? `<p style="background:#F0F6FF;border-left:3px solid #2F6BFF;padding:10px 12px;margin:0 0 14px;white-space:pre-wrap;">${esc(opts.customNote.trim())}</p>`
+      ? `<div style="background:#F0F6FF;border-left:3px solid #2F6BFF;padding:11px 14px;border-radius:8px;margin:0 0 18px;white-space:pre-wrap;font-size:14px;color:#33415a;">${esc(opts.customNote.trim())}</div>`
       : '';
+
+    const sampleText = hasText && preview ? `
+          <div style="margin:0 0 12px;">
+            <div style="font-size:12px;color:#2F6BFF;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">💬 The text your callers get</div>
+            <div style="background:#F6F8FC;border-radius:10px;padding:12px 14px;color:#33415a;white-space:pre-wrap;font-size:14px;">${preview}</div>
+          </div>` : '';
+    const sampleVoice = hasVoice && greeting ? `
+          <div style="margin:0 0 12px;">
+            <div style="font-size:12px;color:#2F6BFF;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">📞 What your callers hear</div>
+            <div style="background:#F6F8FC;border-radius:10px;padding:12px 14px;color:#33415a;font-size:14px;">${greeting}</div>
+          </div>` : '';
+
+    const missedGets = hasText && hasVoice ? 'an instant text back and a helpful AI answer'
+      : hasText ? 'an instant text back' : 'answered by your AI assistant';
+    const howItWorks = `
+          <h3 style="font-size:15px;margin:22px 0 8px;color:#0E1526;">How it works</h3>
+          <div style="font-size:14px;color:#33415a;line-height:1.8;">
+            ✅ Only the calls you <strong>miss</strong> come to us — pick up, and we're never involved.<br/>
+            ✅ Missed calls get ${missedGets}.<br/>
+            ✅ Every caller's name, number &amp; reason lands in one place — no lead slips away.
+          </div>`;
+
+    const codeStyle = 'background:#ffffff;border:1px solid #eadfbf;padding:1px 7px;border-radius:5px;font-weight:700;';
+    const goLive = opts.phoneNumber ? `
+          <div style="background:#FFF8E6;border:1px solid #F3D88A;border-radius:12px;padding:15px 16px;margin:20px 0;">
+            <div style="font-weight:800;color:#8a6d1a;margin-bottom:5px;">⚡ One 2-minute step to go live</div>
+            <div style="font-size:14px;color:#5a4a1f;margin-bottom:8px;">Send the calls you miss to your new number:</div>
+            <div style="font-size:14px;color:#1a2233;line-height:1.9;">
+              <strong>No answer:</strong> dial <code style="${codeStyle}">*71</code> then ${opts.phoneNumber}<br/>
+              <strong>Busy:</strong> dial <code style="${codeStyle}">*90</code> then ${opts.phoneNumber}
+            </div>
+            <div style="font-size:12.5px;color:#8a7a4f;margin-top:8px;">On an office or VoIP phone it's a settings toggle — just reply and we'll set it up with you.</div>
+          </div>` : '';
+
+    const cta = opts.reviewUrl ? `
+          <div style="margin:22px 0 4px;">
+            <a href="${opts.reviewUrl}" style="display:inline-block;background:#2F6BFF;color:#ffffff;text-decoration:none;padding:13px 26px;border-radius:10px;font-weight:700;font-size:15px;">Review &amp; confirm →</a>
+          </div>` : '';
+
+    const goodToKnow = `
+          <div style="font-size:12.5px;color:#77808f;line-height:1.65;margin-top:16px;border-top:1px solid #eef0f5;padding-top:12px;">
+            <strong>Good to know:</strong> your assistant never quotes prices it wasn't given and won't book your calendar — it takes the request and you confirm.${hasVoice ? ' Callers are told it\'s an automated assistant and the call may be recorded (keeps you compliant).' : ''}
+            <br/><br/>14-day free trial · no card needed · cancel anytime. Reply to this email to tweak anything.
+          </div>`;
+
     const subject = (opts.subject && opts.subject.trim())
       ? opts.subject.trim()
-      : `Your ${opts.businessName} setup is ready — does this look right?`;
+      : `You're all set, ${opts.businessName} — quick look before you go live`;
+
     const html = `
-        <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:520px;color:#1a1a1a;line-height:1.6;">
-          <h2>Here's your setup, ${opts.businessName} 👀</h2>
-          ${note}
-          <p>We've built your missed-call service. Take a look and reply to confirm, or if you have any
-            edits, once you give the go-ahead, we'll start your <strong>14-day free trial</strong>.</p>
-          <p><strong>Service:</strong> ${opts.channel}</p>
-          ${opts.phoneNumber ? `<p><strong>Your dedicated number:</strong> ${opts.phoneNumber}</p>` : ''}
-          ${preview ? `<p><strong>The text your callers will get:</strong></p><blockquote style="border-left:3px solid #2F6BFF;padding-left:12px;color:#333;white-space:pre-wrap;">${preview}</blockquote>` : ''}
-          ${opts.voiceGreeting ? `<p><strong>What callers hear:</strong></p><blockquote style="border-left:3px solid #2F6BFF;padding-left:12px;color:#333;">${opts.voiceGreeting}</blockquote>` : ''}
-          ${howItWorks}
-          ${whatItDoes}
-          ${aiNote}
-          ${forwarding}
-          ${stayInLoop}
-          ${opts.reviewUrl ? `<p style="margin-top:16px"><a href="${opts.reviewUrl}" style="color:#2F6BFF;">View your setup page</a></p>` : ''}
+        <div style="background:#f4f6fb;padding:24px 12px;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;">
+          <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #e7ebf3;">
+            <div style="background:#0E1526;padding:18px 28px;">
+              <span style="color:#ffffff;font-weight:800;font-size:18px;letter-spacing:.2px;">Slimpse</span>
+              <span style="color:#8FB8FF;font-size:13px;"> — never miss a customer again</span>
+            </div>
+            <div style="padding:26px 28px;color:#1a2233;line-height:1.6;">
+              <h1 style="font-size:21px;margin:0 0 6px;line-height:1.25;">You're all set, ${name} 🎉</h1>
+              <p style="color:#5b6472;margin:0 0 18px;font-size:15px;">Here's what we built. Reply to confirm and your <strong>14-day free trial</strong> starts — no card needed.</p>
+              ${note}
+              <div style="background:#EEF4FF;border:1px solid #D6E4FF;border-radius:12px;padding:14px 16px;margin:0 0 18px;">
+                <div style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:#2F6BFF;font-weight:700;">Your Slimpse number · ${esc(opts.channel)}</div>
+                <div style="font-size:24px;font-weight:800;margin-top:3px;color:#0E1526;">${opts.phoneNumber || ''}</div>
+              </div>
+              ${sampleText}
+              ${sampleVoice}
+              ${howItWorks}
+              ${goLive}
+              ${cta}
+              ${goodToKnow}
+            </div>
+          </div>
         </div>`;
     return { subject, html };
 }
