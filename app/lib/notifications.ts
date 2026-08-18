@@ -695,11 +695,42 @@ export const sendSetupConfirmationEmail = async (opts: {
   voiceGreeting?: string;
   reviewUrl?: string;
   phoneNumber?: string;
+  smsEnabled?: boolean;
+  voiceEnabled?: boolean;
 }): Promise<{ success: boolean; error?: string }> => {
   try {
     const transporter = initializeEmailTransporter();
     if (!transporter) return { success: false, error: 'Email not configured' };
     const preview = opts.missedCallMessage ? opts.missedCallMessage.replace(/\{BUSINESS_NAME\}/g, opts.businessName) : '';
+    const hasText = opts.smsEnabled ?? Boolean(opts.missedCallMessage);
+    const hasVoice = opts.voiceEnabled ?? Boolean(opts.voiceGreeting);
+
+    // Set expectations so nothing surprises them once they're live.
+    const howItWorks = `
+          <h3 style="margin:22px 0 6px;">How it works</h3>
+          <ul style="margin:0 0 8px;padding-left:20px;font-size:14px;">
+            <li><strong>Only calls you can't answer</strong> come to us — if you pick up, we're never involved.</li>
+            ${hasText ? `<li>Missed calls get an <strong>instant text back</strong>, and the conversation can keep going by text.</li>` : ''}
+            ${hasVoice ? `<li>Missed calls are <strong>answered by your assistant</strong>, which helps the caller and takes their details.</li>` : ''}
+            <li>Every caller's <strong>name, number, and reason</strong> is captured, so you never lose a lead.</li>
+          </ul>`;
+
+    const whatItDoes = `
+          <h3 style="margin:22px 0 6px;">What your assistant does — and what it won't</h3>
+          <ul style="margin:0 0 8px;padding-left:20px;font-size:14px;">
+            <li>Answers common questions from the info you gave us (hours, services, area).</li>
+            <li>Flags anything <strong>urgent</strong> to you right away by text and email.</li>
+            <li>It <strong>won't quote prices or make promises</strong> it can't keep — it says your team will confirm.</li>
+            <li>It takes <strong>appointment requests</strong> and passes them to you to confirm — it doesn't book your calendar directly.</li>
+          </ul>`;
+
+    const aiNote = hasVoice
+      ? `<p style="margin:0 0 6px;font-size:13px;color:#555;">To keep you compliant, callers are told up front that they've reached an automated assistant and the call may be recorded.</p>`
+      : '';
+
+    const stayInLoop = `
+          <p style="font-size:14px;">You'll see every call and text as it happens, and can reply to this email anytime to tweak how your assistant sounds.</p>
+          <p style="font-size:13px;color:#555;">Your 14-day free trial starts when you confirm — no card needed, cancel anytime. Customers can always reply STOP to opt out of texts.</p>`;
     const forwarding = opts.phoneNumber ? `
           <h3 style="margin:22px 0 6px;">One 2-minute step to go live: call forwarding</h3>
           <p style="margin:0 0 8px;">So calls you can't answer roll to your new number, set up "forward
@@ -723,7 +754,11 @@ export const sendSetupConfirmationEmail = async (opts: {
           ${opts.phoneNumber ? `<p><strong>Your dedicated number:</strong> ${opts.phoneNumber}</p>` : ''}
           ${preview ? `<p><strong>The text your callers will get:</strong></p><blockquote style="border-left:3px solid #2F6BFF;padding-left:12px;color:#333;white-space:pre-wrap;">${preview}</blockquote>` : ''}
           ${opts.voiceGreeting ? `<p><strong>What callers hear:</strong></p><blockquote style="border-left:3px solid #2F6BFF;padding-left:12px;color:#333;">${opts.voiceGreeting}</blockquote>` : ''}
+          ${howItWorks}
+          ${whatItDoes}
+          ${aiNote}
           ${forwarding}
+          ${stayInLoop}
           ${opts.reviewUrl ? `<p style="margin-top:16px"><a href="${opts.reviewUrl}" style="color:#2F6BFF;">View your setup page</a></p>` : ''}
         </div>`,
     });
