@@ -207,6 +207,9 @@ export default function AdminBusinessesPage() {
   const [confNote, setConfNote] = React.useState("");
   const [confLoading, setConfLoading] = React.useState(false);
   const [confSending, setConfSending] = React.useState(false);
+  const [mbPhone, setMbPhone] = React.useState("");
+  const [mbLabel, setMbLabel] = React.useState("");
+  const [mbBusy, setMbBusy] = React.useState(false);
 
   const fetchBusinesses = React.useCallback(async () => {
     setLoading(true);
@@ -417,6 +420,22 @@ export default function AdminBusinessesPage() {
   }
 
   function refreshAll() { fetchBusinesses(); fetchPipeline(); fetchOverview(); }
+
+  async function provisionModelB() {
+    if (!mbPhone.trim()) { setError("Enter the phone number the new line should ring."); return; }
+    if (!confirm(`Buy a new Slimpse number that rings ${mbPhone.trim()} first?\n\nThis makes a real Twilio purchase (about $1.15/mo).`)) return;
+    setMbBusy(true); setError(null); setNotice(null);
+    try {
+      const res = await fetch("/api/admin/provision-model-b", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ringPhone: mbPhone.trim(), label: mbLabel.trim() }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (res.ok) { setNotice(`Provisioned ${j.phoneNumber}. It rings ${mbPhone.trim()} and texts the caller on a miss.${j.mock ? " (mock, Twilio not live)" : ""}`); setMbPhone(""); setMbLabel(""); refreshAll(); }
+      else setError(j.error || `Provision failed (${res.status})`);
+    } catch (e) { setError(String(e)); }
+    finally { setMbBusy(false); }
+  }
 
   async function patchBusiness(id: number, body: Record<string, unknown>, okMsg: string) {
     setError(null); setNotice(null);
@@ -1099,6 +1118,23 @@ export default function AdminBusinessesPage() {
         {/* Businesses tab: add form + config list */}
         {tab === "businesses" && (
         <>
+        {/* Model B: one-click number that rings a phone first */}
+        <section style={styles.card}>
+          <h2 style={styles.h2}>Get a Model B number</h2>
+          <p style={styles.muted}>Buys a Slimpse number that rings the phone below first. If it is not answered, the caller gets a text back. No call forwarding needed.</p>
+          <Field label="Ring this phone">
+            <input style={styles.input} value={mbPhone} placeholder="+15551234567"
+              onChange={(e) => setMbPhone(e.target.value)} />
+          </Field>
+          <Field label="Label (optional)">
+            <input style={styles.input} value={mbLabel} placeholder="My Slimpse Line"
+              onChange={(e) => setMbLabel(e.target.value)} />
+          </Field>
+          <button style={styles.primaryBtn} disabled={mbBusy} onClick={provisionModelB}>
+            {mbBusy ? "Provisioning…" : "Provision Model B number"}
+          </button>
+        </section>
+
         {/* Form */}
         <section style={styles.card}>
           <h2 style={styles.h2}>{editingId ? `Edit business #${editingId}` : "Add a business"}</h2>
