@@ -738,13 +738,15 @@ export function renderSetupConfirmationEmail(opts: SetupConfirmationOpts): { sub
     const codeStyle = 'background:#ffffff;border:1px solid #eadfbf;padding:1px 7px;border-radius:5px;font-weight:700;';
     const goLive = opts.phoneNumber ? `
           <div style="background:#FFF8E6;border:1px solid #F3D88A;border-radius:12px;padding:15px 16px;margin:20px 0;">
-            <div style="font-weight:800;color:#8a6d1a;margin-bottom:5px;">⚡ One quick step to go live</div>
-            <div style="font-size:14px;color:#5a4a1f;margin-bottom:8px;">You keep your current business number. You just tell your phone to send the calls you don't answer to your new Slimpse number. <strong>From your business phone, dial one of these once:</strong></div>
+            <div style="font-weight:800;color:#8a6d1a;margin-bottom:6px;">⚡ One quick step to go live</div>
+            <div style="font-size:14px;color:#5a4a1f;line-height:1.6;margin-bottom:10px;">You keep your current business number and nothing about it changes. You are simply telling your phone company that any call you do not answer should go to your new Slimpse number instead, where your assistant picks up.</div>
+            <div style="font-size:13px;color:#8a6d1a;font-weight:700;margin-bottom:4px;">Do this once, from your business phone:</div>
             <div style="font-size:14px;color:#1a2233;line-height:1.9;">
-              <strong>If it rings and you don't pick up:</strong> <code style="${codeStyle}">*71</code> then ${opts.phoneNumber}<br/>
-              <strong>If your line is busy:</strong> <code style="${codeStyle}">*90</code> then ${opts.phoneNumber}
+              <strong>To catch calls you do not answer:</strong> dial <code style="${codeStyle}">*71</code> then ${opts.phoneNumber}<br/>
+              <strong>To catch calls when your line is busy:</strong> dial <code style="${codeStyle}">*90</code> then ${opts.phoneNumber}
             </div>
-            <div style="font-size:12.5px;color:#8a7a4f;margin-top:8px;">That is a carrier command. Dialing it from your business phone tells your phone company to forward those calls to us. On an office or VoIP phone it is a setting instead. Just reply and we will set it up with you.</div>
+            <div style="font-size:13px;color:#5a4a1f;margin-top:10px;line-height:1.6;"><strong>What happens next:</strong> a customer calls your normal number, just like always. If you pick up, the call is yours and we are never involved. If you cannot get to it, your phone company quietly passes that call to ${opts.phoneNumber} and your assistant answers, so the customer is never left hanging. You never type your own number anywhere. It is simply the phone you dial the code from.</div>
+            <div style="font-size:12.5px;color:#8a7a4f;margin-top:8px;">On an office or VoIP phone this is a setting instead of a dial code. Just reply and we will set it up with you.</div>
           </div>` : '';
 
     const cta = opts.reviewUrl ? `
@@ -752,10 +754,12 @@ export function renderSetupConfirmationEmail(opts: SetupConfirmationOpts): { sub
             <a href="${opts.reviewUrl}" style="display:inline-block;background:#2F6BFF;color:#ffffff;text-decoration:none;padding:13px 26px;border-radius:10px;font-weight:700;font-size:15px;">Review &amp; confirm →</a>
           </div>` : '';
 
+    const supportEmail = process.env.SUPPORT_EMAIL || 'hello@slimpse.com';
     const goodToKnow = `
           <div style="font-size:12.5px;color:#77808f;line-height:1.65;margin-top:16px;border-top:1px solid #eef0f5;padding-top:12px;">
             <strong>Good to know:</strong> your assistant never quotes prices it wasn't given and won't book your calendar. It takes the request and you confirm.${hasVoice ? ' Callers are told it is an automated assistant and the call may be recorded, which keeps you compliant.' : ''}
-            <br/><br/>14 day free trial. No card needed. Cancel anytime. Reply to this email to tweak anything.
+            <br/><br/>14 day free trial. No card needed. Cancel anytime.
+            <br/><br/>Questions or concerns? Reply to this email or reach us anytime at <a href="mailto:${supportEmail}" style="color:#2F6BFF;">${supportEmail}</a>.
           </div>`;
 
     const subject = (opts.subject && opts.subject.trim())
