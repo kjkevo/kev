@@ -44,6 +44,7 @@ export const ONBOARDING_SECTIONS: OnboardingSection[] = [
       { id: 'state', label: 'State', type: 'text', placeholder: 'IL' },
       { id: 'zip', label: 'Zip code', type: 'text', placeholder: '60601' },
       { id: 'country', label: 'Country', type: 'text', placeholder: 'United States' },
+      { id: 'additionalInfo', label: 'Any additional information', type: 'textarea', placeholder: 'Anything else we should know about your business' },
     ],
   },
   {
@@ -59,6 +60,7 @@ export const ONBOARDING_SECTIONS: OnboardingSection[] = [
       { id: 'emergencyNotify', label: 'What counts as an emergency, and who should we notify?', type: 'textarea', placeholder: 'Anyone saying no heat or leak, text Mike within 2 minutes', channel: 'both' },
       { id: 'leadInfo', label: 'What should we collect from callers?', type: 'chips', options: ['Name', 'Phone', 'Reason for call', 'Address'], channel: 'both' },
       { id: 'leadDestination', label: 'Where should leads go?', type: 'chips', options: ['Text me', 'Email'], channel: 'both' },
+      { id: 'capabilities', label: 'Requested capabilities (what should your assistant be able to do?)', type: 'chips', options: ['Transfer to a person', 'Schedule appointments', 'Reschedule appointments', 'Cancel appointments', 'Answer common questions', 'Take a message'], channel: 'both' },
     ],
   },
 ];
