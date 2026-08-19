@@ -44,6 +44,7 @@ export const ONBOARDING_SECTIONS: OnboardingSection[] = [
       { id: 'state', label: 'State', type: 'text', placeholder: 'IL' },
       { id: 'zip', label: 'Zip code', type: 'text', placeholder: '60601' },
       { id: 'country', label: 'Country', type: 'text', placeholder: 'United States' },
+      { id: 'capabilities', label: 'Requested capabilities (what should your assistant be able to do?)', type: 'chips', options: ['Transfer to a person', 'Schedule appointments', 'Reschedule appointments', 'Cancel appointments', 'Answer common questions', 'Take a message'] },
       { id: 'additionalInfo', label: 'Any additional information', type: 'textarea', placeholder: 'Anything else we should know about your business' },
     ],
   },

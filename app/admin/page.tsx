@@ -666,6 +666,9 @@ export default function AdminBusinessesPage() {
           <strong>Service wanted:</strong>{" "}
           {c.servicePreference === "both" ? "Voice + Text" : c.servicePreference === "voice" ? "Voice" : c.servicePreference === "text" ? "Text" : "—"}
         </div>
+        {d.voiceName && (
+          <div style={styles.formLine}><strong>Voice selected:</strong> {VOICE_OPTIONS.find((v) => v.id === d.voiceName)?.label || d.voiceName}</div>
+        )}
         {ONBOARDING_SECTIONS.map((section) => {
           const rows = section.fields.filter((f) => d[f.id]);
           if (rows.length === 0) return null;
