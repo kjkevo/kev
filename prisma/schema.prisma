@@ -191,6 +191,9 @@ model BusinessConfig {
   // When true, after a voice call the caller gets an AI recap/next-step text.
   // On by default; a business can opt out if they don't want auto follow-ups.
   postCallText        Boolean   @default(true)
+  // Model B (ring-through): when set, calls to this Slimpse number ring this
+  // phone first; if it isn't answered, the caller gets the missed-call text.
+  ringPhone           String?
   // Optional keyword voice menu: caller says a service, Twilio matches a
   // keyword and responds with a spoken reply + a service-specific text-back.
   // Shape: { enabled, prompt, options: [{label,keywords[],reply,sms}], fallbackReply, fallbackSms }

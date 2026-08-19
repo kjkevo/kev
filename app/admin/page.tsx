@@ -30,6 +30,7 @@ interface Client {
   voice: string | null;
   aiTextEnabled: boolean | null;
   postCallText: boolean | null;
+  ringPhone: string | null;
 }
 
 interface SetupDraft {
@@ -41,6 +42,7 @@ interface SetupDraft {
   voice: string;
   aiTextEnabled: boolean;
   postCallText: boolean;
+  ringPhone: string;
 }
 
 interface VapiSetup {
@@ -466,6 +468,7 @@ export default function AdminBusinessesPage() {
       voice: c.voice || "",
       aiTextEnabled: c.aiTextEnabled ?? false,
       postCallText: c.postCallText ?? true,
+      ringPhone: c.ringPhone || "",
     });
   }
 
@@ -700,6 +703,13 @@ export default function AdminBusinessesPage() {
             Inbound texts are answered by the AI, grounded in this client&apos;s setup answers (industry, hours, services, FAQs, emergency rule, tone). Requires ANTHROPIC_API_KEY.
           </div>
         )}
+
+        <label style={{ ...styles.fieldLabel, marginTop: 12 }}>Ring this phone first (Model B, optional)</label>
+        <input style={styles.input} value={cfg.ringPhone} placeholder="+15551234567"
+          onChange={(e) => set({ ringPhone: e.target.value })} />
+        <div style={styles.configHint}>
+          If set, calls to the Slimpse number ring this phone first. If it is not answered, the caller gets the missed-call text. Leave blank for the normal forwarding setup.
+        </div>
 
         {cfg.voiceEnabled && (
           <>

@@ -48,6 +48,7 @@ export async function GET(request: NextRequest) {
     voice: string | null;
     aiTextEnabled: boolean | null;
     postCallText: boolean | null;
+    ringPhone: string | null;
   };
 
   const clients: Client[] = [];
@@ -103,6 +104,7 @@ export async function GET(request: NextRequest) {
       voice: b?.voice ?? null,
       aiTextEnabled: b?.aiTextEnabled ?? null,
       postCallText: b?.postCallText ?? null,
+      ringPhone: b?.ringPhone ?? null,
     });
   }
 

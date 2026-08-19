@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateMissedCallTwiML, generateTextOnlyTwiML, generateVoiceMenuTwiML, verifyTwilioSignature } from '@/app/lib/twilio';
+import { generateMissedCallTwiML, generateTextOnlyTwiML, generateVoiceMenuTwiML, generateRingThroughTwiML, verifyTwilioSignature } from '@/app/lib/twilio';
 import { loadBusinessConfigByPhone, renderTemplate } from '@/app/lib/config';
 import { parseVoiceMenu, voiceMenuHints } from '@/app/lib/voiceMenu';
 
@@ -37,9 +37,18 @@ export async function POST(request: NextRequest) {
     // (which does nothing, since the status webhook is gated too).
     const active = config?.active !== false;
     const menu = active && config?.voiceEnabled ? parseVoiceMenu(config.voiceMenu) : null;
+    const origin0 = new URL(request.url).origin;
 
     let twiml: string;
-    if (active && config?.voiceEnabled && menu) {
+    if (active && config?.ringPhone) {
+      // Model B: ring the owner's phone first; on no-answer, the dial-status
+      // handler sends the missed-call text.
+      twiml = generateRingThroughTwiML({
+        ringPhone: config.ringPhone,
+        actionUrl: `${origin0}/api/webhooks/twilio/dial-status`,
+        callerId: from,
+      });
+    } else if (active && config?.voiceEnabled && menu) {
       const origin = new URL(request.url).origin;
       const prompt = renderTemplate(menu.prompt, { BUSINESS_NAME: config.businessName });
       twiml = generateVoiceMenuTwiML({

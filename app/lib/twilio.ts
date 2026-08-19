@@ -271,6 +271,27 @@ export const generateSpokenReplyTwiML = (reply: string) => {
   return twiml.toString();
 };
 
+// Model B (ring-through): ring the owner's own phone first. If they don't pick
+// up within the timeout, Twilio POSTs to `actionUrl` where we send the missed-
+// call text. `callerId` shows the original caller's number to the owner.
+export const generateRingThroughTwiML = (opts: {
+  ringPhone: string;
+  actionUrl: string;
+  callerId?: string;
+  timeoutSeconds?: number;
+}) => {
+  const twiml = new twilio.twiml.VoiceResponse();
+  const dial = twiml.dial({
+    timeout: opts.timeoutSeconds ?? 20,
+    action: opts.actionUrl,
+    method: 'POST',
+    answerOnBridge: true,
+    ...(opts.callerId ? { callerId: opts.callerId } : {}),
+  });
+  dial.number(opts.ringPhone);
+  return twiml.toString();
+};
+
 // Response for text-only businesses: end the call immediately (no spoken
 // message) so the call-status webhook fires and the text-back is sent.
 export const generateTextOnlyTwiML = () => {

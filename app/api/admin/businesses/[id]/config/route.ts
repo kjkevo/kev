@@ -29,6 +29,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   if (typeof body.voiceEnabled === 'boolean') data.voiceEnabled = body.voiceEnabled;
   if (typeof body.aiTextEnabled === 'boolean') data.aiTextEnabled = body.aiTextEnabled;
   if (typeof body.postCallText === 'boolean') data.postCallText = body.postCallText;
+  if (body.ringPhone === null || body.ringPhone === '') data.ringPhone = null;
+  else if (typeof body.ringPhone === 'string') data.ringPhone = body.ringPhone.trim();
   if (body.voice === null || body.voice === '') data.voice = null;
   else if (isValidVoice(body.voice)) data.voice = body.voice;
 
