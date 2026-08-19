@@ -747,12 +747,15 @@ export function renderSetupConfirmationEmail(opts: SetupConfirmationOpts): { sub
     const cta = opts.reviewUrl ? `
           <div style="margin:22px 0 4px;">
             <a href="${opts.reviewUrl}" style="display:inline-block;background:#2F6BFF;color:#ffffff;text-decoration:none;padding:13px 26px;border-radius:10px;font-weight:700;font-size:15px;">Review and confirm</a>
-          </div>` : '';
+          </div>
+          <div style="margin:10px 0 4px;">
+            <a href="${opts.reviewUrl}&cancel=1" style="display:inline-block;background:#ffffff;border:1px solid #E3A3B0;color:#B23A48;text-decoration:none;padding:11px 22px;border-radius:10px;font-weight:700;font-size:14px;">Cancel subscription</a>
+          </div>
+          <div style="font-size:12.5px;color:#8a93a6;margin-top:8px;">Please save this email. You can review, manage, or cancel your plan anytime using the buttons above.</div>` : '';
 
     const goodToKnow = `
           <div style="font-size:12.5px;color:#77808f;line-height:1.65;margin-top:16px;border-top:1px solid #eef0f5;padding-top:12px;">
-            <strong>Good to know:</strong> your assistant never quotes prices it wasn't given and won't book your calendar. It takes the request and you confirm.${hasVoice ? ' Callers are told it is an automated assistant and the call may be recorded, which keeps you compliant.' : ''}
-            <br/><br/>14 day free trial. No card needed. Cancel anytime.
+            14 day free trial. No card needed. Cancel anytime.
           </div>`;
 
     const questionsTop = `
