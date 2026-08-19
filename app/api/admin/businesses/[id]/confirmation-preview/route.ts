@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
 import { checkAdminAuth } from '@/app/lib/adminAuth';
 import { renderSetupConfirmationEmail } from '@/app/lib/notifications';
+import { voiceFirstMessage } from '@/app/lib/ai';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     smsEnabled: business.smsEnabled,
     voiceEnabled: business.voiceEnabled,
     missedCallMessage: business.smsEnabled ? business.missedCallMessage : undefined,
-    voiceGreeting: business.voiceEnabled ? business.voiceGreeting : undefined,
+    voiceGreeting: business.voiceEnabled ? voiceFirstMessage(business.businessName) : undefined,
     reviewUrl,
     subject,
     customNote,

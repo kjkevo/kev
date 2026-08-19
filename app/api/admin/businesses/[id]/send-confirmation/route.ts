@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
 import { checkAdminAuth } from '@/app/lib/adminAuth';
 import { sendSetupConfirmationEmail } from '@/app/lib/notifications';
+import { voiceFirstMessage } from '@/app/lib/ai';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,7 +45,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     // Only include each channel's preview when that channel is actually on, so
     // the email matches exactly what the client picked (Text / Voice / Both).
     missedCallMessage: business.smsEnabled ? business.missedCallMessage : undefined,
-    voiceGreeting: business.voiceEnabled ? business.voiceGreeting : undefined,
+    // What callers actually hear on a voice call is the AI's opener, not the
+    // legacy static greeting.
+    voiceGreeting: business.voiceEnabled ? voiceFirstMessage(business.businessName) : undefined,
     reviewUrl,
   });
   if (!result.success) return NextResponse.json({ error: result.error || 'Could not send' }, { status: 502 });

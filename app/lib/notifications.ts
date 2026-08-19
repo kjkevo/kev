@@ -730,21 +730,21 @@ export function renderSetupConfirmationEmail(opts: SetupConfirmationOpts): { sub
     const howItWorks = `
           <h3 style="font-size:15px;margin:22px 0 8px;color:#0E1526;">How it works</h3>
           <div style="font-size:14px;color:#33415a;line-height:1.8;">
-            ✅ Only the calls you <strong>miss</strong> come to us — pick up, and we're never involved.<br/>
+            ✅ Only the calls you <strong>miss</strong> come to us. If you pick up, we're never involved.<br/>
             ✅ Missed calls get ${missedGets}.<br/>
-            ✅ Every caller's name, number &amp; reason lands in one place — no lead slips away.
+            ✅ Every caller's name, number, and reason lands in one place, so no lead slips away.
           </div>`;
 
     const codeStyle = 'background:#ffffff;border:1px solid #eadfbf;padding:1px 7px;border-radius:5px;font-weight:700;';
     const goLive = opts.phoneNumber ? `
           <div style="background:#FFF8E6;border:1px solid #F3D88A;border-radius:12px;padding:15px 16px;margin:20px 0;">
-            <div style="font-weight:800;color:#8a6d1a;margin-bottom:5px;">⚡ One 2-minute step to go live</div>
-            <div style="font-size:14px;color:#5a4a1f;margin-bottom:8px;">Send the calls you miss to your new number:</div>
+            <div style="font-weight:800;color:#8a6d1a;margin-bottom:5px;">⚡ One quick step to go live</div>
+            <div style="font-size:14px;color:#5a4a1f;margin-bottom:8px;">You keep your current business number. You just tell your phone to send the calls you don't answer to your new Slimpse number. <strong>From your business phone, dial one of these once:</strong></div>
             <div style="font-size:14px;color:#1a2233;line-height:1.9;">
-              <strong>No answer:</strong> dial <code style="${codeStyle}">*71</code> then ${opts.phoneNumber}<br/>
-              <strong>Busy:</strong> dial <code style="${codeStyle}">*90</code> then ${opts.phoneNumber}
+              <strong>If it rings and you don't pick up:</strong> <code style="${codeStyle}">*71</code> then ${opts.phoneNumber}<br/>
+              <strong>If your line is busy:</strong> <code style="${codeStyle}">*90</code> then ${opts.phoneNumber}
             </div>
-            <div style="font-size:12.5px;color:#8a7a4f;margin-top:8px;">On an office or VoIP phone it's a settings toggle — just reply and we'll set it up with you.</div>
+            <div style="font-size:12.5px;color:#8a7a4f;margin-top:8px;">That is a carrier command. Dialing it from your business phone tells your phone company to forward those calls to us. On an office or VoIP phone it is a setting instead. Just reply and we will set it up with you.</div>
           </div>` : '';
 
     const cta = opts.reviewUrl ? `
@@ -754,24 +754,24 @@ export function renderSetupConfirmationEmail(opts: SetupConfirmationOpts): { sub
 
     const goodToKnow = `
           <div style="font-size:12.5px;color:#77808f;line-height:1.65;margin-top:16px;border-top:1px solid #eef0f5;padding-top:12px;">
-            <strong>Good to know:</strong> your assistant never quotes prices it wasn't given and won't book your calendar — it takes the request and you confirm.${hasVoice ? ' Callers are told it\'s an automated assistant and the call may be recorded (keeps you compliant).' : ''}
-            <br/><br/>14-day free trial · no card needed · cancel anytime. Reply to this email to tweak anything.
+            <strong>Good to know:</strong> your assistant never quotes prices it wasn't given and won't book your calendar. It takes the request and you confirm.${hasVoice ? ' Callers are told it is an automated assistant and the call may be recorded, which keeps you compliant.' : ''}
+            <br/><br/>14 day free trial. No card needed. Cancel anytime. Reply to this email to tweak anything.
           </div>`;
 
     const subject = (opts.subject && opts.subject.trim())
       ? opts.subject.trim()
-      : `You're all set, ${opts.businessName} — quick look before you go live`;
+      : `You're all set, ${opts.businessName}. A quick look before you go live`;
 
     const html = `
         <div style="background:#f4f6fb;padding:24px 12px;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;">
           <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #e7ebf3;">
             <div style="background:#0E1526;padding:18px 28px;">
               <span style="color:#ffffff;font-weight:800;font-size:18px;letter-spacing:.2px;">Slimpse</span>
-              <span style="color:#8FB8FF;font-size:13px;"> — never miss a customer again</span>
+              <span style="color:#8FB8FF;font-size:13px;"> · never miss a customer again</span>
             </div>
             <div style="padding:26px 28px;color:#1a2233;line-height:1.6;">
               <h1 style="font-size:21px;margin:0 0 6px;line-height:1.25;">You're all set, ${name} 🎉</h1>
-              <p style="color:#5b6472;margin:0 0 18px;font-size:15px;">Here's what we built. Reply to confirm and your <strong>14-day free trial</strong> starts — no card needed.</p>
+              <p style="color:#5b6472;margin:0 0 18px;font-size:15px;">Here's what we built. Reply to confirm and your <strong>14 day free trial</strong> starts. No card needed.</p>
               ${note}
               <div style="background:#EEF4FF;border:1px solid #D6E4FF;border-radius:12px;padding:14px 16px;margin:0 0 18px;">
                 <div style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:#2F6BFF;font-weight:700;">Your Slimpse number · ${esc(opts.channel)}</div>
