@@ -137,6 +137,16 @@
   .col.sol ul.list li::before { background: color-mix(in srgb, var(--amber) 75%, transparent); }
   ul.list li b { color: var(--ink); font-weight: 600; }
 
+  /* ---- outreach message block ---- */
+  .msg { background: color-mix(in srgb, var(--accent) 5%, var(--card)); border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent); border-radius: 10px; overflow: hidden; }
+  .msg .msg-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px 8px 14px; background: color-mix(in srgb, var(--accent) 11%, transparent); border-bottom: 1px solid color-mix(in srgb, var(--accent) 18%, transparent); }
+  .msg .msg-head .who { font-family: "IBM Plex Mono", monospace; font-size: .64rem; letter-spacing: .09em; text-transform: uppercase; color: var(--accent-deep); font-weight: 600; }
+  .copy-btn { font-family: "IBM Plex Mono", monospace; font-size: .64rem; letter-spacing: .06em; text-transform: uppercase; font-weight: 600; color: var(--accent-deep); background: color-mix(in srgb, var(--accent) 14%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent); border-radius: 5px; padding: 4px 10px; cursor: pointer; transition: background .15s ease; }
+  .copy-btn:hover { background: color-mix(in srgb, var(--accent) 24%, transparent); }
+  .copy-btn.done { color: #fff; background: var(--accent); border-color: var(--accent); }
+  .msg p.body { margin: 0; padding: 14px 16px; font-size: .88rem; line-height: 1.6; color: var(--ink); white-space: pre-wrap; }
+  .msg .ph { color: var(--accent); font-weight: 600; }
+
   .pitchline { padding: 14px 26px; background: color-mix(in srgb, var(--accent) 6%, var(--card)); border-top: 1px solid var(--line-soft); font-size: .88rem; }
   .pitchline .lab { font-family: "IBM Plex Mono", monospace; font-size: .66rem; letter-spacing: .1em; text-transform: uppercase; color: var(--accent-deep); font-weight: 600; margin-right: 8px; }
   .pitchline span.t { color: var(--ink); }
@@ -185,9 +195,9 @@
     <h2>The move that gets you hired</h2>
     <p>Hundreds of people send these companies a blank résumé. Almost nobody shows up saying <strong>"here's a real problem I found in your marketing, and here's exactly how I'd fix it in my first 90 days."</strong> Do that — in a cover letter, a LinkedIn message to the hiring manager, or a one-page mini-plan you bring to the interview — and you stop being a candidate and start being the person who already did the job.</p>
     <div class="playbook">
-      <div class="step"><div class="n">STEP 01</div><div class="t">Name the gap</div><p>Use the specific struggle in each card below — proof you did the homework nobody else did.</p></div>
-      <div class="step"><div class="n">STEP 02</div><div class="t">Bring the fix</div><p>A mini-audit, a 30/60/90 plan, or one spec sample. Small and concrete beats big and vague.</p></div>
-      <div class="step"><div class="n">STEP 03</div><div class="t">Aim it at a human</div><p>Find the marketing lead or recruiter on LinkedIn and send it to them directly, not the portal.</p></div>
+      <div class="step"><div class="n">STEP 01</div><div class="t">Copy the message</div><p>Each card below has a ready-to-send LinkedIn message built on that company's real gap.</p></div>
+      <div class="step"><div class="n">STEP 02</div><div class="t">Make it yours</div><p>Swap in the person's name and one specific detail — a recent post, a shared connection — so it never reads as a template.</p></div>
+      <div class="step"><div class="n">STEP 03</div><div class="t">Aim it at a human</div><p>Send it to the marketing lead or recruiter directly, not the careers portal. That's what gets a reply.</p></div>
     </div>
   </div>
 
@@ -222,12 +232,11 @@
           </ul>
         </div>
         <div class="col sol">
-          <h4>Walk in with</h4>
-          <ul class="list">
-            <li>A <b>member-lifecycle plan</b>: a sample onboarding + renewal + win-back email journey for early-career surgeons.</li>
-            <li>One <b>social/video concept</b> that would reach residents where email can't.</li>
-            <li>A <b>30/60/90</b> framed around member acquisition and retention metrics they named in the job post.</li>
-          </ul>
+          <h4>Reach out with this</h4>
+          <div class="msg">
+            <div class="msg-head"><span class="who">LinkedIn message</span><button class="copy-btn" type="button">Copy</button></div>
+            <p class="body">Hi <span class="ph">[first name]</span> — I saw ACS is hiring a Membership Marketing Specialist, and it stuck with me because reaching residents and early-career surgeons is such a specific challenge. I've been sketching how a lifecycle approach — onboarding, renewal, win-back — could lift retention in that group. Would love to connect, and if it's useful I'll share a quick one-page plan for the role. Either way, big admirer of the College's work.</p>
+          </div>
         </div>
       </div>
       <div class="pitchline warm"><span class="lab">Why now</span><span class="t">The open req is a paid signal that budget and need are live. Answer the job description with a mini-plan and you're the obvious hire.</span></div>
@@ -255,12 +264,11 @@
           </ul>
         </div>
         <div class="col sol">
-          <h4>Walk in with</h4>
-          <ul class="list">
-            <li>A short <b>rebrand-migration audit</b>: what Adtalem→Covista needs for SEO, redirects, and reputation.</li>
-            <li>A <b>LinkedIn content calendar</b> for the new corporate brand built on the "healthcare workforce shortage" story.</li>
-            <li>A <b>brand-architecture one-pager</b> linking the five schools to the parent.</li>
-          </ul>
+          <h4>Reach out with this</h4>
+          <div class="msg">
+            <div class="msg-head"><span class="who">LinkedIn message</span><button class="copy-btn" type="button">Copy</button></div>
+            <p class="body">Hi <span class="ph">[first name]</span> — congrats on the Covista launch; a rebrand at that scale is no small thing. From the outside I've been thinking about the Adtalem → Covista search and reputation migration, and how to tie the five schools into one clear parent story. I'd love to connect and, if it's helpful, share a short take on how I'd support the transition. Really excited by what you're building.</p>
+          </div>
         </div>
       </div>
       <div class="pitchline warm"><span class="lab">Why now</span><span class="t">A brand-new public company mid-rebrand is building out brand, comms, and digital teams right now — perfect timing to be early.</span></div>
@@ -287,12 +295,11 @@
           </ul>
         </div>
         <div class="col sol">
-          <h4>Walk in with</h4>
-          <ul class="list">
-            <li>An <b>employer-brand / recruiting-marketing plan</b> to win the talent war — the easiest "yes" they have.</li>
-            <li>A <b>vertical-content sample</b> for one of their industries (e.g., a PE or manufacturing lead-gen piece).</li>
-            <li>A <b>partner-LinkedIn thought-leadership</b> program mock-up.</li>
-          </ul>
+          <h4>Reach out with this</h4>
+          <div class="msg">
+            <div class="msg-head"><span class="who">LinkedIn message</span><button class="copy-btn" type="button">Copy</button></div>
+            <p class="body">Hi <span class="ph">[first name]</span> — I've been following how firms like Plante Moran compete for accounting talent, and employer-brand marketing feels like the real battleground right now. I put some thought into how a recruiting-marketing push could help the firm stand out to candidates. I'd love to connect, share an idea or two, and hear where your marketing team is growing.</p>
+          </div>
         </div>
       </div>
       <div class="pitchline"><span class="lab">Angle</span><span class="t">Lead with recruiting-marketing — the talent shortage makes it the pain they feel most, and it's a whole marketing function you could own.</span></div>
@@ -319,12 +326,11 @@
           </ul>
         </div>
         <div class="col sol">
-          <h4>Walk in with</h4>
-          <ul class="list">
-            <li>A <b>conference registration-growth plan</b> for iP (email + social + paid).</li>
-            <li>A <b>newsletter &amp; first-party-data idea</b> that makes their audience more sellable to advertisers.</li>
-            <li>A <b>sample media kit / sponsor one-pager</b>.</li>
-          </ul>
+          <h4>Reach out with this</h4>
+          <div class="msg">
+            <div class="msg-head"><span class="who">LinkedIn message</span><button class="copy-btn" type="button">Copy</button></div>
+            <p class="body">Hi <span class="ph">[first name]</span> — I came across Incident Prevention and the iP Safety Conference and loved how focused the audience is. I've been thinking about how event-registration growth and a first-party-data play on the newsletter could unlock more value for sponsors. Would love to connect and share a quick idea — and hear whether you're growing the marketing side of the business.</p>
+          </div>
         </div>
       </div>
       <div class="pitchline"><span class="lab">Angle</span><span class="t">Small team = a versatile generalist marketer stands out fast and gets real ownership on day one.</span></div>
@@ -363,12 +369,11 @@
           </ul>
         </div>
         <div class="col sol">
-          <h4>Walk in with</h4>
-          <ul class="list">
-            <li>A <b>spec creative or campaign idea</b> — ideally something for the new QuikTrip business — showing initiative and craft.</li>
-            <li>A <b>capability they may not staff deeply</b> (paid-search, analytics, motion, dev) as your differentiator.</li>
-            <li>A quick take on <b>their own new-business content</b> to show range.</li>
-          </ul>
+          <h4>Reach out with this</h4>
+          <div class="msg">
+            <div class="msg-head"><span class="who">LinkedIn message</span><button class="copy-btn" type="button">Copy</button></div>
+            <p class="body">Hi <span class="ph">[first name]</span> — congrats on the QuikTrip win! New AORs are exactly when fresh ideas (and new team members) matter most. I've been playing with a spec concept for the account and would love to connect and share it. I really admire that LC has stayed fiercely independent — I'd love to be part of what you're building.</p>
+          </div>
         </div>
       </div>
       <div class="pitchline warm"><span class="lab">Why now</span><span class="t">The QuikTrip win is the best timing on the whole list — agencies staff up right after landing an AOR. Move now.</span></div>
@@ -395,12 +400,11 @@
           </ul>
         </div>
         <div class="col sol">
-          <h4>Walk in with</h4>
-          <ul class="list">
-            <li>A <b>product-positioning sample</b> — reframe one Epsilon capability for a marketer audience.</li>
-            <li>A <b>demand-gen or sales-enablement</b> outline for the Conversant / loyalty products.</li>
-            <li>An <b>analytics/data</b> work sample if you're on the technical side.</li>
-          </ul>
+          <h4>Reach out with this</h4>
+          <div class="msg">
+            <div class="msg-head"><span class="who">LinkedIn message</span><button class="copy-btn" type="button">Copy</button></div>
+            <p class="body">Hi <span class="ph">[first name]</span> — I've always thought ad-tech companies are better at building products than positioning them for marketers, and Epsilon's platform is a great example of something worth framing sharply. I've been sketching how I'd position Conversant for a marketer audience. Would love to connect, share the take, and learn where your product-marketing / demand-gen team is headed.</p>
+          </div>
         </div>
       </div>
       <div class="pitchline"><span class="lab">Angle</span><span class="t">A big company with a large in-house marketing org — you can genuinely do B2B/product marketing here, not just service clients.</span></div>
@@ -427,12 +431,11 @@
           </ul>
         </div>
         <div class="col sol">
-          <h4>Walk in with</h4>
-          <ul class="list">
-            <li>A <b>creator-community content idea</b> that uses their tools the way their users would.</li>
-            <li>A <b>positioning take</b> on uniting Later + Mavely for creators and brands.</li>
-            <li>Proof you <b>live in the creator economy</b> — your own social/content is the portfolio here.</li>
-          </ul>
+          <h4>Reach out with this</h4>
+          <div class="msg">
+            <div class="msg-head"><span class="who">LinkedIn message</span><button class="copy-btn" type="button">Copy</button></div>
+            <p class="body">Hi <span class="ph">[first name]</span> — the Later + Mavely combination is one of the most interesting moves in the creator economy right now. I've been thinking about how to unify the two brands' story for creators and brands, plus a content idea for the community. I live in this space and would love to connect, share it, and hear where you're growing.</p>
+          </div>
         </div>
       </div>
       <div class="pitchline"><span class="lab">Angle</span><span class="t">If you know the creator economy, the Mavely integration is a timely, specific hook few applicants will mention.</span></div>
@@ -459,12 +462,11 @@
           </ul>
         </div>
         <div class="col sol">
-          <h4>Walk in with</h4>
-          <ul class="list">
-            <li>A <b>spec media plan</b> or channel strategy for a health/wellness brand.</li>
-            <li>A <b>data/analytics sample</b> showing you can measure and optimize.</li>
-            <li>A line on <b>how you'd use AI</b> to speed planning — matches where they're heading.</li>
-          </ul>
+          <h4>Reach out with this</h4>
+          <div class="msg">
+            <div class="msg-head"><span class="who">LinkedIn message</span><button class="copy-btn" type="button">Copy</button></div>
+            <p class="body">Hi <span class="ph">[first name]</span> — I really admire that PHM is the go-to media agency for health and wellness, and how far you've leaned into AI in planning. I've been putting together a spec media approach for a health brand and would love to connect and share it. Curious where you're growing on the planning and analytics side.</p>
+          </div>
         </div>
       </div>
       <div class="pitchline"><span class="lab">Angle</span><span class="t">Specialize your pitch toward regulated health/pharma media — that focus is exactly what sets applicants apart here.</span></div>
@@ -491,12 +493,11 @@
           </ul>
         </div>
         <div class="col sol">
-          <h4>Walk in with</h4>
-          <ul class="list">
-            <li>A <b>spec media plan</b> for a recognizable brand — audience, channels, budget logic.</li>
-            <li>Evidence of <b>tool fluency</b> (Nielsen, Google, DSPs, Excel modeling).</li>
-            <li>Target <b>individual account teams</b> and recruiters on LinkedIn, not just the careers portal.</li>
-          </ul>
+          <h4>Reach out with this</h4>
+          <div class="msg">
+            <div class="msg-head"><span class="who">LinkedIn message</span><button class="copy-btn" type="button">Copy</button></div>
+            <p class="body">Hi <span class="ph">[first name]</span> — I've been building a spec media plan for a national brand to sharpen my planning chops, and OMD is exactly the kind of shop I'd love to do that work at. Would love to connect and, if you're open to it, get your eyes on it — and hear what the team looks for in planners and analysts right now.</p>
+          </div>
         </div>
       </div>
       <div class="pitchline"><span class="lab">Angle</span><span class="t">One of the highest-volume hirers on the list — a clean spec media plan gets you past the pile fast.</span></div>
@@ -523,12 +524,11 @@
           </ul>
         </div>
         <div class="col sol">
-          <h4>Walk in with</h4>
-          <ul class="list">
-            <li>A <b>spec campaign</b> for one of the agency's real clients — the single best portfolio move.</li>
-            <li>Applications aimed at the <b>named operating agency</b> and its recruiters, not the corporate page.</li>
-            <li>A clear <b>craft focus</b> (creative, strategy, media, paid-ops) so they know where you slot in.</li>
-          </ul>
+          <h4>Reach out with this</h4>
+          <div class="msg">
+            <div class="msg-head"><span class="who">LinkedIn message</span><button class="copy-btn" type="button">Copy</button></div>
+            <p class="body">Hi <span class="ph">[first name]</span> — I'm specifically targeting Leo Burnett / Starcom and wanted to reach out directly rather than through a portal. I've put together a spec campaign for one of your clients to show how I think. Would love to connect, share it, and learn what the team is hiring for on the creative / strategy / media side right now.</p>
+          </div>
         </div>
       </div>
       <div class="pitchline"><span class="lab">Angle</span><span class="t">Treat "Publicis" as a doorway to Leo Burnett and Starcom — apply to the agency, with spec work for its clients.</span></div>
@@ -555,12 +555,11 @@
           </ul>
         </div>
         <div class="col sol">
-          <h4>Walk in with</h4>
-          <ul class="list">
-            <li>Your <b>Google Ads &amp; Analytics certifications</b> front and center.</li>
-            <li>A <b>sample audit</b> of a real brand's paid-search or SEO — concrete, hands-on proof.</li>
-            <li>A small <b>case study</b> where you moved a metric (even a personal or volunteer project).</li>
-          </ul>
+          <h4>Reach out with this</h4>
+          <div class="msg">
+            <div class="msg-head"><span class="who">LinkedIn message</span><button class="copy-btn" type="button">Copy</button></div>
+            <p class="body">Hi <span class="ph">[first name]</span> — I like that Logical stays hands-on with performance as a Google Partner shop. I ran a quick sample audit of a brand's paid-search to sharpen my own skills and would love to connect and share it. I'm Google Ads and Analytics certified and looking to join a growing team where I can dig in — would love to hear if you're hiring.</p>
+          </div>
         </div>
       </div>
       <div class="pitchline"><span class="lab">Angle</span><span class="t">At a ~39-person shop, a real sample audit lands directly on the desk of someone who can hire you.</span></div>
@@ -594,3 +593,36 @@
     <p class="sign">Get-hired dossier · 11 Chicago-area employers · compiled August 2026 · outside-in, public-source analysis.</p>
   </div>
 </footer>
+
+<script>
+  document.querySelectorAll(".copy-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var msg = btn.closest(".msg");
+      var body = msg ? msg.querySelector("p.body") : null;
+      if (!body) return;
+      var text = body.innerText.trim();
+      var done = function () {
+        var original = btn.textContent;
+        btn.textContent = "Copied ✓";
+        btn.classList.add("done");
+        setTimeout(function () {
+          btn.textContent = original;
+          btn.classList.remove("done");
+        }, 1600);
+      };
+      var fallback = function () {
+        var range = document.createRange();
+        range.selectNodeContents(body);
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        try { document.execCommand("copy"); done(); } catch (e) { /* leave selected for manual copy */ }
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, fallback);
+      } else {
+        fallback();
+      }
+    });
+  });
+</script>
