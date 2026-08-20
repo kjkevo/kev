@@ -1,0 +1,596 @@
+<title>Chicago Hire-Me Dossier</title>
+<style>
+  :root {
+    --paper: #f1f3f4;
+    --card: #ffffff;
+    --ink: #1a2024;
+    --ink-soft: #47535a;
+    --ink-faint: #7a868c;
+    --line: #d9dee0;
+    --line-soft: #e7eaec;
+    --accent: #0f6d78;
+    --accent-deep: #0a4f57;
+    --amber: #b7791f;
+    --amber-bg: #f6ecd6;
+    --brick: #b0432f;
+    --brick-bg: #f4dfda;
+    --tierA: #0f6d78;
+    --tierB: #6b5b8a;
+    --shadow: 0 1px 2px rgba(20,40,45,.06), 0 8px 24px rgba(20,40,45,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #10151a;
+      --card: #171e24;
+      --ink: #e7edef;
+      --ink-soft: #a7b3b9;
+      --ink-faint: #6f7d84;
+      --line: #29343b;
+      --line-soft: #212a30;
+      --accent: #3fb3bf;
+      --accent-deep: #7fd4dd;
+      --amber: #d9a441;
+      --amber-bg: #2e2716;
+      --brick: #e0836f;
+      --brick-bg: #33201b;
+      --tierA: #3fb3bf;
+      --tierB: #a793c9;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #10151a;
+    --card: #171e24;
+    --ink: #e7edef;
+    --ink-soft: #a7b3b9;
+    --ink-faint: #6f7d84;
+    --line: #29343b;
+    --line-soft: #212a30;
+    --accent: #3fb3bf;
+    --accent-deep: #7fd4dd;
+    --amber: #d9a441;
+    --amber-bg: #2e2716;
+    --brick: #e0836f;
+    --brick-bg: #33201b;
+    --tierA: #3fb3bf;
+    --tierB: #a793c9;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1020px; margin: 0 auto; padding: 0 24px; }
+
+  h1, h2, h3 { font-family: "Newsreader", Georgia, serif; font-weight: 500; text-wrap: balance; margin: 0; }
+  .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .72rem; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  header { border-bottom: 1px solid var(--line); background: var(--card); }
+  .header-inner { padding: 60px 24px 40px; max-width: 1020px; margin: 0 auto; }
+  .kicker { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
+  .kicker .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent); }
+  h1 { font-size: clamp(2.1rem, 5vw, 3.3rem); line-height: 1.05; letter-spacing: -.01em; }
+  h1 .accent { font-style: italic; color: var(--accent); }
+  .dek { font-size: 1.12rem; color: var(--ink-soft); max-width: 60ch; margin-top: 20px; }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 10px 28px; margin-top: 28px; }
+  .meta-row .m { display: flex; flex-direction: column; gap: 2px; }
+  .meta-row .m .k { font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-faint); font-family: "IBM Plex Mono", monospace; }
+  .meta-row .m .v { font-size: .95rem; font-weight: 600; }
+
+  .thesis { margin: 40px 0; padding: 26px 28px; background: var(--card); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 4px; box-shadow: var(--shadow); }
+  .thesis h2 { font-size: 1.35rem; margin-bottom: 10px; }
+  .thesis p { margin: 0 0 12px; color: var(--ink-soft); }
+  .thesis p:last-child { margin-bottom: 0; }
+  .thesis strong { color: var(--ink); font-weight: 600; }
+  .playbook { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 22px; }
+  @media (max-width: 680px) { .playbook { grid-template-columns: 1fr; } }
+  .playbook .step { padding: 16px 18px; border-radius: 4px; background: color-mix(in srgb, var(--accent) 6%, var(--card)); border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent); }
+  .playbook .step .n { font-family: "IBM Plex Mono", monospace; font-size: .72rem; font-weight: 600; color: var(--accent); letter-spacing: .06em; }
+  .playbook .step .t { font-weight: 600; margin: 6px 0 4px; font-size: .98rem; }
+  .playbook .step p { font-size: .85rem; margin: 0; }
+
+  .section-head { margin: 56px 0 8px; display: flex; align-items: baseline; gap: 14px; }
+  .section-head .num { font-family: "IBM Plex Mono", monospace; font-size: .8rem; color: var(--accent); font-weight: 600; }
+  .section-head h2 { font-size: 1.7rem; letter-spacing: -.01em; }
+  .section-sub { color: var(--ink-soft); font-size: .98rem; margin: 0 0 4px; max-width: 70ch; }
+
+  .cards { display: flex; flex-direction: column; gap: 18px; margin-top: 26px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; }
+  .card.hot { border-color: color-mix(in srgb, var(--amber) 55%, var(--line)); }
+  .card-top { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 22px 26px 16px; border-bottom: 1px solid var(--line-soft); }
+  .card-top .id { display: flex; flex-direction: column; gap: 4px; }
+  .card-top h3 { font-size: 1.4rem; letter-spacing: -.01em; }
+  .card-top .whatdo { color: var(--ink-soft); font-size: .92rem; max-width: 62ch; }
+  .card-tags { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .tag { font-family: "IBM Plex Mono", monospace; font-size: .67rem; letter-spacing: .04em; padding: 3px 9px; border-radius: 4px; border: 1px solid var(--line); color: var(--ink-soft); white-space: nowrap; }
+  .tag.role { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+  .tag.hot { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 55%, transparent); background: var(--amber-bg); font-weight: 600; }
+
+  .card-body { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+  @media (max-width: 680px) { .card-body { grid-template-columns: 1fr; } }
+  .col { padding: 20px 26px 24px; }
+  .col.gaps { border-right: 1px solid var(--line-soft); }
+  @media (max-width: 680px) { .col.gaps { border-right: none; border-bottom: 1px solid var(--line-soft); } }
+  .col h4 { font-family: "IBM Plex Mono", monospace; font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; font-weight: 600; margin: 0 0 14px; display: flex; align-items: center; gap: 8px; }
+  .col.gaps h4 { color: var(--brick); }
+  .col.sol h4 { color: var(--amber); }
+  .col h4::before { content: ""; width: 8px; height: 8px; border-radius: 2px; }
+  .col.gaps h4::before { background: var(--brick); }
+  .col.sol h4::before { background: var(--amber); }
+  ul.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  ul.list li { position: relative; padding-left: 18px; font-size: .9rem; color: var(--ink-soft); line-height: 1.5; }
+  ul.list li::before { content: ""; position: absolute; left: 0; top: .5em; width: 6px; height: 6px; border-radius: 50%; }
+  .col.gaps ul.list li::before { background: color-mix(in srgb, var(--brick) 65%, transparent); }
+  .col.sol ul.list li::before { background: color-mix(in srgb, var(--amber) 75%, transparent); }
+  ul.list li b { color: var(--ink); font-weight: 600; }
+
+  .pitchline { padding: 14px 26px; background: color-mix(in srgb, var(--accent) 6%, var(--card)); border-top: 1px solid var(--line-soft); font-size: .88rem; }
+  .pitchline .lab { font-family: "IBM Plex Mono", monospace; font-size: .66rem; letter-spacing: .1em; text-transform: uppercase; color: var(--accent-deep); font-weight: 600; margin-right: 8px; }
+  .pitchline span.t { color: var(--ink); }
+  .pitchline.warm { background: var(--amber-bg); }
+  .pitchline.warm .lab { color: var(--amber); }
+
+  .caveat { margin: 30px 0 0; padding: 16px 20px; border: 1px dashed var(--line); border-radius: 6px; font-size: .85rem; color: var(--ink-faint); background: var(--card); }
+  .caveat b { color: var(--ink-soft); }
+  footer { margin-top: 64px; border-top: 1px solid var(--line); background: var(--card); }
+  .footer-inner { max-width: 1020px; margin: 0 auto; padding: 40px 24px 56px; }
+  footer h2 { font-size: 1.4rem; margin-bottom: 16px; }
+  .next { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 680px) { .next { grid-template-columns: 1fr; } }
+  .next .n { padding: 16px 18px; border: 1px solid var(--line); border-radius: 6px; }
+  .next .n .s { font-family: "IBM Plex Mono", monospace; color: var(--accent); font-size: .8rem; font-weight: 600; }
+  .next .n p { margin: 8px 0 0; font-size: .88rem; color: var(--ink-soft); }
+  .sign { margin-top: 30px; font-size: .8rem; color: var(--ink-faint); }
+  a { color: var(--accent); text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }
+  a:hover { border-bottom-color: var(--accent); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<header>
+  <div class="header-inner">
+    <div class="kicker">
+      <span class="dot"></span>
+      <span class="eyebrow">Get-Hired Dossier · Chicago Media &amp; Marketing</span>
+    </div>
+    <h1>Don't apply. Show up with the <span class="accent">fix</span>.</h1>
+    <p class="dek">Eleven Chicago employers, the marketing / media / advertising problem each one is quietly struggling with, and the specific angle you'd walk in with to get hired solving it.</p>
+    <div class="meta-row">
+      <div class="m"><span class="k">Employers</span><span class="v">11 organizations</span></div>
+      <div class="m"><span class="k">For</span><span class="v">Getting hired, not selling</span></div>
+      <div class="m"><span class="k">LinkedIn</span><span class="v">11 / 11 — follow them all</span></div>
+      <div class="m"><span class="k">Compiled</span><span class="v">Aug 2026</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="thesis">
+    <h2>The move that gets you hired</h2>
+    <p>Hundreds of people send these companies a blank résumé. Almost nobody shows up saying <strong>"here's a real problem I found in your marketing, and here's exactly how I'd fix it in my first 90 days."</strong> Do that — in a cover letter, a LinkedIn message to the hiring manager, or a one-page mini-plan you bring to the interview — and you stop being a candidate and start being the person who already did the job.</p>
+    <div class="playbook">
+      <div class="step"><div class="n">STEP 01</div><div class="t">Name the gap</div><p>Use the specific struggle in each card below — proof you did the homework nobody else did.</p></div>
+      <div class="step"><div class="n">STEP 02</div><div class="t">Bring the fix</div><p>A mini-audit, a 30/60/90 plan, or one spec sample. Small and concrete beats big and vague.</p></div>
+      <div class="step"><div class="n">STEP 03</div><div class="t">Aim it at a human</div><p>Find the marketing lead or recruiter on LinkedIn and send it to them directly, not the portal.</p></div>
+    </div>
+  </div>
+
+  <!-- ============ TIER 1 — IN-HOUSE ============ -->
+  <div class="section-head">
+    <span class="num">01</span>
+    <h2>In-house marketing seats</h2>
+  </div>
+  <p class="section-sub">These four aren't marketing companies — so their own marketing has visible gaps you can point straight at. Easiest place to walk in with a targeted "here's your problem, here's my plan" pitch and land an internal role.</p>
+
+  <div class="cards">
+
+    <!-- ACS (hot) -->
+    <div class="card hot">
+      <div class="card-top">
+        <div class="id">
+          <h3>American College of Surgeons</h3>
+          <span class="whatdo">Professional association, ~95,000 members, founded 1913, Chicago HQ. Runs the annual Clinical Congress and extensive surgeon education.</span>
+        </div>
+        <div class="card-tags">
+          <span class="tag hot">★ Live role posted</span>
+          <span class="tag role">Membership Marketing Specialist</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="col gaps">
+          <h4>Their struggle</h4>
+          <ul class="list">
+            <li><b>Recruiting &amp; retaining younger members</b> — residents and early-career surgeons engage on channels the legacy base doesn't.</li>
+            <li><b>Thin marketing team.</b> They're actively hiring a Membership Marketing Specialist ($68.5–75k) — the need is real and budgeted.</li>
+            <li><b>Email-heavy, social/video-light</b>, as most associations are.</li>
+          </ul>
+        </div>
+        <div class="col sol">
+          <h4>Walk in with</h4>
+          <ul class="list">
+            <li>A <b>member-lifecycle plan</b>: a sample onboarding + renewal + win-back email journey for early-career surgeons.</li>
+            <li>One <b>social/video concept</b> that would reach residents where email can't.</li>
+            <li>A <b>30/60/90</b> framed around member acquisition and retention metrics they named in the job post.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="pitchline warm"><span class="lab">Why now</span><span class="t">The open req is a paid signal that budget and need are live. Answer the job description with a mini-plan and you're the obvious hire.</span></div>
+    </div>
+
+    <!-- Covista -->
+    <div class="card">
+      <div class="card-top">
+        <div class="id">
+          <h3>Covista</h3>
+          <span class="whatdo">America's largest healthcare educator (Chamberlain, Walden, Ross, AUC). Just rebranded from <b>Adtalem Global Education</b> and began trading as NYSE: CVSA in Feb 2026. Greater Chicago HQ.</span>
+        </div>
+        <div class="card-tags">
+          <span class="tag hot">★ Rebrand = hiring</span>
+          <span class="tag role">Brand / Content / Enrollment Mktg</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="col gaps">
+          <h4>Their struggle</h4>
+          <ul class="list">
+            <li><b>Brand-new name, zero search equity.</b> "Adtalem" still owns the history, reviews, and backlinks — a live migration problem.</li>
+            <li><b>Five famous school brands under one unknown parent</b> — the connecting story isn't built yet.</li>
+            <li><b>Enrollment demand-gen</b> in a reputation-sensitive category.</li>
+          </ul>
+        </div>
+        <div class="col sol">
+          <h4>Walk in with</h4>
+          <ul class="list">
+            <li>A short <b>rebrand-migration audit</b>: what Adtalem→Covista needs for SEO, redirects, and reputation.</li>
+            <li>A <b>LinkedIn content calendar</b> for the new corporate brand built on the "healthcare workforce shortage" story.</li>
+            <li>A <b>brand-architecture one-pager</b> linking the five schools to the parent.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="pitchline warm"><span class="lab">Why now</span><span class="t">A brand-new public company mid-rebrand is building out brand, comms, and digital teams right now — perfect timing to be early.</span></div>
+    </div>
+
+    <!-- Plante Moran -->
+    <div class="card">
+      <div class="card-top">
+        <div class="id">
+          <h3>Plante Moran</h3>
+          <span class="whatdo">One of the largest U.S. accounting &amp; advisory firms (founded 1924), 700+ staff in Chicago serving PE, manufacturing, real estate, healthcare, and financial services.</span>
+        </div>
+        <div class="card-tags">
+          <span class="tag role">Marketing Mgr / Recruiting Mktg / Content</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="col gaps">
+          <h4>Their struggle</h4>
+          <ul class="list">
+            <li><b>Recruiting marketing</b> in a brutal accounting talent shortage — employer brand is a board-level problem.</li>
+            <li><b>Relationship-led, demand-gen-light</b> — deep industry expertise that isn't packaged into modern content.</li>
+            <li><b>Differentiation</b> vs. the Big 4 and other regionals; brand can read conservative.</li>
+          </ul>
+        </div>
+        <div class="col sol">
+          <h4>Walk in with</h4>
+          <ul class="list">
+            <li>An <b>employer-brand / recruiting-marketing plan</b> to win the talent war — the easiest "yes" they have.</li>
+            <li>A <b>vertical-content sample</b> for one of their industries (e.g., a PE or manufacturing lead-gen piece).</li>
+            <li>A <b>partner-LinkedIn thought-leadership</b> program mock-up.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="pitchline"><span class="lab">Angle</span><span class="t">Lead with recruiting-marketing — the talent shortage makes it the pain they feel most, and it's a whole marketing function you could own.</span></div>
+    </div>
+
+    <!-- UBM -->
+    <div class="card">
+      <div class="card-top">
+        <div class="id">
+          <h3>Utility Business Media</h3>
+          <span class="whatdo">Niche B2B trade publisher for the utility-safety industry — <i>Incident Prevention</i> magazine, the iP Utility Safety Conference &amp; Expo, and training. Founded 2004, small team, Crystal Lake IL.</span>
+        </div>
+        <div class="card-tags">
+          <span class="tag role">Marketing / Audience / Event Mgr</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="col gaps">
+          <h4>Their struggle</h4>
+          <ul class="list">
+            <li><b>Print-rooted, under-digitized.</b> Revenue leans on magazine ads, events, and subscriptions.</li>
+            <li><b>Event marketing for the iP Conference</b> is likely the biggest revenue lever — and a heavy lift for a lean team.</li>
+            <li><b>Thin social &amp; SEO</b> for the niche audience they command.</li>
+          </ul>
+        </div>
+        <div class="col sol">
+          <h4>Walk in with</h4>
+          <ul class="list">
+            <li>A <b>conference registration-growth plan</b> for iP (email + social + paid).</li>
+            <li>A <b>newsletter &amp; first-party-data idea</b> that makes their audience more sellable to advertisers.</li>
+            <li>A <b>sample media kit / sponsor one-pager</b>.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="pitchline"><span class="lab">Angle</span><span class="t">Small team = a versatile generalist marketer stands out fast and gets real ownership on day one.</span></div>
+    </div>
+
+  </div>
+
+  <!-- ============ TIER 2 — AGENCY & PLATFORM ============ -->
+  <div class="section-head">
+    <span class="num">02</span>
+    <h2>Agency &amp; platform seats</h2>
+  </div>
+  <p class="section-sub">Here you're hired to do the craft they sell. You stand out by demonstrating that craft — a spec campaign, a sample media plan, a portfolio piece — pointed at something real: their client, their own product, or their own brand.</p>
+
+  <div class="cards">
+
+    <!-- Laughlin Constable (hot) -->
+    <div class="card hot">
+      <div class="card-top">
+        <div class="id">
+          <h3>Laughlin Constable</h3>
+          <span class="whatdo">Fiercely independent full-service ad agency (Chicago + Milwaukee, ~45 years). Recently named Agency of Record for QuikTrip; second-generation creative leadership.</span>
+        </div>
+        <div class="card-tags">
+          <span class="tag hot">★ Staffing a new AOR</span>
+          <span class="tag role">Creative / Account / Media / Digital</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="col gaps">
+          <h4>Their moment</h4>
+          <ul class="list">
+            <li><b>Just won QuikTrip</b> as Agency of Record — new accounts mean fresh headcount, fast.</li>
+            <li><b>Independents prize versatile generalists</b> who can flex across creative, media, and digital.</li>
+            <li>Their <b>own</b> agency marketing / new-business content often takes a back seat to client work.</li>
+          </ul>
+        </div>
+        <div class="col sol">
+          <h4>Walk in with</h4>
+          <ul class="list">
+            <li>A <b>spec creative or campaign idea</b> — ideally something for the new QuikTrip business — showing initiative and craft.</li>
+            <li>A <b>capability they may not staff deeply</b> (paid-search, analytics, motion, dev) as your differentiator.</li>
+            <li>A quick take on <b>their own new-business content</b> to show range.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="pitchline warm"><span class="lab">Why now</span><span class="t">The QuikTrip win is the best timing on the whole list — agencies staff up right after landing an AOR. Move now.</span></div>
+    </div>
+
+    <!-- Epsilon -->
+    <div class="card">
+      <div class="card-top">
+        <div class="id">
+          <h3>Epsilon</h3>
+          <span class="whatdo">Data-driven marketing &amp; ad-tech company (8,000+ employees, Conversant platform), part of Publicis. A Chicago ad-tech anchor.</span>
+        </div>
+        <div class="card-tags">
+          <span class="tag role">Product Mktg / Demand Gen / Analytics</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="col gaps">
+          <h4>Their struggle</h4>
+          <ul class="list">
+            <li>As a <b>product company</b>, they need marketers to explain their platform to buyers — a genuine in-house marketing function.</li>
+            <li>Ad-tech firms are often better at <b>building than positioning</b> their own product.</li>
+            <li>Demand-gen, product-marketing, and event content are ongoing needs.</li>
+          </ul>
+        </div>
+        <div class="col sol">
+          <h4>Walk in with</h4>
+          <ul class="list">
+            <li>A <b>product-positioning sample</b> — reframe one Epsilon capability for a marketer audience.</li>
+            <li>A <b>demand-gen or sales-enablement</b> outline for the Conversant / loyalty products.</li>
+            <li>An <b>analytics/data</b> work sample if you're on the technical side.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="pitchline"><span class="lab">Angle</span><span class="t">A big company with a large in-house marketing org — you can genuinely do B2B/product marketing here, not just service clients.</span></div>
+    </div>
+
+    <!-- Later -->
+    <div class="card">
+      <div class="card-top">
+        <div class="id">
+          <h3>Later</h3>
+          <span class="whatdo">Social &amp; influencer-marketing platform that acquired Chicago's <b>Mavely</b> (creator-commerce) for ~$250M. HQ outside Chicago, real Chicago footprint via Mavely.</span>
+        </div>
+        <div class="card-tags">
+          <span class="tag role">Product / Creator &amp; Community / Content</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="col gaps">
+          <h4>Their struggle</h4>
+          <ul class="list">
+            <li><b>Post-acquisition integration</b> — merging Later + Mavely brand, positioning, and creator communities is unfinished work.</li>
+            <li>As a platform, they need <b>product marketing and creator-community content</b>.</li>
+            <li>Growth mode after a $250M deal usually means <b>expanding teams</b>.</li>
+          </ul>
+        </div>
+        <div class="col sol">
+          <h4>Walk in with</h4>
+          <ul class="list">
+            <li>A <b>creator-community content idea</b> that uses their tools the way their users would.</li>
+            <li>A <b>positioning take</b> on uniting Later + Mavely for creators and brands.</li>
+            <li>Proof you <b>live in the creator economy</b> — your own social/content is the portfolio here.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="pitchline"><span class="lab">Angle</span><span class="t">If you know the creator economy, the Mavely integration is a timely, specific hook few applicants will mention.</span></div>
+    </div>
+
+    <!-- PHM -->
+    <div class="card">
+      <div class="card-top">
+        <div class="id">
+          <h3>Publicis Health Media (PHM)</h3>
+          <span class="whatdo">Market-leading health &amp; wellness media agency (~$225M revenue, ~700 staff), 35 W Wacker. Pharma/biotech media planning &amp; buying; aggressive AI adoption.</span>
+        </div>
+        <div class="card-tags">
+          <span class="tag role">Media Planner / Analyst / Search</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="col gaps">
+          <h4>What they hire for</h4>
+          <ul class="list">
+            <li><b>Growing revenue &amp; headcount</b> — a steady pipeline of media and analytics roles.</li>
+            <li>They value people who can <b>navigate regulated pharma</b> media (MLR, compliance).</li>
+            <li><b>AI-forward workflows</b> — comfort with new tools is a real edge.</li>
+          </ul>
+        </div>
+        <div class="col sol">
+          <h4>Walk in with</h4>
+          <ul class="list">
+            <li>A <b>spec media plan</b> or channel strategy for a health/wellness brand.</li>
+            <li>A <b>data/analytics sample</b> showing you can measure and optimize.</li>
+            <li>A line on <b>how you'd use AI</b> to speed planning — matches where they're heading.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="pitchline"><span class="lab">Angle</span><span class="t">Specialize your pitch toward regulated health/pharma media — that focus is exactly what sets applicants apart here.</span></div>
+    </div>
+
+    <!-- OMD -->
+    <div class="card">
+      <div class="card-top">
+        <div class="id">
+          <h3>OMD</h3>
+          <span class="whatdo">Global media agency within Omnicom Media Group; Chicago office at 225 N Michigan Ave. Media planning &amp; buying at scale.</span>
+        </div>
+        <div class="card-tags">
+          <span class="tag role">Media Planner / Buyer / Analyst</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="col gaps">
+          <h4>What they hire for</h4>
+          <ul class="list">
+            <li>Large media shop with <b>high-volume entry &amp; mid-level hiring</b>.</li>
+            <li>Client wins drive <b>bursty demand</b> for planners and analysts.</li>
+            <li>Values fluency with <b>planning tools and measurement</b>.</li>
+          </ul>
+        </div>
+        <div class="col sol">
+          <h4>Walk in with</h4>
+          <ul class="list">
+            <li>A <b>spec media plan</b> for a recognizable brand — audience, channels, budget logic.</li>
+            <li>Evidence of <b>tool fluency</b> (Nielsen, Google, DSPs, Excel modeling).</li>
+            <li>Target <b>individual account teams</b> and recruiters on LinkedIn, not just the careers portal.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="pitchline"><span class="lab">Angle</span><span class="t">One of the highest-volume hirers on the list — a clean spec media plan gets you past the pile fast.</span></div>
+    </div>
+
+    <!-- Publicis Groupe -->
+    <div class="card">
+      <div class="card-top">
+        <div class="id">
+          <h3>Publicis Groupe</h3>
+          <span class="whatdo">Global advertising holding company; major Chicago presence through <b>Leo Burnett</b> and <b>Starcom</b> in the Leo Burnett Building.</span>
+        </div>
+        <div class="card-tags">
+          <span class="tag role">Apply to the operating agencies</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="col gaps">
+          <h4>How to target it</h4>
+          <ul class="list">
+            <li><b>"Publicis Groupe" is the holding company</b> — you don't get hired there. You get hired at <b>Leo Burnett, Starcom, PHM, Epsilon,</b> etc.</li>
+            <li>Big agencies have <b>constant churn</b> — entry and mid roles open all the time.</li>
+            <li>They hire on <b>demonstrated craft</b>, not just résumés.</li>
+          </ul>
+        </div>
+        <div class="col sol">
+          <h4>Walk in with</h4>
+          <ul class="list">
+            <li>A <b>spec campaign</b> for one of the agency's real clients — the single best portfolio move.</li>
+            <li>Applications aimed at the <b>named operating agency</b> and its recruiters, not the corporate page.</li>
+            <li>A clear <b>craft focus</b> (creative, strategy, media, paid-ops) so they know where you slot in.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="pitchline"><span class="lab">Angle</span><span class="t">Treat "Publicis" as a doorway to Leo Burnett and Starcom — apply to the agency, with spec work for its clients.</span></div>
+    </div>
+
+    <!-- Logical Media Group -->
+    <div class="card">
+      <div class="card-top">
+        <div class="id">
+          <h3>Logical Media Group</h3>
+          <span class="whatdo">Full-service digital agency in River North (~39 staff, ~$4M revenue, founded 2006). SEO, PPC, Amazon, web design, social, email.</span>
+        </div>
+        <div class="card-tags">
+          <span class="tag role">SEO / PPC Specialist · Account · Web</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="col gaps">
+          <h4>What they hire for</h4>
+          <ul class="list">
+            <li><b>Small, growth-oriented shop</b> — specialists get hired and grow into more, fast.</li>
+            <li>Performance-focused: they value <b>hands-on Google Ads / Analytics</b> skill.</li>
+            <li>A <b>Google Partner agency</b> — certifications carry real weight.</li>
+          </ul>
+        </div>
+        <div class="col sol">
+          <h4>Walk in with</h4>
+          <ul class="list">
+            <li>Your <b>Google Ads &amp; Analytics certifications</b> front and center.</li>
+            <li>A <b>sample audit</b> of a real brand's paid-search or SEO — concrete, hands-on proof.</li>
+            <li>A small <b>case study</b> where you moved a metric (even a personal or volunteer project).</li>
+          </ul>
+        </div>
+      </div>
+      <div class="pitchline"><span class="lab">Angle</span><span class="t">At a ~39-person shop, a real sample audit lands directly on the desk of someone who can hire you.</span></div>
+    </div>
+
+  </div>
+
+  <div class="caveat">
+    <b>How to read this.</b> Every "struggle" above is an <b>outside-in hypothesis</b> from public info — company sites, press, job posts, and LinkedIn. Two are time-sensitive: <b>ACS</b> has a marketing role posted now, and <b>Laughlin Constable</b> just won a new account and will be staffing up. Verify current openings on each company's careers page and LinkedIn before you tailor your pitch — and use the gaps as conversation-starters, not gospel.
+  </div>
+
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <h2>Want me to build the actual application materials?</h2>
+    <div class="next">
+      <div class="n">
+        <span class="s">Tailored pitch</span>
+        <p>Pick a company and I'll draft the cover letter + a one-page 30/60/90 mini-plan built around its specific gap.</p>
+      </div>
+      <div class="n">
+        <span class="s">Find the hiring manager</span>
+        <p>I can help you identify the marketing lead or recruiter at each org so your message reaches a human, not a portal.</p>
+      </div>
+      <div class="n">
+        <span class="s">Spec work</span>
+        <p>Want to build the sample audit, media plan, or spec campaign for your top pick? I'll help you make it.</p>
+      </div>
+    </div>
+    <p class="sign">Get-hired dossier · 11 Chicago-area employers · compiled August 2026 · outside-in, public-source analysis.</p>
+  </div>
+</footer>
