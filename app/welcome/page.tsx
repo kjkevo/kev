@@ -110,7 +110,7 @@ export default function WelcomePage() {
     });
   }
 
-  // Client green-lights their built setup → auto-starts their 14-day trial.
+  // Client green-lights their built setup → auto-starts their 7-day trial.
   async function confirmSetup() {
     if (!token) return;
     setConfirmingSetup(true);
@@ -237,7 +237,7 @@ export default function WelcomePage() {
   // initializes and throws a TDZ ReferenceError when accessed.
   const pricingBox = (
     <div style={s.pricingBox}>
-      <div style={s.pricingTitle}>14 day free trial</div>
+      <div style={s.pricingTitle}>7 day free trial</div>
       <ul style={s.pricingList}>
         <li><strong>No card needed</strong> to start</li>
         <li>
@@ -295,7 +295,7 @@ export default function WelcomePage() {
             <div style={s.kicker}>◆ Slimpse</div>
             <h1 style={s.h1}>Review your setup, {biz}</h1>
             <p style={s.sub}>Here&apos;s what we built for you and how it&apos;ll sound to your customers.
-              Confirm to go live and start your 14 day free trial, or ask us for a change.</p>
+              Confirm to go live and start your 7 day free trial, or ask us for a change.</p>
 
             {renderGetting()}
             {renderConfirmInfo()}
@@ -319,7 +319,7 @@ export default function WelcomePage() {
             ) : (
               <div style={{ marginTop: 18 }}>
                 <button style={s.payBtn} onClick={confirmSetup} disabled={confirmingSetup}>
-                  {confirmingSetup ? "Starting…" : "Confirm and start my 14 day free trial"}
+                  {confirmingSetup ? "Starting…" : "Confirm and start my 7 day free trial"}
                 </button>
                 <button style={s.skipLink} onClick={() => setChangeOpen(true)}>Request a change instead</button>
               </div>
@@ -416,7 +416,7 @@ export default function WelcomePage() {
     return (
       <div style={s.setupBox}>
         {/* Payoff up front */}
-        <div style={s.trialBanner}>14 day free trial · <strong>No card needed</strong> · Cancel anytime</div>
+        <div style={s.trialBanner}>7 day free trial · <strong>No card needed</strong> · Cancel anytime</div>
 
         {/* Progress bar — tap a completed step to jump back and change it */}
         <div style={s.progressWrap}>

@@ -344,7 +344,7 @@ export const sendSignupWelcomeEmail = async (
   }
 };
 
-// Remind a trial client (no card on file) that their 14-day free trial is
+// Remind a trial client (no card on file) that their 7-day free trial is
 // ending soon and they need to add payment to keep the service.
 export const sendTrialReminderEmail = async (
   toEmail: string,
@@ -583,10 +583,10 @@ export const sendSetupConfirmedAlert = async (
     await transporter.sendMail({
       from: emailFrom(),
       to,
-      subject: `✅ Setup confirmed — ${info.businessName} is live`,
+      subject: `Setup confirmed. ${info.businessName} is live`,
       html: `<div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#1a1a1a;line-height:1.5">
         <h2>${info.businessName} confirmed their setup</h2>
-        <p>Their 14-day free trial has started automatically and their service is now ON.</p>
+        <p>Their 7-day free trial has started automatically and their service is now ON.</p>
         <p><strong>Number:</strong> ${info.phoneNumber}</p>
         <p>${new Date().toLocaleString()}</p>
       </div>`,
@@ -754,7 +754,7 @@ export function renderSetupConfirmationEmail(opts: SetupConfirmationOpts): { sub
 
     const goodToKnow = `
           <div style="font-size:12.5px;color:#77808f;line-height:1.65;margin-top:16px;border-top:1px solid #eef0f5;padding-top:12px;">
-            14 day free trial. No card needed. Cancel anytime.
+            7 day free trial. No card needed. Cancel anytime.
           </div>`;
 
     const questionsTop = `
@@ -779,7 +779,7 @@ export function renderSetupConfirmationEmail(opts: SetupConfirmationOpts): { sub
             </div>
             <div style="padding:26px 28px;color:#1a2233;line-height:1.6;">
               <h1 style="font-size:21px;margin:0 0 6px;line-height:1.25;">You're all set, ${name}</h1>
-              <p style="color:#5b6472;margin:0 0 18px;font-size:15px;">Here's what we built. Reply to confirm and your <strong>14 day free trial</strong> starts. No card needed.</p>
+              <p style="color:#5b6472;margin:0 0 18px;font-size:15px;">Here's what we built. Reply to confirm and your <strong>7 day free trial</strong> starts. No card needed.</p>
               ${saveEmailTop}
               ${questionsTop}
               ${note}
@@ -817,7 +817,7 @@ export const sendSetupConfirmationEmail = async (
 };
 
 // Sent to a client when you START their trial: their dedicated number, the one
-// call-forwarding step, and that their 14-day free trial is now running.
+// call-forwarding step, and that their 7-day free trial is now running.
 export const sendProvisionedWelcome = async (
   toEmail: string,
   businessName: string,
@@ -829,20 +829,15 @@ export const sendProvisionedWelcome = async (
     await transporter.sendMail({
       from: emailFrom(),
       to: toEmail,
-      subject: `${businessName} is live — your 14-day free trial has started 🎉`,
+      subject: `${businessName} is live. Your 7 day free trial has started`,
       html: `
-        <h2>You're live, ${businessName}! 🎉</h2>
-        <p>Your <strong>14-day free trial</strong> has started — no card needed. Here's your dedicated MissedCall number:</p>
+        <h2>You're live, ${businessName}</h2>
+        <p>Your <strong>7 day free trial</strong> has started. No card needed. Here's your dedicated Slimpse number:</p>
         <p style="font-size:22px;font-weight:800;">${newNumber}</p>
-        <p>To go live, turn on call forwarding from your business phone so calls you
-          can't answer roll to this number:</p>
-        <ul>
-          <li><strong>When unanswered:</strong> dial <code>*71</code> then ${newNumber}</li>
-          <li><strong>When busy:</strong> dial <code>*90</code> then ${newNumber}</li>
-        </ul>
-        <p>On a VoIP or office phone system it's a settings toggle instead of a dial code —
-          just reply to this email and we'll walk you through it.</p>
-        <p>That's it. From then on, every missed call gets an instant text-back.</p>
+        <p>One quick step to go live: you keep your current number. From your business phone, dial <code>*71</code> then ${newNumber} once. That tells your carrier to send any call you do not answer to your Slimpse number.</p>
+        <p>On a VoIP or office phone system this is a setting instead of a dial code.
+          Just reply to this email and we'll walk you through it.</p>
+        <p>That's it. From then on, every missed call gets an instant text back.</p>
       `,
     });
     return { success: true };

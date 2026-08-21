@@ -24,7 +24,7 @@ export default function TermsPage() {
 
         <h2 style={h2}>Free trial &amp; billing</h2>
         <p style={p}>
-          New clients start with a <strong>14-day free trial</strong> &mdash; no card required to begin.
+          New clients start with a <strong>7-day free trial</strong>. No card required to begin.
           After the trial, the Service is <strong>$59.99/month</strong> for Voice or Text alone, or{" "}
           <strong>$100/month</strong> for both Voice and Text, unless otherwise agreed, processed by Stripe.
           You can cancel anytime; if you do not add payment, the Service simply pauses when the trial ends.

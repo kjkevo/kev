@@ -5,7 +5,7 @@ import { sendProvisionedWelcome, sendSetupConfirmedAlert } from '@/app/lib/notif
 export const dynamic = 'force-dynamic';
 
 // POST /api/onboarding/confirm — the client green-lights their setup from the
-// review page. This turns their built service ON and starts the 14-day free
+// review page. This turns their built service ON and starts the 7-day free
 // trial (no operator step needed), then emails them their number and alerts us.
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
 
   // Already live? Just report success (idempotent).
   if (!business.active || !business.trialEndsAt) {
-    const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+    const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     await prisma.businessConfig.update({
       where: { id: business.id },
       data: { active: true, trialEndsAt, trialReminderStage: 0 },

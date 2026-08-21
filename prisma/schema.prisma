@@ -206,7 +206,7 @@ model BusinessConfig {
 
   // Trial enforcement. `active` is the master on/off switch the webhooks check
   // before doing anything; a client with no card is auto-disabled when their
-  // 14-day trial ends. signupId links back to the TrialSignup (billing state).
+  // 7-day trial ends. signupId links back to the TrialSignup (billing state).
   active              Boolean   @default(true)
   trialEndsAt         DateTime?
   signupId            Int?      @unique

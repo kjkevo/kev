@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 const DAY = 24 * 60 * 60 * 1000;
 const PAID_STATUSES = ['active', 'trialing'];
 
-// Daily job that enforces the no-card 14-day free trial:
+// Daily job that enforces the no-card 7-day free trial:
 //  • sends reminders ~4 days and ~1 day before the trial ends,
 //  • auto-disables a business at trial end if it has no active subscription,
 //  • re-enables a business that has since started paying (reconcile).
@@ -70,8 +70,8 @@ export async function GET(request: NextRequest) {
         summary.disabled++;
         await sendTrialEndedEmail(b.ownerEmail, b.businessName, paymentUrl).catch(() => {});
         await sendBillingAlert(
-          `⏸️ Trial ended (unpaid): ${b.businessName}`,
-          `<p><strong>${b.businessName}</strong> reached the end of its 14-day trial with no card on file, so its service was paused automatically.</p>`,
+          `Trial ended (unpaid): ${b.businessName}`,
+          `<p><strong>${b.businessName}</strong> reached the end of its 7-day trial with no card on file, so its service was paused automatically.</p>`,
         ).catch(() => {});
       }
       continue;

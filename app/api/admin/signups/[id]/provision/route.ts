@@ -82,7 +82,7 @@ export async function POST(
         voiceEnabled: wantsVoice,
         voice: chosenVoice,
         // Built but OFF: no live texts and no trial clock until the client
-        // confirms their setup, which starts the 14-day trial.
+        // confirms their setup, which starts the 7-day trial.
         active: false,
         signupId: signup.id,
         trialEndsAt: null,

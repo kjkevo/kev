@@ -623,8 +623,8 @@ export default function AdminBusinessesPage() {
   }
   function startTrial(c: Client) {
     postAction(`start-${c.businessId}`, `/api/admin/businesses/${c.businessId}/start-trial`,
-      `${c.businessName} is live — 14-day free trial started. We emailed them their number.`,
-      `Start ${c.businessName}'s 14-day free trial now?\n\nThis turns their service ON and emails them their number + forwarding steps.`);
+      `${c.businessName} is live. 7-day free trial started. We emailed them their number.`,
+      `Start ${c.businessName}'s 7-day free trial now?\n\nThis turns their service ON and emails them their number + forwarding steps.`);
   }
   function cancelSubscription(c: Client) {
     postAction(`sub-${c.businessId}`, `/api/admin/businesses/${c.businessId}/cancel-subscription`,
@@ -978,7 +978,7 @@ export default function AdminBusinessesPage() {
             )}
             {c.businessId && (c.stage === "built" || c.stage === "trial_ended") && (
               <button style={styles.startTrialBtn} disabled={busyStart} onClick={() => startTrial(c)}>
-                {busyStart ? "Starting…" : c.stage === "trial_ended" ? "▶ Restart trial" : "▶ Start 14-day trial"}
+                {busyStart ? "Starting…" : c.stage === "trial_ended" ? "▶ Restart trial" : "▶ Start 7-day trial"}
               </button>
             )}
             {c.businessId && c.stage === "trial" && (
@@ -1114,7 +1114,7 @@ export default function AdminBusinessesPage() {
         {tab === "cancellations" &&
           renderBucket("⚠️ Cancellation requests", "Clients who asked to cancel — service is already off. Confirm to finalize, or keep them.", pipeline.filter((c) => c.category === "cancel_requested"))}
         {tab === "review" && renderBucket("📋 Needs review", "Forms submitted — review, build their service, then start their trial.", pipeline.filter((c) => c.category === "review"))}
-        {tab === "trials" && renderBucket("🎁 On free trial", "Live trials. Bill date = when their 14-day trial ends.", pipeline.filter((c) => c.category === "trial"))}
+        {tab === "trials" && renderBucket("🎁 On free trial", "Live trials. Bill date = when their 7-day trial ends.", pipeline.filter((c) => c.category === "trial"))}
         {tab === "paying" && renderBucket("💳 Paying", "Active paying clients. Bill date = next charge.", pipeline.filter((c) => c.category === "paying"))}
         {tab === "new" && renderBucket("🆕 New (no form yet)", "Signed up but haven't submitted their setup form.", pipeline.filter((c) => c.category === "new"))}
 
