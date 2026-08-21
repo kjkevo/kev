@@ -750,8 +750,7 @@ export function renderSetupConfirmationEmail(opts: SetupConfirmationOpts): { sub
           </div>
           <div style="margin:10px 0 4px;">
             <a href="${opts.reviewUrl}&cancel=1" style="display:inline-block;background:#ffffff;border:1px solid #E3A3B0;color:#B23A48;text-decoration:none;padding:11px 22px;border-radius:10px;font-weight:700;font-size:14px;">Cancel subscription</a>
-          </div>
-          <div style="font-size:12.5px;color:#8a93a6;margin-top:8px;">Please save this email. You can review, manage, or cancel your plan anytime using the buttons above.</div>` : '';
+          </div>` : '';
 
     const goodToKnow = `
           <div style="font-size:12.5px;color:#77808f;line-height:1.65;margin-top:16px;border-top:1px solid #eef0f5;padding-top:12px;">
@@ -763,6 +762,11 @@ export function renderSetupConfirmationEmail(opts: SetupConfirmationOpts): { sub
             Want to add or change anything, like your prices, new products, or services? Just reply to this email or reach us anytime at <a href="mailto:${supportEmail}" style="color:#2F6BFF;font-weight:600;">${supportEmail}</a>.
           </div>`;
 
+    const saveEmailTop = `
+          <div style="background:#FFF8E6;border:1px solid #F3D88A;border-radius:10px;padding:12px 14px;margin:0 0 18px;font-size:14px;color:#5b6472;line-height:1.55;">
+            <strong style="color:#8a6d1a;">Save this email.</strong> It has your Slimpse number and the button below to review, manage, or cancel your plan anytime.
+          </div>`;
+
     const subject = (opts.subject && opts.subject.trim())
       ? opts.subject.trim()
       : `You're all set, ${opts.businessName}. A quick look before you go live`;
@@ -772,11 +776,11 @@ export function renderSetupConfirmationEmail(opts: SetupConfirmationOpts): { sub
           <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #e7ebf3;">
             <div style="background:#0E1526;padding:18px 28px;">
               <span style="color:#ffffff;font-weight:800;font-size:18px;letter-spacing:.2px;">Slimpse</span>
-              <span style="color:#8FB8FF;font-size:13px;"> · never miss a customer again</span>
             </div>
             <div style="padding:26px 28px;color:#1a2233;line-height:1.6;">
               <h1 style="font-size:21px;margin:0 0 6px;line-height:1.25;">You're all set, ${name}</h1>
               <p style="color:#5b6472;margin:0 0 18px;font-size:15px;">Here's what we built. Reply to confirm and your <strong>14 day free trial</strong> starts. No card needed.</p>
+              ${saveEmailTop}
               ${questionsTop}
               ${note}
               <div style="background:#EEF4FF;border:1px solid #D6E4FF;border-radius:12px;padding:14px 16px;margin:0 0 18px;">
