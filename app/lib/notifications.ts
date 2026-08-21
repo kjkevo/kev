@@ -476,7 +476,7 @@ export const sendTrialSignupAlert = async (signup: {
     await transporter.sendMail({
       from: emailFrom(),
       to,
-      subject: `🚀 New trial signup: ${signup.businessName}`,
+      subject: `New trial signup: ${signup.businessName}`,
       html: `
         <h2>New trial signup</h2>
         <p><strong>Business:</strong> ${signup.businessName}</p>
@@ -663,7 +663,7 @@ export const sendIntakeSubmittedAlert = async (signup: {
     await transporter.sendMail({
       from: emailFrom(),
       to,
-      subject: `📝 Setup form submitted: ${signup.businessName}`,
+      subject: `Setup form submitted: ${signup.businessName}`,
       html: `
         <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:600px;color:#1a1a1a;line-height:1.5">
           <h2>A client filled out their setup form</h2>
