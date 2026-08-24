@@ -6,6 +6,9 @@ const config: Config = {
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    // Card/Badge/etc. live under src/components — without this glob, Tailwind's
+    // JIT purges any class used only there (e.g. Badge's success/danger colors).
+    "./src/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {

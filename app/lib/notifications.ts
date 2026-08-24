@@ -847,6 +847,37 @@ export const sendProvisionedWelcome = async (
   }
 };
 
+// Sent on the client's delivery schedule (weekly/monthly): a link to their
+// hosted GA4 report. The report itself lives at the link — this email is
+// just the nudge, so it stays short.
+export const sendGa4ReportEmail = async (
+  toEmail: string,
+  report: { businessName: string; agencyName: string; reportUrl: string },
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const transporter = initializeEmailTransporter();
+    if (!transporter) return { success: false, error: 'Email not configured' };
+    await transporter.sendMail({
+      from: emailFrom(),
+      to: toEmail,
+      subject: `${report.businessName}'s traffic report is ready`,
+      html: `
+        <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:520px;color:#1a1a1a;line-height:1.6;">
+          <h2 style="margin:0 0 8px;">This week's report for ${report.businessName}</h2>
+          <p style="margin:0 0 18px;color:#555;">Traffic, top channels, conversions, and top pages — updated automatically.</p>
+          <div style="margin:22px 0;">
+            <a href="${report.reportUrl}" style="display:inline-block;background:#00C9AD;color:#04220F;text-decoration:none;padding:13px 24px;border-radius:10px;font-weight:800;">View the report</a>
+          </div>
+          <p style="font-size:13px;color:#999;">Sent by ${report.agencyName}.</p>
+        </div>`,
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending GA4 report email:', error);
+    return { success: false, error: String(error) };
+  }
+};
+
 export const sendMissedCallAlertToOwner = async (
   ownerEmail: string,
   businessName: string,
