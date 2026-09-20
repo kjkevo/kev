@@ -1,0 +1,5 @@
+-- See 0002 applied via Supabase MCP; mirrored here for local history.
+-- host_secret moved out of public.rooms into public.room_hosts (RLS enabled,
+-- zero policies, not in the realtime publication) because Realtime broadcasts
+-- full row payloads to anyone the SELECT policy allows, and rooms was openly
+-- readable. Keeping host_secret there would have leaked it to every player.
