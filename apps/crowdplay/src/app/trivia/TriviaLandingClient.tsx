@@ -107,6 +107,14 @@ export default function TriviaLandingClient() {
             : "Mid-round joins aren't allowed so everyone starts on equal footing. A new game boards right after this one wraps up."}
         </p>
       )}
+
+      {/* A disabled button with no other context looks broken — a round can
+          easily run 10+ minutes while boarding only lasts ~20s, so most
+          visits will land mid-round. This proves the game is actually
+          alive and shows how far along it is, rather than leaving the
+          button as an unexplained dead end. */}
+      {!canJoinNow && room && <LiveGameGlance room={room} players={players} />}
+
       {canJoinNow && (
         <p className="text-xs text-indigo-300/60 max-w-xs">
           Jump in and wait in the lobby with everyone else — no need to time it perfectly.
