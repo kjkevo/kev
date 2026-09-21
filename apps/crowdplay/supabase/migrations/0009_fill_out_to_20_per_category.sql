@@ -1,0 +1,17 @@
+-- Applied directly via Supabase MCP; mirrored here for local history.
+--
+-- The question counter showed 18 instead of 20 because
+-- finalize_voting_and_start draws `limit 20`, and most categories only had
+-- 18 questions in their pool (General Knowledge had 16) -- LIMIT just
+-- returns whatever's available, silently capping below the intended
+-- count. Added 4 more to General Knowledge and 2 more to each of the
+-- other 7 categories, bringing all 8 to exactly 20.
+--
+-- Trade-off worth knowing: with pool size == draw size (20 == 20) for
+-- every category now, there is no rotation left at all -- picking a given
+-- category draws its full pool every time, just reshuffled. The
+-- last_used_at freshness ordering from an earlier pass has nothing left
+-- to prefer. Fine for now/testing; a real bar night would start repeating
+-- questions within a few games on the same category. Revisit by growing
+-- the bank further or pulling from a live trivia content source if that
+-- becomes a real complaint.
