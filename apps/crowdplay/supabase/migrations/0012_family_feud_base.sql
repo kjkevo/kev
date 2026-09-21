@@ -75,6 +75,8 @@ alter publication supabase_realtime add table public.feud_players;
 -- Matching helper
 -- ---------------------------------------------------------------------
 
+create extension if not exists fuzzystrmatch;
+
 create or replace function public.normalize_feud_text(p_text text)
 returns text
 language sql
@@ -240,6 +242,7 @@ declare
   v_norm_guess text;
   v_norm_answer text;
   v_slot_points int;
+  v_typo_budget int;
   i int;
   v_match_index int := null;
   v_awarded int := 0;
@@ -275,13 +278,22 @@ begin
     into v_full_board
     from jsonb_array_elements(v_answers) as elem;
 
-  if length(v_norm_guess) > 0 then
+  -- Case-insensitive already (normalize lowercases everything); this adds
+  -- tolerance for a letter or two being off, scaled to the answer's length
+  -- so short answers aren't trivialized by a loose edit-distance allowance.
+  if length(v_norm_guess) >= 2 then
     for i in 0 .. jsonb_array_length(v_answers) - 1 loop
       if (v_board->i->>'revealed')::boolean is not true then
         v_norm_answer := public.normalize_feud_text(v_answers->i->>'text');
+        v_typo_budget := case
+          when length(v_norm_answer) <= 4 then 1
+          when length(v_norm_answer) <= 9 then 2
+          else 3
+        end;
         if v_norm_guess = v_norm_answer
            or (length(v_norm_guess) >= 3 and v_norm_answer like '%' || v_norm_guess || '%')
            or (length(v_norm_answer) >= 3 and v_norm_guess like '%' || v_norm_answer || '%')
+           or levenshtein(v_norm_guess, v_norm_answer) <= v_typo_budget
         then
           v_match_index := i;
           exit;
