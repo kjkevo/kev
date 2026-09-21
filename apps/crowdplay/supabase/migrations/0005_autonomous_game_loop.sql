@@ -1,0 +1,29 @@
+-- Hands-off, "roller coaster" operating mode: the database itself drives
+-- every phase transition on a fixed cadence via pg_cron, so the game keeps
+-- running whether or not any human (host or player) has a tab open.
+-- Manual controls (start_room/advance_phase) still exist for staff overrides,
+-- but nothing requires them anymore.
+--
+-- Applied directly via Supabase MCP; mirrored here for local history. See
+-- the applied migration "autonomous_game_loop" for the exact SQL — it adds
+-- rooms.phase_started_at + rooms.retired, updates start_room/advance_phase
+-- to maintain phase_started_at, adds a SECURITY DEFINER tick() function
+-- (deliberately NOT granted to anon/authenticated — only pg_cron can call
+-- it, otherwise anyone could spam it via PostgREST to force-skip questions
+-- before the real timer expires), and schedules it every 5 seconds via
+-- cron.schedule('trivia_autonomous_tick', '5 seconds', ...).
+--
+-- tick() per room:
+--   lobby + starts_at passed        -> question (index 0)
+--   question + time_limit elapsed   -> reveal
+--   reveal + 8s dwell               -> leaderboard
+--   leaderboard + 8s dwell          -> next question, or final if that was the last
+--   final + 20s dwell               -> retired = true
+-- And: if no non-retired room exists at all, board a new one
+-- (starts_at = now() + 150s, 10 questions from each of 2 random categories).
+--
+-- Verified live: applied the migration, then watched a room it auto-created
+-- progress from lobby through several full question/reveal/leaderboard
+-- cycles with zero manual RPC calls -- confirmed via cron.job_run_details
+-- that ticks fire every 5s, and via direct row reads that phase/
+-- current_question_index advanced correctly on their own.
