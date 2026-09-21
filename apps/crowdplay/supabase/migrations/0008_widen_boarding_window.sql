@@ -1,0 +1,11 @@
+-- Applied directly via Supabase MCP; mirrored here for local history.
+--
+-- The 10s boarding window (from the previous pass) wasn't enough real
+-- time for a human to click Join, land on /play, read/edit the generated
+-- name, and submit before the round started -- join_room correctly
+-- rejected the late attempts as ROOM_ALREADY_STARTED every time, it just
+-- never had a real chance to succeed. Raised tick()'s
+-- v_lobby_boarding_seconds from 10 to 20, keeping the cycle far snappier
+-- than the original 150s while leaving enough room for the actual
+-- click-through. Verified live: created a room with a 20s window and
+-- joined it successfully well inside that time.
