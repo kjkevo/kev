@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useRoomRealtime } from "@/hooks/useRoomRealtime";
 import { useCurrentQuestion } from "@/hooks/useCurrentQuestion";
 import { useCountdown } from "@/hooks/useCountdown";
+import { useCountdownTo } from "@/hooks/useCountdownTo";
 import { JoinQRCode } from "@/components/JoinQRCode";
 import { hostKey, type HostCredentials } from "@/lib/types";
 
@@ -22,6 +24,8 @@ export default function HostGamePage() {
   const { room, players, loading, notFound } = useRoomRealtime(code ?? null);
   const question = useCurrentQuestion(room?.pack_id, room?.current_question_index);
   const countdown = useCountdown(room?.question_started_at ?? null, question?.time_limit_seconds ?? 15);
+
+  const scheduledCountdown = useCountdownTo(room?.starts_at ?? null);
 
   const [creds, setCreds] = useState<HostCredentials | null>(null);
   const [answeredCount, setAnsweredCount] = useState(0);
@@ -92,8 +96,27 @@ export default function HostGamePage() {
       return { error };
     });
 
+  // The host's own open tab is what actually flips the switch when a
+  // scheduled countdown hits zero — there's no server-side cron in this
+  // MVP, so "it starts itself" only holds while the host screen is open,
+  // which is the reasonable assumption for someone running the show.
+  const autoStartedRef = useRef(false);
+  useEffect(() => {
+    if (
+      room?.phase === "lobby" &&
+      room.starts_at &&
+      scheduledCountdown.reached &&
+      !autoStartedRef.current &&
+      creds
+    ) {
+      autoStartedRef.current = true;
+      start();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room?.phase, room?.starts_at, scheduledCountdown.reached, creds]);
+
   if (loading) return <FullscreenMessage text="Loading room…" />;
-  if (notFound) return <FullscreenMessage text="Room not found." />;
+  if (notFound) return <FullscreenMessage text="That room doesn't exist anymore — head to /host to start a new one." />;
   if (!creds) {
     return (
       <FullscreenMessage text="This screen isn't recognized as the host for this room (wrong device, or storage was cleared). Create a new room from /host." />
@@ -118,6 +141,11 @@ export default function HostGamePage() {
             <p className="text-2xl text-slate-300">Join at</p>
             <p className="text-5xl font-black tracking-widest text-amber-400">{room.code}</p>
             <JoinQRCode code={room.code} />
+            {room.starts_at && !scheduledCountdown.reached && (
+              <p className="text-lg text-slate-300">
+                Auto-starting in <span className="text-amber-400 font-bold tabular-nums">{scheduledCountdown.label}</span>
+              </p>
+            )}
             <div className="flex flex-wrap gap-3 justify-center max-w-2xl">
               {sortedPlayers.map((p) => (
                 <span key={p.id} className="bg-white/10 rounded-full px-4 py-2 text-lg">
@@ -130,7 +158,7 @@ export default function HostGamePage() {
               disabled={busy || sortedPlayers.length === 0}
               className="mt-4 rounded-2xl bg-amber-400 text-black font-bold text-2xl px-10 py-5 disabled:opacity-40"
             >
-              Start Game
+              {room.starts_at && !scheduledCountdown.reached ? "Start Now" : "Start Game"}
             </button>
           </>
         )}
@@ -211,6 +239,12 @@ export default function HostGamePage() {
           <>
             <h2 className="text-4xl font-black text-amber-400">🎉 Final Results 🎉</h2>
             <Leaderboard players={sortedPlayers} />
+            <Link
+              href="/host"
+              className="mt-6 inline-block rounded-2xl bg-white/10 border border-white/20 font-bold text-xl px-8 py-4"
+            >
+              Start Another Round
+            </Link>
           </>
         )}
       </div>

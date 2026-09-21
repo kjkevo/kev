@@ -6,10 +6,18 @@ import { supabase } from "@/lib/supabase";
 import { hostKey } from "@/lib/types";
 import type { QuestionPack } from "@/lib/types";
 
+const TIMING_OPTIONS = [
+  { label: "Start Now", minutes: 0 },
+  { label: "In 5 min", minutes: 5 },
+  { label: "In 10 min", minutes: 10 },
+  { label: "In 15 min", minutes: 15 },
+];
+
 export default function HostSetupClient() {
   const router = useRouter();
   const [packs, setPacks] = useState<QuestionPack[]>([]);
-  const [creating, setCreating] = useState<string | null>(null);
+  const [selectedPack, setSelectedPack] = useState<QuestionPack | null>(null);
+  const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -20,13 +28,18 @@ export default function HostSetupClient() {
       .then(({ data }) => setPacks(data ?? []));
   }, []);
 
-  async function startRoom(packId: string) {
-    setCreating(packId);
+  async function startRoom(minutesFromNow: number) {
+    if (!selectedPack || creating) return;
+    setCreating(true);
     setError(null);
-    const { data, error } = await supabase.rpc("create_room", { p_pack_id: packId });
+    const startsAt = minutesFromNow > 0 ? new Date(Date.now() + minutesFromNow * 60_000).toISOString() : null;
+    const { data, error } = await supabase.rpc("create_room", {
+      p_pack_id: selectedPack.id,
+      p_starts_at: startsAt ?? undefined,
+    });
     if (error || !data?.[0]) {
       setError("Couldn't create the room. Check your connection and try again.");
-      setCreating(null);
+      setCreating(false);
       return;
     }
     const { room_id, code, host_secret } = data[0];
@@ -34,24 +47,52 @@ export default function HostSetupClient() {
     router.push(`/host/${code}`);
   }
 
+  if (selectedPack) {
+    return (
+      <main className="min-h-screen bg-slate-950 text-white px-6 py-16 flex flex-col items-center">
+        <button onClick={() => setSelectedPack(null)} className="text-sm text-slate-400 hover:text-white mb-8">
+          ← Back to packs
+        </button>
+        <h1 className="text-3xl font-bold mb-2">{selectedPack.name}</h1>
+        <p className="text-slate-400 mb-10">When should this round start?</p>
+
+        {error && <p className="text-red-400 mb-6">{error}</p>}
+
+        <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
+          {TIMING_OPTIONS.map((opt) => (
+            <button
+              key={opt.label}
+              onClick={() => startRoom(opt.minutes)}
+              disabled={creating}
+              className="rounded-xl bg-white/5 border border-white/10 hover:border-amber-400/60 px-5 py-6 font-semibold text-lg transition disabled:opacity-50"
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-slate-500 mt-8 max-w-xs text-center">
+          A scheduled round shows a live countdown to players and starts itself automatically — you can still start
+          it early from the host screen at any time.
+        </p>
+        {creating && <p className="text-amber-400 mt-4">Creating room…</p>}
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-slate-950 text-white px-6 py-16 flex flex-col items-center">
       <h1 className="text-3xl font-bold mb-2">Pick a question pack</h1>
       <p className="text-slate-400 mb-10">You&apos;ll get a room code and QR code on the next screen.</p>
 
-      {error && <p className="text-red-400 mb-6">{error}</p>}
-
       <div className="grid gap-4 w-full max-w-md">
         {packs.map((pack) => (
           <button
             key={pack.id}
-            onClick={() => startRoom(pack.id)}
-            disabled={creating !== null}
-            className="text-left rounded-xl bg-white/5 border border-white/10 hover:border-amber-400/60 px-5 py-4 transition disabled:opacity-50"
+            onClick={() => setSelectedPack(pack)}
+            className="text-left rounded-xl bg-white/5 border border-white/10 hover:border-amber-400/60 px-5 py-4 transition"
           >
             <div className="font-semibold text-lg">{pack.name}</div>
             {pack.category && <div className="text-sm text-slate-400">{pack.category}</div>}
-            {creating === pack.id && <div className="text-amber-400 text-sm mt-1">Creating room…</div>}
           </button>
         ))}
         {packs.length === 0 && (
