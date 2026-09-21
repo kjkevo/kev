@@ -22,6 +22,8 @@ const JOIN_ERRORS: Record<string, string> = {
   ROOM_ALREADY_STARTED: "This game already started — ask your host to make you a new room, or wait for the next one.",
   INVALID_NICKNAME: "Enter a name between 1 and 30 characters.",
   NICKNAME_TAKEN: "Someone in this room already picked that name — try another.",
+  ROOM_FULL_TEAMS: "We've hit our 20-team limit for this beta round — try joining solo, or wait for the next game.",
+  ROOM_FULL_SOLO: "We've hit our 50-player limit for this beta round — wait for the next game to join in.",
 };
 
 function friendlyError(raw: string) {
@@ -86,6 +88,14 @@ export default function PlayPage() {
     if (result.correct) haptics.correct();
     else haptics.wrong();
   }, [result]);
+
+  const teamCount = useMemo(
+    () => players.filter((p) => p.team_members && p.team_members.length > 0).length,
+    [players]
+  );
+  const soloCount = players.length - teamCount;
+  const teamsFull = teamCount >= 20;
+  const soloFull = soloCount >= 50;
 
   const me = useMemo(() => players.find((p) => p.id === creds?.playerId), [players, creds]);
   const sorted = useMemo(() => [...players].sort((a, b) => b.score - a.score), [players]);
@@ -179,22 +189,34 @@ export default function PlayPage() {
           <div className="flex rounded-2xl bg-white/5 border border-white/10 p-1">
             <button
               type="button"
-              onClick={() => setIsTeam(false)}
-              className={`flex-1 rounded-xl py-2 text-sm font-semibold transition ${!isTeam ? "bg-amber-400 text-black" : "text-slate-300"}`}
+              onClick={() => !soloFull && setIsTeam(false)}
+              disabled={soloFull}
+              className={`flex-1 rounded-xl py-2 text-sm font-semibold transition disabled:opacity-30 ${!isTeam ? "bg-amber-400 text-black" : "text-slate-300"}`}
             >
               Solo
             </button>
             <button
               type="button"
               onClick={() => {
+                if (teamsFull) return;
                 setIsTeam(true);
                 if (!nickname.startsWith("Team ")) setNickname(`Team ${randomFunName()}`);
               }}
-              className={`flex-1 rounded-xl py-2 text-sm font-semibold transition ${isTeam ? "bg-amber-400 text-black" : "text-slate-300"}`}
+              disabled={teamsFull}
+              className={`flex-1 rounded-xl py-2 text-sm font-semibold transition disabled:opacity-30 ${isTeam ? "bg-amber-400 text-black" : "text-slate-300"}`}
             >
               Team
             </button>
           </div>
+          {(teamsFull || soloFull) && (
+            <p className="text-xs text-amber-400/80 -mt-1">
+              {teamsFull && soloFull
+                ? "This room is at capacity for our beta (20 teams, 50 solo players) — wait for the next game."
+                : teamsFull
+                  ? "Teams are full for this beta round (20 max) — join solo instead."
+                  : "Solo spots are full for this beta round (50 max) — start or join a team instead."}
+            </p>
+          )}
 
           <div className="relative">
             <input
@@ -241,7 +263,7 @@ export default function PlayPage() {
 
           {joinError && <p className="text-red-400 text-sm">{joinError}</p>}
           <button
-            disabled={joining || nickname.trim().length === 0}
+            disabled={joining || nickname.trim().length === 0 || (isTeam ? teamsFull : soloFull)}
             className="rounded-2xl bg-amber-400 text-black font-bold text-lg py-4 disabled:opacity-40 active:scale-95 transition"
           >
             {joining ? "Joining…" : "Join Game"}

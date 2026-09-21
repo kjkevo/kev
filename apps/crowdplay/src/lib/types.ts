@@ -26,3 +26,18 @@ export type PlayerCredentials = { playerId: string; clientToken: string; roomId:
 
 export const hostKey = (code: string) => `crowdplay_host_${code.toUpperCase()}`;
 export const playerKey = (code: string) => `crowdplay_player_${code.toUpperCase()}`;
+
+// --- Family Feud ---
+
+export type FeudRoom = Database["public"]["Tables"]["feud_rooms"]["Row"];
+export type FeudPlayer = Database["public"]["Tables"]["feud_players"]["Row"];
+
+export type FeudPhase = "lobby" | "play" | "steal" | "reveal" | "leaderboard" | "final";
+export type FeudTeam = "a" | "b";
+
+export type FeudBoardSlot = { revealed: boolean; text: string | null; points: number | null };
+export type FeudLastGuess = { nickname: string; team: FeudTeam; guess: string; matched: boolean };
+
+export type FeudPlayerCredentials = { playerId: string; clientToken: string; roomId: string; team: FeudTeam };
+
+export const feudPlayerKey = (code: string) => `crowdplay_feud_player_${code.toUpperCase()}`;

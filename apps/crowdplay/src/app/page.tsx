@@ -12,8 +12,8 @@ const GAMES = [
     name: "Family Feud",
     emoji: "🎙️",
     tagline: "Top answers, buzzer battles",
-    href: "#",
-    live: false,
+    href: "/feud",
+    live: true,
   },
   {
     name: "Social Bingo",
