@@ -129,7 +129,6 @@ export type Database = {
           created_at: string
           current_question_index: number
           id: string
-          pack_id: string
           phase: string
           question_started_at: string | null
           revealed_correct_index: number | null
@@ -140,7 +139,6 @@ export type Database = {
           created_at?: string
           current_question_index?: number
           id?: string
-          pack_id: string
           phase?: string
           question_started_at?: string | null
           revealed_correct_index?: number | null
@@ -151,7 +149,6 @@ export type Database = {
           created_at?: string
           current_question_index?: number
           id?: string
-          pack_id?: string
           phase?: string
           question_started_at?: string | null
           revealed_correct_index?: number | null
@@ -163,6 +160,12 @@ export type Database = {
         Row: { room_id: string; host_secret: string }
         Insert: { room_id: string; host_secret?: string }
         Update: { room_id?: string; host_secret?: string }
+        Relationships: []
+      }
+      room_questions: {
+        Row: { room_id: string; order_index: number; question_id: string }
+        Insert: { room_id: string; order_index: number; question_id: string }
+        Update: { room_id?: string; order_index?: number; question_id?: string }
         Relationships: []
       }
     }
@@ -185,7 +188,7 @@ export type Database = {
         Returns: undefined
       }
       create_room: {
-        Args: { p_pack_id: string; p_starts_at?: string }
+        Args: { p_starts_at?: string; p_questions_per_category?: number }
         Returns: { code: string; host_secret: string; room_id: string }[]
       }
       join_room: {

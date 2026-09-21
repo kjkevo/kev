@@ -22,7 +22,7 @@ export default function HostGamePage() {
   const params = useParams<{ code: string }>();
   const code = params.code?.toUpperCase();
   const { room, players, loading, notFound } = useRoomRealtime(code ?? null);
-  const question = useCurrentQuestion(room?.pack_id, room?.current_question_index);
+  const question = useCurrentQuestion(room?.id, room?.current_question_index);
   const countdown = useCountdown(room?.question_started_at ?? null, question?.time_limit_seconds ?? 15);
 
   const scheduledCountdown = useCountdownTo(room?.starts_at ?? null);

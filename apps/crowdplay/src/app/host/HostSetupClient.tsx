@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { hostKey } from "@/lib/types";
-import type { QuestionPack } from "@/lib/types";
 
 const TIMING_OPTIONS = [
   { label: "Start Now", minutes: 0 },
@@ -15,26 +14,15 @@ const TIMING_OPTIONS = [
 
 export default function HostSetupClient() {
   const router = useRouter();
-  const [packs, setPacks] = useState<QuestionPack[]>([]);
-  const [selectedPack, setSelectedPack] = useState<QuestionPack | null>(null);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    supabase
-      .from("question_packs")
-      .select("*")
-      .order("created_at", { ascending: true })
-      .then(({ data }) => setPacks(data ?? []));
-  }, []);
-
   async function startRoom(minutesFromNow: number) {
-    if (!selectedPack || creating) return;
+    if (creating) return;
     setCreating(true);
     setError(null);
     const startsAt = minutesFromNow > 0 ? new Date(Date.now() + minutesFromNow * 60_000).toISOString() : null;
     const { data, error } = await supabase.rpc("create_room", {
-      p_pack_id: selectedPack.id,
       p_starts_at: startsAt ?? undefined,
     });
     if (error || !data?.[0]) {
@@ -47,58 +35,33 @@ export default function HostSetupClient() {
     router.push(`/host/${code}`);
   }
 
-  if (selectedPack) {
-    return (
-      <main className="min-h-screen bg-slate-950 text-white px-6 py-16 flex flex-col items-center">
-        <button onClick={() => setSelectedPack(null)} className="text-sm text-slate-400 hover:text-white mb-8">
-          ← Back to packs
-        </button>
-        <h1 className="text-3xl font-bold mb-2">{selectedPack.name}</h1>
-        <p className="text-slate-400 mb-10">When should this round start?</p>
-
-        {error && <p className="text-red-400 mb-6">{error}</p>}
-
-        <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
-          {TIMING_OPTIONS.map((opt) => (
-            <button
-              key={opt.label}
-              onClick={() => startRoom(opt.minutes)}
-              disabled={creating}
-              className="rounded-xl bg-white/5 border border-white/10 hover:border-amber-400/60 px-5 py-6 font-semibold text-lg transition disabled:opacity-50"
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-        <p className="text-xs text-slate-500 mt-8 max-w-xs text-center">
-          A scheduled round shows a live countdown to players and starts itself automatically — you can still start
-          it early from the host screen at any time.
-        </p>
-        {creating && <p className="text-amber-400 mt-4">Creating room…</p>}
-      </main>
-    );
-  }
-
   return (
     <main className="min-h-screen bg-slate-950 text-white px-6 py-16 flex flex-col items-center">
-      <h1 className="text-3xl font-bold mb-2">Pick a question pack</h1>
-      <p className="text-slate-400 mb-10">You&apos;ll get a room code and QR code on the next screen.</p>
+      <h1 className="text-3xl font-bold mb-2">When should this round start?</h1>
+      <p className="text-slate-400 mb-10 max-w-sm text-center">
+        Each game mixes 2 random categories out of 8 — general knowledge, pop culture, music, sports, geography,
+        food &amp; drink, decades nostalgia, and franchise trivia — so no two rounds play the same.
+      </p>
 
-      <div className="grid gap-4 w-full max-w-md">
-        {packs.map((pack) => (
+      {error && <p className="text-red-400 mb-6">{error}</p>}
+
+      <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
+        {TIMING_OPTIONS.map((opt) => (
           <button
-            key={pack.id}
-            onClick={() => setSelectedPack(pack)}
-            className="text-left rounded-xl bg-white/5 border border-white/10 hover:border-amber-400/60 px-5 py-4 transition"
+            key={opt.label}
+            onClick={() => startRoom(opt.minutes)}
+            disabled={creating}
+            className="rounded-xl bg-white/5 border border-white/10 hover:border-amber-400/60 px-5 py-6 font-semibold text-lg transition disabled:opacity-50"
           >
-            <div className="font-semibold text-lg">{pack.name}</div>
-            {pack.category && <div className="text-sm text-slate-400">{pack.category}</div>}
+            {opt.label}
           </button>
         ))}
-        {packs.length === 0 && (
-          <p className="text-slate-500 text-center">No question packs yet — seed one in Supabase.</p>
-        )}
       </div>
+      <p className="text-xs text-slate-500 mt-8 max-w-xs text-center">
+        A scheduled round shows a live countdown to players and starts itself automatically — you can still start it
+        early from the host screen at any time.
+      </p>
+      {creating && <p className="text-amber-400 mt-4">Creating room…</p>}
     </main>
   );
 }
