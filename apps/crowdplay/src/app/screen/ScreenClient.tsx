@@ -79,7 +79,13 @@ export default function ScreenClient() {
           </>
         )}
 
-        {room.phase === "question" && question && (
+        {/* If every player answers fast, the room advances to "reveal"
+            before this screen's own countdown runs out — that's the point
+            for players (instant feedback), but the shared TV shouldn't
+            spoil the answer early for a whole room of onlookers. Hold on
+            the question view here until the real timer has actually
+            elapsed, regardless of how fast the phase itself moved on. */}
+        {(room.phase === "question" || (room.phase === "reveal" && !countdown.expired)) && question && (
           <>
             <div className="w-full max-w-3xl h-3 bg-white/10 rounded-full overflow-hidden">
               <div
@@ -101,7 +107,7 @@ export default function ScreenClient() {
           </>
         )}
 
-        {room.phase === "reveal" && question && (
+        {room.phase === "reveal" && countdown.expired && question && (
           <>
             <h2 className="text-3xl font-bold max-w-3xl">{question.prompt}</h2>
             <div className="grid grid-cols-2 gap-4 w-full max-w-3xl">

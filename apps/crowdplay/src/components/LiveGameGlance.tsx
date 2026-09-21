@@ -42,7 +42,12 @@ export function LiveGameGlance({ room, players }: { room: Room; players: Player[
         </>
       )}
 
-      {room.phase === "question" && question && (
+      {/* If every player answers fast, the room advances to "reveal" before
+          this card's own countdown runs out — fine for players (instant
+          feedback on their own phone), but a spectator watching here
+          didn't answer anything, so hold on the question view until the
+          real timer has actually elapsed. */}
+      {(room.phase === "question" || (room.phase === "reveal" && !countdown.expired)) && question && (
         <>
           <p className="text-xs text-slate-400">
             Question {room.current_question_index + 1} of {totalQuestions || "?"} · {countdown.remainingSeconds}s
@@ -58,7 +63,7 @@ export function LiveGameGlance({ room, players }: { room: Room; players: Player[
         </>
       )}
 
-      {room.phase === "reveal" && question && (
+      {room.phase === "reveal" && countdown.expired && question && (
         <>
           <p className="font-semibold text-center text-sm">{question.prompt}</p>
           <div className="grid grid-cols-2 gap-2 w-full">
