@@ -17,6 +17,7 @@ export type PublicQuestion = {
   time_limit_seconds: number;
 };
 export type QuestionPack = Database["public"]["Tables"]["question_packs"]["Row"];
+export type CategoryVote = Database["public"]["Tables"]["category_votes"]["Row"];
 
 export type Phase = "lobby" | "question" | "reveal" | "leaderboard" | "final";
 
