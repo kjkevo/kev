@@ -2,9 +2,9 @@
 
 import { QRCodeSVG } from "qrcode.react";
 
-export function JoinQRCode({ code }: { code: string }) {
+export function JoinQRCode({ code, basePath = "/play" }: { code: string; basePath?: string }) {
   const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const url = `${origin}/play/${code}`;
+  const url = `${origin}${basePath}/${code}`;
 
   return (
     <div className="bg-white p-4 rounded-2xl inline-block">

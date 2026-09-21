@@ -236,6 +236,7 @@ declare
   v_question public.feud_questions;
   v_answers jsonb;
   v_board jsonb;
+  v_full_board jsonb;
   v_norm_guess text;
   v_norm_answer text;
   v_slot_points int;
@@ -270,6 +271,10 @@ begin
   v_board := v_room.board;
   v_norm_guess := public.normalize_feud_text(p_guess);
 
+  select jsonb_agg(jsonb_build_object('revealed', true, 'text', elem->>'text', 'points', (elem->>'points')::int))
+    into v_full_board
+    from jsonb_array_elements(v_answers) as elem;
+
   if length(v_norm_guess) > 0 then
     for i in 0 .. jsonb_array_length(v_answers) - 1 loop
       if (v_board->i->>'revealed')::boolean is not true then
@@ -298,25 +303,26 @@ begin
   ) where id = p_room_id;
 
   if v_room.phase = 'steal' then
-    -- One shot: whatever happens, the round resolves right now.
+    -- One shot: whatever happens, the round resolves right now. Reveal the
+    -- whole board -- the round is over, so there's nothing left to protect.
     if v_matched then
       if v_player.team = 'a' then
-        update public.feud_rooms set team_a_score = team_a_score + v_room.pot + v_awarded, board = v_board,
+        update public.feud_rooms set team_a_score = team_a_score + v_room.pot + v_awarded, board = v_full_board,
           phase = 'reveal', phase_started_at = now(), last_action_at = now() where id = p_room_id;
       else
-        update public.feud_rooms set team_b_score = team_b_score + v_room.pot + v_awarded, board = v_board,
+        update public.feud_rooms set team_b_score = team_b_score + v_room.pot + v_awarded, board = v_full_board,
           phase = 'reveal', phase_started_at = now(), last_action_at = now() where id = p_room_id;
       end if;
     else
       if v_room.controlling_team = 'a' then
-        update public.feud_rooms set team_a_score = team_a_score + v_room.pot, board = v_board,
+        update public.feud_rooms set team_a_score = team_a_score + v_room.pot, board = v_full_board,
           phase = 'reveal', phase_started_at = now(), last_action_at = now() where id = p_room_id;
       else
-        update public.feud_rooms set team_b_score = team_b_score + v_room.pot, board = v_board,
+        update public.feud_rooms set team_b_score = team_b_score + v_room.pot, board = v_full_board,
           phase = 'reveal', phase_started_at = now(), last_action_at = now() where id = p_room_id;
       end if;
     end if;
-    return query select v_matched, v_awarded, v_room.strikes, 'reveal'::text, v_board;
+    return query select v_matched, v_awarded, v_room.strikes, 'reveal'::text, v_full_board;
     return;
   end if;
 
@@ -389,6 +395,8 @@ declare
   v_lobby_boarding_seconds constant int := 20;
   v_idle_timeout_seconds constant int := 45;
   v_room record;
+  v_answers jsonb;
+  v_full_board jsonb;
 begin
   for v_room in select * from public.feud_rooms where phase <> 'final' or not retired loop
 
@@ -397,14 +405,20 @@ begin
 
     elsif v_room.phase in ('play', 'steal') then
       if now() >= v_room.last_action_at + make_interval(secs => v_idle_timeout_seconds) then
+        select answers into v_answers from public.feud_questions where id = v_room.current_question_id;
+        select jsonb_agg(jsonb_build_object('revealed', true, 'text', elem->>'text', 'points', (elem->>'points')::int))
+          into v_full_board
+          from jsonb_array_elements(v_answers) as elem;
+
         if v_room.controlling_team = 'a' then
-          update public.feud_rooms set team_a_score = team_a_score + pot, phase = 'reveal', phase_started_at = now()
-            where id = v_room.id;
+          update public.feud_rooms set team_a_score = team_a_score + pot, board = v_full_board,
+            phase = 'reveal', phase_started_at = now() where id = v_room.id;
         elsif v_room.controlling_team = 'b' then
-          update public.feud_rooms set team_b_score = team_b_score + pot, phase = 'reveal', phase_started_at = now()
-            where id = v_room.id;
+          update public.feud_rooms set team_b_score = team_b_score + pot, board = v_full_board,
+            phase = 'reveal', phase_started_at = now() where id = v_room.id;
         else
-          update public.feud_rooms set phase = 'reveal', phase_started_at = now() where id = v_room.id;
+          update public.feud_rooms set board = v_full_board, phase = 'reveal', phase_started_at = now()
+            where id = v_room.id;
         end if;
       end if;
 

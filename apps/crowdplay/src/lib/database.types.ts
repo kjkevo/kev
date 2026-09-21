@@ -51,6 +51,104 @@ export type Database = {
         Update: { room_id?: string; player_id?: string; choice?: number; voted_at?: string }
         Relationships: []
       }
+      feud_players: {
+        Row: { id: string; room_id: string; team: string; nickname: string; client_token: string; joined_at: string }
+        Insert: {
+          id?: string
+          room_id: string
+          team: string
+          nickname: string
+          client_token?: string
+          joined_at?: string
+        }
+        Update: {
+          id?: string
+          room_id?: string
+          team?: string
+          nickname?: string
+          client_token?: string
+          joined_at?: string
+        }
+        Relationships: []
+      }
+      feud_questions: {
+        Row: { id: string; prompt: string; answers: Json; last_used_at: string | null }
+        Insert: { id?: string; prompt: string; answers: Json; last_used_at?: string | null }
+        Update: { id?: string; prompt?: string; answers?: Json; last_used_at?: string | null }
+        Relationships: []
+      }
+      feud_rooms: {
+        Row: {
+          id: string
+          code: string
+          phase: string
+          created_at: string
+          starts_at: string | null
+          phase_started_at: string
+          last_action_at: string
+          current_round_index: number
+          total_rounds: number
+          current_question_id: string | null
+          current_prompt: string | null
+          board: Json
+          controlling_team: string | null
+          strikes: number
+          pot: number
+          team_a_name: string
+          team_b_name: string
+          team_a_score: number
+          team_b_score: number
+          last_guess: Json | null
+          retired: boolean
+        }
+        Insert: {
+          id?: string
+          code: string
+          phase?: string
+          created_at?: string
+          starts_at?: string | null
+          phase_started_at?: string
+          last_action_at?: string
+          current_round_index?: number
+          total_rounds?: number
+          current_question_id?: string | null
+          current_prompt?: string | null
+          board?: Json
+          controlling_team?: string | null
+          strikes?: number
+          pot?: number
+          team_a_name?: string
+          team_b_name?: string
+          team_a_score?: number
+          team_b_score?: number
+          last_guess?: Json | null
+          retired?: boolean
+        }
+        Update: {
+          id?: string
+          code?: string
+          phase?: string
+          created_at?: string
+          starts_at?: string | null
+          phase_started_at?: string
+          last_action_at?: string
+          current_round_index?: number
+          total_rounds?: number
+          current_question_id?: string | null
+          current_prompt?: string | null
+          board?: Json
+          controlling_team?: string | null
+          strikes?: number
+          pot?: number
+          team_a_name?: string
+          team_b_name?: string
+          team_a_score?: number
+          team_b_score?: number
+          last_guess?: Json | null
+          retired?: boolean
+        }
+        Relationships: []
+      }
       players: {
         Row: {
           client_token: string
@@ -218,13 +316,31 @@ export type Database = {
         Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_choice: number }
         Returns: undefined
       }
+      create_feud_room: {
+        Args: { p_starts_at?: string }
+        Returns: { code: string; room_id: string }[]
+      }
       create_room: {
         Args: { p_starts_at?: string }
         Returns: { code: string; host_secret: string; room_id: string }[]
       }
+      join_feud_room: {
+        Args: { p_code: string; p_nickname: string; p_team?: string }
+        Returns: { client_token: string; player_id: string; room_id: string; team: string }[]
+      }
       join_room: {
         Args: { p_code: string; p_nickname: string; p_team_members?: string[] }
         Returns: { client_token: string; player_id: string; room_id: string }[]
+      }
+      submit_feud_guess: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_guess: string }
+        Returns: {
+          o_matched: boolean
+          o_points_awarded: number
+          o_strikes: number
+          o_phase: string
+          o_board: Json
+        }[]
       }
       start_room: {
         Args: { p_host_secret: string; p_room_id: string }
