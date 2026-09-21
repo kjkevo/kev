@@ -133,6 +133,7 @@ export type Database = {
           phase: string
           question_started_at: string | null
           revealed_correct_index: number | null
+          starts_at: string | null
         }
         Insert: {
           code: string
@@ -143,6 +144,7 @@ export type Database = {
           phase?: string
           question_started_at?: string | null
           revealed_correct_index?: number | null
+          starts_at?: string | null
         }
         Update: {
           code?: string
@@ -153,6 +155,7 @@ export type Database = {
           phase?: string
           question_started_at?: string | null
           revealed_correct_index?: number | null
+          starts_at?: string | null
         }
         Relationships: []
       }
@@ -182,7 +185,7 @@ export type Database = {
         Returns: undefined
       }
       create_room: {
-        Args: { p_pack_id: string }
+        Args: { p_pack_id: string; p_starts_at?: string }
         Returns: { code: string; host_secret: string; room_id: string }[]
       }
       join_room: {
