@@ -32,7 +32,8 @@ export default function FeudLandingClient() {
     );
   }
 
-  const canJoinNow = room !== null && room.phase === "lobby";
+  // TESTING MODE: see TriviaLandingClient's matching comment. Revert before real bar service.
+  const canJoinNow = room !== null;
   const isWaiting = room !== null && declinedCode === room.code;
 
   const statusLine =

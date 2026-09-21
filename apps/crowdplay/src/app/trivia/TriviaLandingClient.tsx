@@ -41,7 +41,11 @@ export default function TriviaLandingClient() {
     );
   }
 
-  const canJoinNow = room !== null && room.phase === "lobby";
+  // TESTING MODE: normally gated on room.phase === "lobby" so mid-round
+  // joins are blocked for fairness. Relaxed to always-joinable while
+  // solo-testing (the join_room RPC accepts joins at any phase for now
+  // too) -- revert both before real bar service.
+  const canJoinNow = room !== null;
   const isWaiting = room !== null && declinedCode === room.code;
 
   const statusLine =
