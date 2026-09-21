@@ -5,17 +5,25 @@ import { supabase } from "@/lib/supabase";
 import type { PublicQuestion } from "@/lib/types";
 
 /**
- * Each room gets its own randomized, category-mixed question list at
- * creation time (see create_room). Two-step lookup — room_questions maps
- * (room, order_index) -> question_id, then questions_public gives the
- * answer-key-free content — rather than a PostgREST embed, since embedding
- * across a view without its own FK metadata isn't reliably supported.
+ * Each room gets its own randomized, category-mixed question list, but only
+ * once voting closes and finalize_voting_and_start populates room_questions
+ * — during 'lobby' there's nothing to find yet. current_question_index is
+ * 0 both during lobby (the column default) and for the actual first
+ * question, so roomId+orderIndex alone don't change across that
+ * transition — without `phase` in the dependency array, the lobby-time
+ * "nothing found" result would stick forever, showing a blank screen
+ * instead of ever fetching the first question. `phase` is only taken to
+ * force a refetch on that transition, not otherwise used.
  */
-export function useCurrentQuestion(roomId: string | undefined, orderIndex: number | undefined) {
+export function useCurrentQuestion(
+  roomId: string | undefined,
+  orderIndex: number | undefined,
+  phase: string | undefined
+) {
   const [question, setQuestion] = useState<PublicQuestion | null>(null);
 
   useEffect(() => {
-    if (!roomId || orderIndex === undefined) {
+    if (!roomId || orderIndex === undefined || phase === "lobby") {
       setQuestion(null);
       return;
     }
@@ -45,7 +53,7 @@ export function useCurrentQuestion(roomId: string | undefined, orderIndex: numbe
     return () => {
       cancelled = true;
     };
-  }, [roomId, orderIndex]);
+  }, [roomId, orderIndex, phase]);
 
   return question;
 }

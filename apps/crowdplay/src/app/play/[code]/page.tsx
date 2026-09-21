@@ -34,13 +34,18 @@ export default function PlayPage() {
   const router = useRouter();
   const code = params.code?.toUpperCase();
   const { room, players, loading, notFound } = useRoomRealtime(code ?? null);
-  const question = useCurrentQuestion(room?.id, room?.current_question_index);
+  const question = useCurrentQuestion(room?.id, room?.current_question_index, room?.phase);
   const countdown = useCountdown(room?.question_started_at ?? null, question?.time_limit_seconds ?? 15);
   const scheduledCountdown = useCountdownTo(room?.starts_at ?? null);
   const totalQuestions = useTotalQuestions(room?.id, room?.phase);
   const answeredCount = useAnsweredCount(room?.phase === "question" ? question?.id : undefined);
   const packs = useAllPacks();
   const voteTally = useCategoryVoteTally(room?.phase === "lobby" ? room?.id : undefined);
+  // Realtime confirmation typically lands well under a second, but the tap
+  // should feel instant regardless — bump the shown count immediately and
+  // let the next real tally (which will already agree) replace it.
+  const [displayTally, setDisplayTally] = useState(voteTally);
+  useEffect(() => setDisplayTally(voteTally), [voteTally.a, voteTally.b]);
 
   const [creds, setCreds] = useState<PlayerCredentials | null>(null);
   const [nickname, setNickname] = useState("");
@@ -116,7 +121,15 @@ export default function PlayPage() {
   }
 
   async function vote(choice: 0 | 1) {
-    if (!room || !creds) return;
+    if (!room || !creds || choice === myVote) return;
+    setDisplayTally((prev) => {
+      const next = { ...prev };
+      if (myVote === 0) next.a = Math.max(0, next.a - 1);
+      if (myVote === 1) next.b = Math.max(0, next.b - 1);
+      if (choice === 0) next.a += 1;
+      else next.b += 1;
+      return next;
+    });
     setMyVote(choice);
     await supabase.rpc("cast_vote", {
       p_room_id: room.id,
@@ -260,13 +273,13 @@ export default function PlayPage() {
             <div className="grid grid-cols-2 gap-3">
               <VoteButton
                 name={packs[room.category_option_a]?.name}
-                count={voteTally.a}
+                count={displayTally.a}
                 selected={myVote === 0}
                 onClick={() => vote(0)}
               />
               <VoteButton
                 name={packs[room.category_option_b]?.name}
-                count={voteTally.b}
+                count={displayTally.b}
                 selected={myVote === 1}
                 onClick={() => vote(1)}
               />

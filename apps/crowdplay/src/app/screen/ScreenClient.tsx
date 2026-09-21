@@ -25,7 +25,7 @@ export default function ScreenClient() {
   const activeRoom = useActiveRoom();
   const code = activeRoom?.code ?? null;
   const { room, players } = useRoomRealtime(code);
-  const question = useCurrentQuestion(room?.id, room?.current_question_index);
+  const question = useCurrentQuestion(room?.id, room?.current_question_index, room?.phase);
   const countdown = useCountdown(room?.question_started_at ?? null, question?.time_limit_seconds ?? 15);
   const scheduledCountdown = useCountdownTo(room?.starts_at ?? null);
   const totalQuestions = useTotalQuestions(room?.id, room?.phase);

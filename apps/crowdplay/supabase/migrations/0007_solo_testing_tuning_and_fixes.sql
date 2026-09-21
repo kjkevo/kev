@@ -1,0 +1,26 @@
+-- Applied directly via Supabase MCP; mirrored here for local history.
+--
+-- Bug fix: category_votes was created without ever being added to the
+-- supabase_realtime publication, so votes recorded correctly server-side
+-- (already verified in the previous pass) but the live tally never
+-- refreshed for anyone watching -- clicking a vote appeared to do nothing.
+--   alter publication supabase_realtime add table public.category_votes;
+--
+-- Tuning for solo testing: tick()'s v_lobby_boarding_seconds dropped from
+-- 150 to 10, and finalize_voting_and_start()'s v_questions_per_game raised
+-- from 12 to 20 (both re-created with `create or replace`, then the
+-- execute revoke re-applied and re-verified via
+-- information_schema.routine_privileges -- CREATE OR REPLACE preserves
+-- existing grants rather than resetting them, but re-asserting and
+-- re-checking costs nothing and removes any doubt).
+--
+-- Client-side bug fix (not a DB change): useCurrentQuestion's fetch is
+-- keyed on (roomId, orderIndex), but current_question_index is 0 both
+-- during lobby (the column default) and for the real first question, so
+-- the lobby-time "nothing found yet" result (room_questions doesn't exist
+-- until voting closes) never got refetched once the game actually
+-- started -- producing a blank screen on question 1 specifically. Fixed
+-- by adding `phase` to the hook's dependency array (and skipping the
+-- fetch entirely while phase is still 'lobby'), so the lobby -> question
+-- transition is itself a re-fetch trigger even though roomId/orderIndex
+-- don't change.
