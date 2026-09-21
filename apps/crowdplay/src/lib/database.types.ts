@@ -45,6 +45,12 @@ export type Database = {
         }
         Relationships: []
       }
+      category_votes: {
+        Row: { room_id: string; player_id: string; choice: number; voted_at: string }
+        Insert: { room_id: string; player_id: string; choice: number; voted_at?: string }
+        Update: { room_id?: string; player_id?: string; choice?: number; voted_at?: string }
+        Relationships: []
+      }
       players: {
         Row: {
           client_token: string
@@ -53,6 +59,7 @@ export type Database = {
           nickname: string
           room_id: string
           score: number
+          team_members: string[] | null
         }
         Insert: {
           client_token?: string
@@ -61,6 +68,7 @@ export type Database = {
           nickname: string
           room_id: string
           score?: number
+          team_members?: string[] | null
         }
         Update: {
           client_token?: string
@@ -69,6 +77,7 @@ export type Database = {
           nickname?: string
           room_id?: string
           score?: number
+          team_members?: string[] | null
         }
         Relationships: []
       }
@@ -98,6 +107,7 @@ export type Database = {
           choices: Json
           correct_index: number
           id: string
+          last_used_at: string | null
           order_index: number
           pack_id: string
           prompt: string
@@ -107,6 +117,7 @@ export type Database = {
           choices: Json
           correct_index: number
           id?: string
+          last_used_at?: string | null
           order_index: number
           pack_id: string
           prompt: string
@@ -116,6 +127,7 @@ export type Database = {
           choices?: Json
           correct_index?: number
           id?: string
+          last_used_at?: string | null
           order_index?: number
           pack_id?: string
           prompt?: string
@@ -125,34 +137,49 @@ export type Database = {
       }
       rooms: {
         Row: {
+          category_option_a: string | null
+          category_option_b: string | null
           code: string
           created_at: string
           current_question_index: number
           id: string
           phase: string
+          phase_started_at: string
           question_started_at: string | null
+          retired: boolean
           revealed_correct_index: number | null
           starts_at: string | null
+          winning_category_id: string | null
         }
         Insert: {
+          category_option_a?: string | null
+          category_option_b?: string | null
           code: string
           created_at?: string
           current_question_index?: number
           id?: string
           phase?: string
+          phase_started_at?: string
           question_started_at?: string | null
+          retired?: boolean
           revealed_correct_index?: number | null
           starts_at?: string | null
+          winning_category_id?: string | null
         }
         Update: {
+          category_option_a?: string | null
+          category_option_b?: string | null
           code?: string
           created_at?: string
           current_question_index?: number
           id?: string
           phase?: string
+          phase_started_at?: string
           question_started_at?: string | null
+          retired?: boolean
           revealed_correct_index?: number | null
           starts_at?: string | null
+          winning_category_id?: string | null
         }
         Relationships: []
       }
@@ -187,12 +214,16 @@ export type Database = {
         Args: { p_action: string; p_host_secret: string; p_room_id: string }
         Returns: undefined
       }
+      cast_vote: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_choice: number }
+        Returns: undefined
+      }
       create_room: {
-        Args: { p_starts_at?: string; p_questions_per_category?: number }
+        Args: { p_starts_at?: string }
         Returns: { code: string; host_secret: string; room_id: string }[]
       }
       join_room: {
-        Args: { p_code: string; p_nickname: string }
+        Args: { p_code: string; p_nickname: string; p_team_members?: string[] }
         Returns: { client_token: string; player_id: string; room_id: string }[]
       }
       start_room: {

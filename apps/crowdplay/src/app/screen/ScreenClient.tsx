@@ -6,7 +6,11 @@ import { useRoomRealtime } from "@/hooks/useRoomRealtime";
 import { useCurrentQuestion } from "@/hooks/useCurrentQuestion";
 import { useCountdown } from "@/hooks/useCountdown";
 import { useCountdownTo } from "@/hooks/useCountdownTo";
+import { useTotalQuestions } from "@/hooks/useTotalQuestions";
+import { useAllPacks } from "@/hooks/useAllPacks";
+import { useCategoryVoteTally } from "@/hooks/useCategoryVoteTally";
 import { JoinQRCode } from "@/components/JoinQRCode";
+import type { Player } from "@/lib/types";
 
 const CHOICE_STYLES = ["bg-rose-600", "bg-blue-600", "bg-amber-500", "bg-emerald-600"];
 
@@ -24,6 +28,9 @@ export default function ScreenClient() {
   const question = useCurrentQuestion(room?.id, room?.current_question_index);
   const countdown = useCountdown(room?.question_started_at ?? null, question?.time_limit_seconds ?? 15);
   const scheduledCountdown = useCountdownTo(room?.starts_at ?? null);
+  const totalQuestions = useTotalQuestions(room?.id, room?.phase);
+  const packs = useAllPacks();
+  const voteTally = useCategoryVoteTally(room?.phase === "lobby" ? room?.id : undefined);
 
   const sortedPlayers = useMemo(() => [...players].sort((a, b) => b.score - a.score), [players]);
 
@@ -53,6 +60,15 @@ export default function ScreenClient() {
                 Starting in <span className="text-amber-400 font-bold tabular-nums">{scheduledCountdown.label}</span>
               </p>
             )}
+            {room.category_option_a && room.category_option_b && (
+              <div className="w-full max-w-md">
+                <p className="text-sm text-slate-400 mb-2">Voting on the topic:</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <VoteOption name={packs[room.category_option_a]?.name} count={voteTally.a} />
+                  <VoteOption name={packs[room.category_option_b]?.name} count={voteTally.b} />
+                </div>
+              </div>
+            )}
             <div className="flex flex-wrap gap-3 justify-center max-w-2xl">
               {sortedPlayers.map((p) => (
                 <span key={p.id} className="bg-white/10 rounded-full px-4 py-2 text-lg">
@@ -72,7 +88,7 @@ export default function ScreenClient() {
               />
             </div>
             <p className="text-lg text-slate-400">
-              Question {room.current_question_index + 1} · {countdown.remainingSeconds}s
+              Question {room.current_question_index + 1} of {totalQuestions || "?"} · {countdown.remainingSeconds}s
             </p>
             <h2 className="text-4xl font-bold max-w-3xl">{question.prompt}</h2>
             <div className="grid grid-cols-2 gap-4 w-full max-w-3xl">
@@ -117,7 +133,16 @@ export default function ScreenClient() {
   );
 }
 
-function Leaderboard({ players }: { players: { id: string; nickname: string; score: number }[] }) {
+function VoteOption({ name, count }: { name: string | undefined; count: number }) {
+  return (
+    <div className="rounded-xl bg-white/5 border border-white/10 px-4 py-3">
+      <div className="font-semibold">{name ?? "…"}</div>
+      <div className="text-amber-400 font-bold text-lg">{count}</div>
+    </div>
+  );
+}
+
+function Leaderboard({ players }: { players: Player[] }) {
   return (
     <div className="w-full max-w-lg flex flex-col gap-2">
       {players.slice(0, 10).map((p, i) => (

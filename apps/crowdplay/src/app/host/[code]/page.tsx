@@ -8,15 +8,14 @@ import { useRoomRealtime } from "@/hooks/useRoomRealtime";
 import { useCurrentQuestion } from "@/hooks/useCurrentQuestion";
 import { useCountdown } from "@/hooks/useCountdown";
 import { useCountdownTo } from "@/hooks/useCountdownTo";
+import { useAnsweredCount } from "@/hooks/useAnsweredCount";
+import { useTotalQuestions } from "@/hooks/useTotalQuestions";
+import { useAllPacks } from "@/hooks/useAllPacks";
+import { useCategoryVoteTally } from "@/hooks/useCategoryVoteTally";
 import { JoinQRCode } from "@/components/JoinQRCode";
-import { hostKey, type HostCredentials } from "@/lib/types";
+import { hostKey, type HostCredentials, type Player } from "@/lib/types";
 
-const CHOICE_STYLES = [
-  "bg-rose-600",
-  "bg-blue-600",
-  "bg-amber-500",
-  "bg-emerald-600",
-];
+const CHOICE_STYLES = ["bg-rose-600", "bg-blue-600", "bg-amber-500", "bg-emerald-600"];
 
 export default function HostGamePage() {
   const params = useParams<{ code: string }>();
@@ -24,11 +23,13 @@ export default function HostGamePage() {
   const { room, players, loading, notFound } = useRoomRealtime(code ?? null);
   const question = useCurrentQuestion(room?.id, room?.current_question_index);
   const countdown = useCountdown(room?.question_started_at ?? null, question?.time_limit_seconds ?? 15);
-
   const scheduledCountdown = useCountdownTo(room?.starts_at ?? null);
+  const answeredCount = useAnsweredCount(room?.phase === "question" ? question?.id : undefined);
+  const totalQuestions = useTotalQuestions(room?.id, room?.phase);
+  const packs = useAllPacks();
+  const voteTally = useCategoryVoteTally(room?.phase === "lobby" ? room?.id : undefined);
 
   const [creds, setCreds] = useState<HostCredentials | null>(null);
-  const [answeredCount, setAnsweredCount] = useState(0);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -36,36 +37,6 @@ export default function HostGamePage() {
     const raw = localStorage.getItem(hostKey(code));
     if (raw) setCreds(JSON.parse(raw));
   }, [code]);
-
-  // Live "N of M answered" counter for the current question.
-  useEffect(() => {
-    if (!room || room.phase !== "question" || !question) {
-      setAnsweredCount(0);
-      return;
-    }
-    let cancelled = false;
-    const refresh = () =>
-      supabase
-        .from("answers")
-        .select("id", { count: "exact", head: true })
-        .eq("question_id", question.id)
-        .then(({ count }) => {
-          if (!cancelled) setAnsweredCount(count ?? 0);
-        });
-    refresh();
-    const channel = supabase
-      .channel(`answers:${question.id}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "answers", filter: `question_id=eq.${question.id}` },
-        () => refresh()
-      )
-      .subscribe();
-    return () => {
-      cancelled = true;
-      supabase.removeChannel(channel);
-    };
-  }, [room?.phase, question?.id]);
 
   const sortedPlayers = useMemo(() => [...players].sort((a, b) => b.score - a.score), [players]);
 
@@ -146,11 +117,20 @@ export default function HostGamePage() {
                 Auto-starting in <span className="text-amber-400 font-bold tabular-nums">{scheduledCountdown.label}</span>
               </p>
             )}
+
+            {room.category_option_a && room.category_option_b && (
+              <div className="w-full max-w-md">
+                <p className="text-sm text-slate-400 mb-2">Players are voting on the topic:</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <VoteOption name={packs[room.category_option_a]?.name} count={voteTally.a} />
+                  <VoteOption name={packs[room.category_option_b]?.name} count={voteTally.b} />
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-wrap gap-3 justify-center max-w-2xl">
               {sortedPlayers.map((p) => (
-                <span key={p.id} className="bg-white/10 rounded-full px-4 py-2 text-lg">
-                  {p.nickname}
-                </span>
+                <PlayerChip key={p.id} player={p} />
               ))}
             </div>
             <button
@@ -172,7 +152,7 @@ export default function HostGamePage() {
               />
             </div>
             <p className="text-lg text-slate-400">
-              Question {room.current_question_index + 1} · {countdown.remainingSeconds}s
+              Question {room.current_question_index + 1} of {totalQuestions || "?"} · {countdown.remainingSeconds}s
             </p>
             <h2 className="text-4xl font-bold max-w-3xl">{question.prompt}</h2>
             <div className="grid grid-cols-2 gap-4 w-full max-w-3xl">
@@ -252,16 +232,36 @@ export default function HostGamePage() {
   );
 }
 
-function Leaderboard({ players, action }: { players: { id: string; nickname: string; score: number }[]; action?: React.ReactNode }) {
+function VoteOption({ name, count }: { name: string | undefined; count: number }) {
+  return (
+    <div className="rounded-xl bg-white/5 border border-white/10 px-4 py-3">
+      <div className="font-semibold">{name ?? "…"}</div>
+      <div className="text-amber-400 font-bold text-lg">{count}</div>
+    </div>
+  );
+}
+
+function PlayerChip({ player }: { player: Player }) {
+  return (
+    <span className="bg-white/10 rounded-full px-4 py-2 text-lg">
+      {player.nickname}
+      {player.team_members && player.team_members.length > 0 && (
+        <span className="text-xs text-slate-400 ml-2">({player.team_members.join(", ")})</span>
+      )}
+    </span>
+  );
+}
+
+function Leaderboard({ players, action }: { players: Player[]; action?: React.ReactNode }) {
   return (
     <div className="w-full max-w-lg flex flex-col gap-2">
       {players.slice(0, 10).map((p, i) => (
-        <div
-          key={p.id}
-          className="flex items-center justify-between bg-white/5 rounded-xl px-5 py-3 text-lg"
-        >
+        <div key={p.id} className="flex items-center justify-between bg-white/5 rounded-xl px-5 py-3 text-lg">
           <span className="font-semibold">
             #{i + 1} {p.nickname}
+            {p.team_members && p.team_members.length > 0 && (
+              <span className="block text-xs text-slate-400 font-normal">{p.team_members.join(", ")}</span>
+            )}
           </span>
           <span className="text-amber-400 font-bold">{p.score}</span>
         </div>

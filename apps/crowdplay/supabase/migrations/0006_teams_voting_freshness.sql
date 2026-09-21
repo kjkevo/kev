@@ -1,0 +1,51 @@
+-- Applied directly via Supabase MCP across several migrations; mirrored
+-- here for local history. Summary of what changed:
+--
+-- 1. Teams: players.team_members text[] -- a roster label on the single
+--    scoring row. One phone still submits answers for the whole team.
+--
+-- 2. Question freshness: questions.last_used_at timestamptz. Question
+--    selection (in finalize_voting_and_start) orders by
+--    "last_used_at nulls first, random()" and stamps last_used_at on pick,
+--    so a modest content bank still rotates instead of repeating heavily
+--    game to game.
+--
+-- 3. Category voting replaces silent 2-category mixing: rooms gained
+--    category_option_a/b (2 random candidates picked at create_room time)
+--    and winning_category_id (set once voting closes). New category_votes
+--    table (room_id, player_id, choice 0|1) with an upsert-style
+--    cast_vote(room_id, player_id, client_token, choice) RPC, open to
+--    anon/authenticated, gated on room still being in 'lobby'.
+--
+-- 4. finalize_voting_and_start(room_id): shared by the manual start_room
+--    override and the autonomous ticker. Tallies votes (random tiebreak,
+--    including 0-0 if nobody voted), draws 12 questions from just the
+--    winning category using the freshness ordering, and flips the room to
+--    'question'. Deliberately NOT granted to anon/authenticated -- only
+--    reachable via start_room's host_secret check or the ticker.
+--
+-- 5. tick() gained an early-advance path: a question phase now also
+--    advances to reveal the moment every current player has answered
+--    (count(answers) >= count(players)), not just when the timer expires.
+--
+-- SECURITY FIX applied same day: tick() and finalize_voting_and_start()
+-- were reachable by anon over PostgREST despite never being explicitly
+-- granted -- Supabase's default privilege setup grants EXECUTE to anon
+-- and authenticated directly (not just via PUBLIC) on every new function,
+-- so omitting a GRANT does not keep a function private the way it does
+-- for tables. Fixed with explicit REVOKE EXECUTE ... FROM anon,
+-- authenticated, public on both functions. Verified via
+-- information_schema.routine_privileges (not just the advisor, which
+-- appeared to return a stale/cached result immediately after the first
+-- revoke attempt) that only postgres/service_role retain access.
+--
+-- Content: added ~6 more questions to each of the 8 categories (48 new
+-- rows), bringing General Knowledge to 16 and the rest to 18 each.
+--
+-- Verified live end-to-end: team join (team_members stored correctly),
+-- category voting (tally, winner selection, question draw from the
+-- winning category only), and the early-advance path (isolated from the
+-- normal timeout path by inserting answers directly and calling tick()
+-- immediately, confirming it reached 'reveal' after ~7.6s against a 15s
+-- timer) -- all confirmed against the live database, not just read back
+-- from the code.
