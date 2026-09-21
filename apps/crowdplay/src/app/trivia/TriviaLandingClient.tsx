@@ -3,22 +3,23 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActiveRoom } from "@/hooks/useActiveRoom";
+import { useLiveActiveRoom } from "@/hooks/useLiveActiveRoom";
 import { useCountdownTo } from "@/hooks/useCountdownTo";
+import { LiveGameGlance } from "@/components/LiveGameGlance";
 
 /**
  * The entry point for anyone who lands here without a specific room code
  * (a QR code always skips straight to /play/{code} — this page is for
  * someone opening the site cold). Games now run on their own around the
- * clock (see the autonomous ticker), boarding a fresh one every ~20
- * minutes whether or not anyone's watching, so at any moment there is
- * exactly one current room somewhere in its lifecycle. This screen always
- * offers the same two explicit choices regardless of that state: join
- * what's happening/about to happen, or say "not this one" and wait for a
- * clean start.
+ * clock (see the autonomous ticker), boarding a fresh one automatically,
+ * so at any moment there is exactly one current room somewhere in its
+ * lifecycle. This screen always offers the same two explicit choices
+ * regardless of that state: join what's happening/about to happen, or say
+ * "not this one" and wait for a clean start — with a live view of the
+ * current game either way, so waiting never means staring at a blank page.
  */
 export default function TriviaLandingClient() {
-  const room = useActiveRoom();
+  const { room, players } = useLiveActiveRoom();
   const router = useRouter();
   const countdown = useCountdownTo(room?.phase === "lobby" ? room.starts_at : null);
 
@@ -50,15 +51,16 @@ export default function TriviaLandingClient() {
         ? { emoji: "🎉", text: "A game is boarding now" }
         : { emoji: "🔥", text: "A round is happening right now" };
 
-  if (isWaiting) {
+  if (isWaiting && room) {
     return (
       <Shell>
         <div className="flex flex-col items-center gap-4">
           <p className="text-3xl">⏳</p>
           <h2 className="text-xl font-bold">Got it — we&apos;ll wait for a fresh one</h2>
-          <p className="text-indigo-200 max-w-xs">
-            This screen updates itself the moment a new game starts boarding. No need to refresh.
+          <p className="text-indigo-200 max-w-xs text-sm">
+            Here&apos;s what&apos;s happening right now — this updates itself the moment a new game boards.
           </p>
+          <LiveGameGlance room={room} players={players} />
           {canJoinNow && (
             <button
               onClick={() => setDeclinedCode(null)}
