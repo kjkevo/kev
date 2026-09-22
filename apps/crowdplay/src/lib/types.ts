@@ -32,11 +32,18 @@ export const playerKey = (code: string) => `crowdplay_player_${code.toUpperCase(
 export type FeudRoom = Database["public"]["Tables"]["feud_rooms"]["Row"];
 export type FeudPlayer = Database["public"]["Tables"]["feud_players"]["Row"];
 
-export type FeudPhase = "lobby" | "play" | "steal" | "reveal" | "leaderboard" | "final";
+export type FeudPhase = "lobby" | "play" | "steal" | "fast_money" | "reveal" | "leaderboard" | "final";
 export type FeudTeam = "a" | "b";
 
 export type FeudBoardSlot = { revealed: boolean; text: string | null; points: number | null };
 export type FeudLastGuess = { nickname: string; team: FeudTeam; guess: string; matched: boolean };
+export type FeudFastMoneyAnswer = {
+  player: 1 | 2;
+  prompt: string;
+  guess: string;
+  matched: boolean;
+  points: number;
+};
 
 export type FeudPlayerCredentials = { playerId: string; clientToken: string; roomId: string; team: FeudTeam };
 
