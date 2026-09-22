@@ -297,106 +297,114 @@ export default function FeudPlayPage() {
         : "Anyone on the team can type the answer below";
 
     return (
-      <main className="min-h-screen bg-slate-950 text-white flex flex-col px-5 py-6 relative">
-        <QuitButton onClick={() => setConfirmingQuit(true)} />
-        <p className="text-center text-xs text-slate-500 mb-1">
-          Round {room.current_round_index} of {room.total_rounds} · Pot: {room.pot}
-        </p>
-        <h2 className="text-lg font-bold mb-3 text-center">{room.current_prompt}</h2>
+      <main className="h-[100dvh] bg-slate-950 text-white flex flex-col relative overflow-hidden">
+        <div className="flex-1 overflow-y-auto px-5 pt-6 pb-4">
+          <QuitButton onClick={() => setConfirmingQuit(true)} />
+          <p className="text-center text-xs text-slate-500 mb-1">
+            Round {room.current_round_index} of {room.total_rounds} · Pot: {room.pot}
+          </p>
+          <h2 className="text-lg font-bold mb-3 text-center">{room.current_prompt}</h2>
 
-        <div className="flex flex-col gap-1.5 mb-4">
-          {board.map((slot, i) => (
-            <div
-              key={i}
-              className={`rounded-xl px-4 py-2.5 flex items-center justify-between ${
-                slot.revealed ? "bg-emerald-700" : "bg-white/5 border border-white/10"
-              }`}
-            >
-              <span className="font-semibold">{slot.revealed ? slot.text : `#${i + 1}`}</span>
-              <span className="font-bold text-amber-300">{slot.revealed ? slot.points : "?"}</span>
-            </div>
-          ))}
-        </div>
-
-        <div className="flex items-center justify-center gap-2 mb-3">
-          {[0, 1, 2].map((i) => (
-            <span
-              key={i}
-              className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-lg ${
-                i < room.strikes ? "bg-red-600" : "bg-white/10 text-white/20"
-              }`}
-            >
-              ✕
-            </span>
-          ))}
-        </div>
-
-        <div className={`${activeTeamColor} rounded-2xl px-4 py-3 mb-3 flex items-center justify-between gap-3`}>
-          <div>
-            <p className="font-black text-base tracking-wide">{bannerHeadline}</p>
-            <p className="text-xs text-white/90">{bannerSubtext}</p>
+          <div className="flex flex-col gap-1.5 mb-4">
+            {board.map((slot, i) => (
+              <div
+                key={i}
+                className={`rounded-xl px-4 py-2.5 flex items-center justify-between ${
+                  slot.revealed ? "bg-emerald-700" : "bg-white/5 border border-white/10"
+                }`}
+              >
+                <span className="font-semibold">{slot.revealed ? slot.text : `#${i + 1}`}</span>
+                <span className="font-bold text-amber-300">{slot.revealed ? slot.points : "?"}</span>
+              </div>
+            ))}
           </div>
-          {isFaceoff && <CircularTimer fraction={phaseCountdown.fraction} size={32} strokeWidth={3} />}
+
+          <div className="flex items-center justify-center gap-2 mb-3">
+            {[0, 1, 2].map((i) => (
+              <span
+                key={i}
+                className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-lg ${
+                  i < room.strikes ? "bg-red-600" : "bg-white/10 text-white/20"
+                }`}
+              >
+                ✕
+              </span>
+            ))}
+          </div>
+
+          <div className={`${activeTeamColor} rounded-2xl px-4 py-3 mb-3 flex items-center justify-between gap-3`}>
+            <div>
+              <p className="font-black text-base tracking-wide">{bannerHeadline}</p>
+              <p className="text-xs text-white/90">{bannerSubtext}</p>
+            </div>
+            {isFaceoff && <CircularTimer fraction={phaseCountdown.fraction} size={32} strokeWidth={3} />}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <CompactRoster
+              name={teamAName}
+              color="bg-rose-600"
+              players={teamAPlayers.map((p) => p.nickname)}
+              active={room.phase === "play" ? room.controlling_team === "a" || isFaceoff : room.controlling_team !== "a"}
+              lastGuessNickname={
+                room.last_guess && (room.last_guess as { team: string }).team === "a"
+                  ? (room.last_guess as { nickname: string }).nickname
+                  : null
+              }
+            />
+            <CompactRoster
+              name={teamBName}
+              color="bg-blue-600"
+              players={teamBPlayers.map((p) => p.nickname)}
+              active={room.phase === "play" ? room.controlling_team === "b" || isFaceoff : room.controlling_team !== "b"}
+              lastGuessNickname={
+                room.last_guess && (room.last_guess as { team: string }).team === "b"
+                  ? (room.last_guess as { nickname: string }).nickname
+                  : null
+              }
+            />
+          </div>
+
+          {lastResult && (
+            <p className={`text-center font-bold mb-2 ${lastResult.matched ? "text-emerald-400" : "text-red-400"}`}>
+              {lastResult.matched ? `✅ On the board! +${lastResult.points}` : "❌ Not on the board"}
+            </p>
+          )}
+
+          {room.last_guess && (
+            <p className="text-center text-xs text-slate-500 mt-3">
+              {(room.last_guess as { nickname: string }).nickname} guessed &ldquo;
+              {(room.last_guess as { guess: string }).guess}&rdquo;
+            </p>
+          )}
         </div>
 
-        <div className="grid grid-cols-2 gap-2 mb-3">
-          <CompactRoster
-            name={teamAName}
-            color="bg-rose-600"
-            players={teamAPlayers.map((p) => p.nickname)}
-            active={room.phase === "play" ? room.controlling_team === "a" || isFaceoff : room.controlling_team !== "a"}
-            lastGuessNickname={
-              room.last_guess && (room.last_guess as { team: string }).team === "a"
-                ? (room.last_guess as { nickname: string }).nickname
-                : null
-            }
-          />
-          <CompactRoster
-            name={teamBName}
-            color="bg-blue-600"
-            players={teamBPlayers.map((p) => p.nickname)}
-            active={room.phase === "play" ? room.controlling_team === "b" || isFaceoff : room.controlling_team !== "b"}
-            lastGuessNickname={
-              room.last_guess && (room.last_guess as { team: string }).team === "b"
-                ? (room.last_guess as { nickname: string }).nickname
-                : null
-            }
-          />
+        {/* Pinned outside the scroll area so it's always on screen no matter
+            how much fits above it on a given device's viewport — a phone,
+            tablet, and desktop all see this box without needing to scroll. */}
+        <div className="shrink-0 border-t border-white/10 bg-slate-950 px-5 py-3" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
+          <form onSubmit={submitGuess} className="flex gap-2">
+            <input
+              value={guess}
+              onChange={(e) => setGuess(e.target.value)}
+              disabled={!myTurn || guessing}
+              maxLength={60}
+              placeholder={myTurn ? "Ready when you are" : "Stay ready — your turn is coming!"}
+              className={`flex-1 rounded-xl px-4 py-3 outline-none border transition ${
+                myTurn
+                  ? "bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:border-amber-400"
+                  : "bg-white/5 border-white/10 text-slate-500 placeholder:text-slate-500"
+              }`}
+            />
+            <button
+              disabled={!myTurn || guessing || guess.trim().length === 0}
+              className="rounded-xl bg-amber-400 text-black font-bold px-5 disabled:opacity-40 active:scale-95 transition"
+            >
+              Guess
+            </button>
+          </form>
+          {guessError && <p className="text-red-400 text-xs text-center mt-2">{guessError}</p>}
         </div>
-
-        {lastResult && (
-          <p className={`text-center font-bold mb-2 ${lastResult.matched ? "text-emerald-400" : "text-red-400"}`}>
-            {lastResult.matched ? `✅ On the board! +${lastResult.points}` : "❌ Not on the board"}
-          </p>
-        )}
-
-        <form onSubmit={submitGuess} className="flex gap-2 mt-auto">
-          <input
-            value={guess}
-            onChange={(e) => setGuess(e.target.value)}
-            disabled={!myTurn || guessing}
-            maxLength={60}
-            placeholder={myTurn ? "Ready when you are" : "Stay ready — your turn is coming!"}
-            className={`flex-1 rounded-xl px-4 py-3 outline-none border transition ${
-              myTurn
-                ? "bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:border-amber-400"
-                : "bg-white/5 border-white/10 text-slate-500 placeholder:text-slate-500"
-            }`}
-          />
-          <button
-            disabled={!myTurn || guessing || guess.trim().length === 0}
-            className="rounded-xl bg-amber-400 text-black font-bold px-5 disabled:opacity-40 active:scale-95 transition"
-          >
-            Guess
-          </button>
-        </form>
-        {guessError && <p className="text-red-400 text-xs text-center mt-2">{guessError}</p>}
-        {room.last_guess && (
-          <p className="text-center text-xs text-slate-500 mt-3">
-            {(room.last_guess as { nickname: string }).nickname} guessed &ldquo;
-            {(room.last_guess as { guess: string }).guess}&rdquo;
-          </p>
-        )}
         {confirmingQuit && <QuitConfirm onCancel={() => setConfirmingQuit(false)} onConfirm={quit} />}
       </main>
     );
