@@ -48,3 +48,16 @@ export type FeudFastMoneyAnswer = {
 export type FeudPlayerCredentials = { playerId: string; clientToken: string; roomId: string; team: FeudTeam };
 
 export const feudPlayerKey = (code: string) => `crowdplay_feud_player_${code.toUpperCase()}`;
+
+// --- Social Bingo ---
+
+export type BingoRoom = Database["public"]["Tables"]["bingo_rooms"]["Row"];
+export type BingoPlayer = Database["public"]["Tables"]["bingo_players"]["Row"];
+
+export type BingoPhase = "lobby" | "playing" | "reveal" | "leaderboard" | "final";
+
+export type BingoSquare = { id: string | null; text: string; free: boolean };
+
+export type BingoPlayerCredentials = { playerId: string; clientToken: string; roomId: string };
+
+export const bingoPlayerKey = (code: string) => `crowdplay_bingo_player_${code.toUpperCase()}`;

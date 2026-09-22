@@ -19,8 +19,8 @@ const GAMES = [
     name: "Social Bingo",
     initial: "B",
     tagline: "Meet people, mark your card",
-    href: "#",
-    live: false,
+    href: "/bingo",
+    live: true,
   },
   {
     name: "Sports Predictions",
