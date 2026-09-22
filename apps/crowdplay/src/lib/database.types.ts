@@ -51,6 +51,93 @@ export type Database = {
         Update: { room_id?: string; player_id?: string; choice?: number; voted_at?: string }
         Relationships: []
       }
+      bingo_players: {
+        Row: {
+          id: string
+          room_id: string
+          nickname: string
+          client_token: string
+          joined_at: string
+          card: Json
+          marked: Json
+          score: number
+          bingo_at: string | null
+        }
+        Insert: {
+          id?: string
+          room_id: string
+          nickname: string
+          client_token?: string
+          joined_at?: string
+          card?: Json
+          marked?: Json
+          score?: number
+          bingo_at?: string | null
+        }
+        Update: {
+          id?: string
+          room_id?: string
+          nickname?: string
+          client_token?: string
+          joined_at?: string
+          card?: Json
+          marked?: Json
+          score?: number
+          bingo_at?: string | null
+        }
+        Relationships: []
+      }
+      bingo_prompts: {
+        Row: { id: string; text: string; active: boolean }
+        Insert: { id?: string; text: string; active?: boolean }
+        Update: { id?: string; text?: string; active?: boolean }
+        Relationships: []
+      }
+      bingo_rooms: {
+        Row: {
+          id: string
+          code: string
+          phase: string
+          created_at: string
+          starts_at: string | null
+          phase_started_at: string
+          current_round_index: number
+          total_rounds: number
+          round_duration_seconds: number
+          winner_player_id: string | null
+          winner_pattern: string | null
+          retired: boolean
+        }
+        Insert: {
+          id?: string
+          code: string
+          phase?: string
+          created_at?: string
+          starts_at?: string | null
+          phase_started_at?: string
+          current_round_index?: number
+          total_rounds?: number
+          round_duration_seconds?: number
+          winner_player_id?: string | null
+          winner_pattern?: string | null
+          retired?: boolean
+        }
+        Update: {
+          id?: string
+          code?: string
+          phase?: string
+          created_at?: string
+          starts_at?: string | null
+          phase_started_at?: string
+          current_round_index?: number
+          total_rounds?: number
+          round_duration_seconds?: number
+          winner_player_id?: string | null
+          winner_pattern?: string | null
+          retired?: boolean
+        }
+        Relationships: []
+      }
       feud_players: {
         Row: { id: string; room_id: string; team: string; nickname: string; client_token: string; joined_at: string }
         Insert: {
@@ -361,6 +448,10 @@ export type Database = {
         Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_choice: number }
         Returns: undefined
       }
+      create_bingo_room: {
+        Args: { p_starts_at?: string }
+        Returns: { code: string; room_id: string }[]
+      }
       create_feud_room: {
         Args: { p_starts_at?: string }
         Returns: { code: string; room_id: string }[]
@@ -369,6 +460,10 @@ export type Database = {
         Args: { p_starts_at?: string }
         Returns: { code: string; host_secret: string; room_id: string }[]
       }
+      join_bingo_room: {
+        Args: { p_code: string; p_nickname: string }
+        Returns: { client_token: string; player_id: string; room_id: string }[]
+      }
       join_feud_room: {
         Args: { p_code: string; p_nickname: string; p_team?: string }
         Returns: { client_token: string; player_id: string; room_id: string; team: string }[]
@@ -376,6 +471,10 @@ export type Database = {
       join_room: {
         Args: { p_code: string; p_nickname: string; p_team_members?: string[] }
         Returns: { client_token: string; player_id: string; room_id: string }[]
+      }
+      mark_bingo_square: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_index: number }
+        Returns: { o_marked: Json; o_won: boolean; o_pattern: string | null; o_phase: string }[]
       }
       submit_fast_money_guess: {
         Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_guess: string }
