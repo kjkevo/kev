@@ -3,8 +3,14 @@
 import { useActiveFeudRoom } from "@/hooks/useActiveFeudRoom";
 import { useFeudRoomRealtime } from "@/hooks/useFeudRoomRealtime";
 import { useCountdownTo } from "@/hooks/useCountdownTo";
+import { useCountdown } from "@/hooks/useCountdown";
 import { JoinQRCode } from "@/components/JoinQRCode";
+import { CircularTimer } from "@/components/CircularTimer";
 import type { FeudBoardSlot, FeudFastMoneyAnswer } from "@/lib/types";
+
+const REVEAL_DWELL_SECONDS = 6;
+const LEADERBOARD_DWELL_SECONDS = 6;
+const FACEOFF_TIMEOUT_SECONDS = 20;
 
 /**
  * The venue's TV/projector view for Family Feud — pure spectator, no
@@ -16,6 +22,15 @@ export default function FeudScreenClient() {
   const code = activeRoom?.code ?? null;
   const { room, players } = useFeudRoomRealtime(code);
   const scheduledCountdown = useCountdownTo(room?.starts_at ?? null);
+  const phaseDwellLimit =
+    room?.phase === "reveal"
+      ? REVEAL_DWELL_SECONDS
+      : room?.phase === "leaderboard"
+        ? LEADERBOARD_DWELL_SECONDS
+        : room?.phase === "play" && room.controlling_team === null
+          ? FACEOFF_TIMEOUT_SECONDS
+          : 1;
+  const phaseCountdown = useCountdown(room?.phase_started_at ?? null, phaseDwellLimit);
 
   if (activeRoom === undefined || !room) {
     return <FullscreenMessage text="Waiting for the next game…" />;
@@ -56,9 +71,14 @@ export default function FeudScreenClient() {
 
         {(room.phase === "play" || room.phase === "steal") && (
           <>
-            <p className="text-lg text-slate-400">
-              Round {room.current_round_index} of {room.total_rounds} · Pot: {room.pot}
-            </p>
+            <div className="flex items-center gap-3">
+              <p className="text-lg text-slate-400">
+                Round {room.current_round_index} of {room.total_rounds} · Pot: {room.pot}
+              </p>
+              {room.phase === "play" && room.controlling_team === null && (
+                <CircularTimer fraction={phaseCountdown.fraction} size={32} strokeWidth={3} />
+              )}
+            </div>
             <h2 className="text-4xl font-bold max-w-4xl">{room.current_prompt}</h2>
             <div className="grid grid-cols-2 gap-4 w-full max-w-3xl">
               {board.map((slot, i) => (
@@ -104,11 +124,15 @@ export default function FeudScreenClient() {
         )}
 
         {room.phase === "reveal" && room.last_round_was_fast_money && (
-          <FastMoneyReveal room={room} />
+          <>
+            <CircularTimer fraction={phaseCountdown.fraction} size={36} />
+            <FastMoneyReveal room={room} />
+          </>
         )}
 
         {room.phase === "reveal" && !room.last_round_was_fast_money && (
           <>
+            <CircularTimer fraction={phaseCountdown.fraction} size={36} />
             {room.last_round_winner && (
               <p className="text-3xl font-black text-amber-400">
                 🎉 {room.last_round_winner === "a" ? room.team_a_name : room.team_b_name} won this round! +{room.last_round_points}
@@ -143,6 +167,7 @@ export default function FeudScreenClient() {
 
         {(room.phase === "leaderboard" || room.phase === "final") && (
           <>
+            {room.phase === "leaderboard" && <CircularTimer fraction={phaseCountdown.fraction} size={36} />}
             <h2 className="text-4xl font-black text-amber-400">
               {room.phase === "final" ? "🎉 Final Results 🎉" : `Round ${room.current_round_index} of ${room.total_rounds}`}
             </h2>
