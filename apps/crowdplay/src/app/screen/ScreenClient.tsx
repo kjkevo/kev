@@ -118,7 +118,7 @@ export default function ScreenClient() {
                     i === room.revealed_correct_index ? "ring-4 ring-white scale-105" : "opacity-40"
                   } transition`}
                 >
-                  {choice} {i === room.revealed_correct_index && "✓"}
+                  {choice} {i === room.revealed_correct_index && "(Correct)"}
                 </div>
               ))}
             </div>
@@ -129,7 +129,7 @@ export default function ScreenClient() {
 
         {room.phase === "final" && (
           <>
-            <h2 className="text-4xl font-black text-amber-400">🎉 Final Results 🎉</h2>
+            <h2 className="text-4xl font-black text-amber-400">Final Results</h2>
             <Leaderboard players={sortedPlayers} />
             <p className="text-slate-400">Next game boarding shortly…</p>
           </>

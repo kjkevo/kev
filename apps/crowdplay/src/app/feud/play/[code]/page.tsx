@@ -23,10 +23,10 @@ import { haptics } from "@/lib/haptics";
 
 const JOIN_ERRORS: Record<string, string> = {
   ROOM_NOT_FOUND: "That room code doesn't exist. Double check with your host.",
-  ROOM_ALREADY_STARTED: "This game already started — wait for the next one.",
+  ROOM_ALREADY_STARTED: "This game already started. Wait for the next one.",
   INVALID_NICKNAME: "Enter a name between 1 and 30 characters.",
-  NICKNAME_TAKEN: "Someone in this room already picked that name — try another.",
-  ROOM_FULL: "This room is full for our beta round — wait for the next game.",
+  NICKNAME_TAKEN: "Someone in this room already picked that name. Try another.",
+  ROOM_FULL: "This room is full for our beta round. Wait for the next game.",
 };
 
 function friendlyError(raw: string, fallback = "Something went wrong. Try again.") {
@@ -130,7 +130,7 @@ export default function FeudPlayPage() {
     setGuessing(false);
     setGuess("");
     if (error || !data?.[0]) {
-      setGuessError(friendlyError(error?.message ?? "", "Couldn't submit that guess — try again."));
+      setGuessError(friendlyError(error?.message ?? "", "Couldn't submit that guess. Try again."));
       return;
     }
     haptics.tap();
@@ -153,7 +153,7 @@ export default function FeudPlayPage() {
     setFmGuessing(false);
     setFmGuess("");
     if (error || !data?.[0]) {
-      setFmError(friendlyError(error?.message ?? "", "Couldn't submit that guess — try again."));
+      setFmError(friendlyError(error?.message ?? "", "Couldn't submit that guess. Try again."));
       return;
     }
     haptics.tap();
@@ -171,9 +171,8 @@ export default function FeudPlayPage() {
   if (notFound)
     return (
       <Center>
-        <p className="text-3xl mb-3">🤔</p>
         <h1 className="text-xl font-bold mb-2">That room doesn&apos;t exist</h1>
-        <p className="text-slate-400 max-w-xs">Double-check the code, or ask if there&#39;s a new one.</p>
+        <p className="text-slate-400 max-w-xs">Double check the code, or ask if there&#39;s a new one.</p>
       </Center>
     );
   if (!room) return null;
@@ -185,7 +184,7 @@ export default function FeudPlayPage() {
     return (
       <Center>
         <h1 className="text-2xl font-bold mb-1">Room {room.code}</h1>
-        <p className="text-slate-400 mb-6">Family Feud — pick a team</p>
+        <p className="text-slate-400 mb-6">Choose your team</p>
         <form onSubmit={join} className="flex flex-col gap-3 w-full max-w-xs">
           <div className="relative">
             <input
@@ -199,9 +198,9 @@ export default function FeudPlayPage() {
               type="button"
               onClick={() => setNickname(randomFunName())}
               aria-label="Shuffle name"
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-2xl w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white/10 active:scale-90 transition"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-bold w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white/10 active:scale-90 transition"
             >
-              🎲
+              Shuffle
             </button>
           </div>
 
@@ -223,7 +222,7 @@ export default function FeudPlayPage() {
               onClick={() => setTeamChoice(null)}
               className={`text-xs underline ${teamChoice === null ? "text-amber-400" : "text-slate-500"}`}
             >
-              No preference — balance me automatically
+              No preference, balance me automatically
             </button>
           </div>
 
@@ -248,7 +247,6 @@ export default function FeudPlayPage() {
     return (
       <Center>
         <QuitButton onClick={() => setConfirmingQuit(true)} />
-        <p className="text-3xl mb-2">🎙️</p>
         <h1 className="text-xl font-bold mb-1">You&apos;re on {myTeamName}!</h1>
         <p className="text-slate-400 mb-4">Waiting for the game to start…</p>
         {showCountdown && <p className="text-4xl font-black text-amber-400 tabular-nums mb-4">{scheduledCountdown.label}</p>}
@@ -284,12 +282,12 @@ export default function FeudPlayPage() {
         : "bg-blue-600";
 
     const bannerHeadline = isFaceoff
-      ? "🎙️ FACE-OFF"
+      ? "FACE OFF"
       : room.phase === "steal"
-        ? `🔥 ${activeTeamName}'S STEAL CHANCE`
+        ? `${activeTeamName}'S STEAL CHANCE`
         : `${activeTeamName}'S TURN`;
     const bannerSubtext = isFaceoff
-      ? "Either team — first correct guess wins control!"
+      ? "Either team, first correct guess wins control!"
       : room.phase === "steal"
         ? room.controlling_team === myTeam
           ? `${otherTeamName} gets one guess to steal your points!`
@@ -327,7 +325,7 @@ export default function FeudPlayPage() {
                   i < room.strikes ? "bg-red-600" : "bg-white/10 text-white/20"
                 }`}
               >
-                ✕
+                X
               </span>
             ))}
           </div>
@@ -367,7 +365,7 @@ export default function FeudPlayPage() {
 
           {lastResult && (
             <p className={`text-center font-bold mb-2 ${lastResult.matched ? "text-emerald-400" : "text-red-400"}`}>
-              {lastResult.matched ? `✅ On the board! +${lastResult.points}` : "❌ Not on the board"}
+              {lastResult.matched ? `On the board! +${lastResult.points}` : "Not on the board"}
             </p>
           )}
 
@@ -389,7 +387,7 @@ export default function FeudPlayPage() {
               onChange={(e) => setGuess(e.target.value)}
               disabled={!myTurn || guessing}
               maxLength={60}
-              placeholder={myTurn ? "Ready when you are" : "Stay ready — your turn is coming!"}
+              placeholder={myTurn ? "Ready when you are" : "Stay ready, your turn is coming!"}
               className={`flex-1 rounded-xl px-4 py-3 outline-none border transition ${
                 myTurn
                   ? "bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:border-amber-400"
@@ -419,7 +417,6 @@ export default function FeudPlayPage() {
         <div className="absolute top-4 right-4">
           <CircularTimer fraction={phaseCountdown.fraction} />
         </div>
-        <p className="text-3xl mb-1">💰</p>
         <h1 className="text-2xl font-bold mb-1">Fast Money Results</h1>
         <p className="text-slate-400 mb-4">
           {room.fast_money_team === "a" ? teamAName : teamBName} scored {total} points
@@ -441,7 +438,7 @@ export default function FeudPlayPage() {
           ))}
         </div>
         <p className={`text-lg font-bold mb-4 ${wonBonus ? "text-amber-400" : "text-slate-400"}`}>
-          {wonBonus ? `🎉 ${total} points — crossed 200, BONUS WIN!` : `${total} points — needed 200 for the bonus`}
+          {wonBonus ? `${total} points, crossed 200, BONUS WIN!` : `${total} points, needed 200 for the bonus`}
         </p>
         <ScoreRow teamAName={teamAName} teamBName={teamBName} teamAScore={room.team_a_score} teamBScore={room.team_b_score} />
       </Center>
@@ -456,7 +453,7 @@ export default function FeudPlayPage() {
         </div>
         {room.last_round_winner && (
           <p className="text-lg font-bold text-amber-400 mb-2">
-            🎉 {room.last_round_winner === "a" ? teamAName : teamBName} won this round! +{room.last_round_points}
+            {room.last_round_winner === "a" ? teamAName : teamBName} won this round! +{room.last_round_points}
           </p>
         )}
         <h2 className="text-lg font-bold mb-3">{room.current_prompt}</h2>
@@ -486,7 +483,6 @@ export default function FeudPlayPage() {
     return (
       <Center>
         <QuitButton onClick={() => setConfirmingQuit(true)} />
-        <p className="text-3xl mb-1">💰</p>
         <h1 className="text-xl font-bold mb-3">Fast Money!</h1>
 
         <div className={`${fmTeamColor} rounded-2xl px-4 py-3 mb-4 w-full max-w-xs`}>
@@ -499,13 +495,13 @@ export default function FeudPlayPage() {
         {myTurnNow && <h2 className="text-lg font-bold mb-4 max-w-xs">{room.fast_money_current_prompt}</h2>}
         {!myTurnNow && (
           <p className="text-sm text-slate-400 mb-4 max-w-xs">
-            🎤 {currentPlayerName} is answering — everyone else stays quiet, answers are hidden until the bonus round wraps up!
+            {currentPlayerName} is answering. Everyone else stays quiet, answers are hidden until the bonus round wraps up!
           </p>
         )}
 
         {fmLastResult && (
           <p className={`font-bold mb-2 ${fmLastResult.matched ? "text-emerald-400" : "text-red-400"}`}>
-            {fmLastResult.matched ? `✅ Locked in! +${fmLastResult.points}` : "❌ Not on the board"}
+            {fmLastResult.matched ? `Locked in! +${fmLastResult.points}` : "Not on the board"}
           </p>
         )}
 
@@ -515,7 +511,7 @@ export default function FeudPlayPage() {
             onChange={(e) => setFmGuess(e.target.value)}
             disabled={!myTurnNow || fmGuessing}
             maxLength={60}
-            placeholder={myTurnNow ? "Ready when you are" : "Stay ready — you're up soon!"}
+            placeholder={myTurnNow ? "Ready when you are" : "Stay ready, you're up soon!"}
             autoFocus={myTurnNow}
             className={`flex-1 rounded-xl px-4 py-3 outline-none border transition ${
               myTurnNow
@@ -545,7 +541,7 @@ export default function FeudPlayPage() {
             <CircularTimer fraction={phaseCountdown.fraction} />
           </div>
         )}
-        <h1 className="text-2xl font-bold mb-1">{room.phase === "final" ? "🎉 Final Results" : "Scoreboard"}</h1>
+        <h1 className="text-2xl font-bold mb-1">{room.phase === "final" ? "Final Results" : "Scoreboard"}</h1>
         <p className="text-slate-400 mb-1">
           {room.phase === "final" ? "Thanks for playing!" : `Round ${room.current_round_index} of ${room.total_rounds}`}
         </p>
@@ -686,7 +682,7 @@ function QuitConfirm({ onCancel, onConfirm }: { onCancel: () => void; onConfirm:
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center px-6 z-50">
       <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 max-w-xs w-full text-center">
         <p className="font-bold text-lg mb-1">Quit the game?</p>
-        <p className="text-sm text-slate-400 mb-5">You&#39;ll head back to the join/next-game screen.</p>
+        <p className="text-sm text-slate-400 mb-5">You&#39;ll head back to the join or next game screen.</p>
         <div className="flex gap-3">
           <button onClick={onCancel} className="flex-1 rounded-xl bg-white/10 py-3 font-semibold">
             Cancel

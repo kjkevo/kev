@@ -50,19 +50,18 @@ export default function TriviaLandingClient() {
 
   const statusLine =
     room === null
-      ? { emoji: "🎤", text: "No game running right now" }
+      ? { text: "No game running right now" }
       : room.phase === "lobby"
-        ? { emoji: "🎉", text: "A game is boarding now" }
-        : { emoji: "🔥", text: "A round is happening right now" };
+        ? { text: "A game is boarding now" }
+        : { text: "A round is happening right now" };
 
   if (isWaiting && room) {
     return (
       <Shell>
         <div className="flex flex-col items-center gap-4">
-          <p className="text-3xl">⏳</p>
-          <h2 className="text-xl font-bold">Got it — we&apos;ll wait for a fresh one</h2>
+          <h2 className="text-xl font-bold">Got it. We&apos;ll wait for a fresh one</h2>
           <p className="text-indigo-200 max-w-xs text-sm">
-            Here&apos;s what&apos;s happening right now — this updates itself the moment a new game boards.
+            Here&apos;s what&apos;s happening right now. This updates itself the moment a new game boards.
           </p>
           <LiveGameGlance room={room} players={players} />
           {canJoinNow && (
@@ -81,7 +80,6 @@ export default function TriviaLandingClient() {
   return (
     <Shell>
       <div className="flex flex-col items-center gap-2">
-        <p className="text-2xl">{statusLine.emoji}</p>
         <h2 className="text-lg font-semibold text-indigo-200">{statusLine.text}</h2>
         {canJoinNow && room.starts_at && !countdown.reached && (
           <p className="text-4xl font-black text-amber-400 tabular-nums mt-2">{countdown.label}</p>
@@ -107,7 +105,7 @@ export default function TriviaLandingClient() {
       {!canJoinNow && (
         <p className="text-xs text-indigo-300/60 max-w-xs">
           {room === null
-            ? "Ask your bartender when trivia kicks off, or just wait — a new game boards automatically."
+            ? "Ask your bartender when trivia kicks off, or just wait. A new game boards automatically."
             : "Mid-round joins aren't allowed so everyone starts on equal footing. A new game boards right after this one wraps up."}
         </p>
       )}
@@ -121,7 +119,7 @@ export default function TriviaLandingClient() {
 
       {canJoinNow && (
         <p className="text-xs text-indigo-300/60 max-w-xs">
-          Jump in and wait in the lobby with everyone else — no need to time it perfectly.
+          Jump in and wait in the lobby with everyone else. No need to time it perfectly.
         </p>
       )}
     </Shell>

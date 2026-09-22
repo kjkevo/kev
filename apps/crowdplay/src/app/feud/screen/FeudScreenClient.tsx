@@ -102,7 +102,7 @@ export default function FeudScreenClient() {
                     i < room.strikes ? "bg-red-600" : "bg-white/10 text-white/20"
                   }`}
                 >
-                  ✕
+                  X
                 </span>
               ))}
             </div>
@@ -136,7 +136,7 @@ export default function FeudScreenClient() {
             <CircularTimer fraction={phaseCountdown.fraction} size={36} />
             {room.last_round_winner && (
               <p className="text-3xl font-black text-amber-400">
-                🎉 {room.last_round_winner === "a" ? room.team_a_name : room.team_b_name} won this round! +{room.last_round_points}
+                {room.last_round_winner === "a" ? room.team_a_name : room.team_b_name} won this round! +{room.last_round_points}
               </p>
             )}
             <h2 className="text-3xl font-bold max-w-4xl">{room.current_prompt}</h2>
@@ -154,12 +154,10 @@ export default function FeudScreenClient() {
 
         {room.phase === "fast_money" && (
           <>
-            <p className="text-2xl">💰</p>
             <h2 className="text-3xl font-bold text-amber-400">
               {room.fast_money_team === "a" ? room.team_a_name : room.team_b_name}&apos;s Fast Money
             </h2>
             <p className="text-lg text-slate-400">
-              🎤{" "}
               {players.find(
                 (p) => p.id === (room.fast_money_turn === 1 ? room.fast_money_player1_id : room.fast_money_player2_id)
               )?.nickname ?? "Someone"}
@@ -174,7 +172,7 @@ export default function FeudScreenClient() {
           <>
             {room.phase === "leaderboard" && <CircularTimer fraction={phaseCountdown.fraction} size={36} />}
             <h2 className="text-4xl font-black text-amber-400">
-              {room.phase === "final" ? "🎉 Final Results 🎉" : `Round ${room.current_round_index} of ${room.total_rounds}`}
+              {room.phase === "final" ? "Final Results" : `Round ${room.current_round_index} of ${room.total_rounds}`}
             </h2>
             {room.last_round_winner && (
               <p className="text-lg text-slate-400">
@@ -215,9 +213,9 @@ function TurnBanner({
     : room.controlling_team === "a"
       ? "bg-rose-600"
       : "bg-blue-600";
-  const headline = isFaceoff ? "🎙️ FACE-OFF" : room.phase === "steal" ? `🔥 ${activeTeamName}'S STEAL CHANCE` : `${activeTeamName}'S TURN`;
+  const headline = isFaceoff ? "FACE OFF" : room.phase === "steal" ? `${activeTeamName}'S STEAL CHANCE` : `${activeTeamName}'S TURN`;
   const subtext = isFaceoff
-    ? "Either team — first correct guess wins control!"
+    ? "Either team, first correct guess wins control!"
     : room.phase === "steal"
       ? "One guess, winner takes the pot!"
       : "Anyone on the team can call out the answer";
@@ -272,7 +270,6 @@ function FastMoneyReveal({
   const teamName = room.fast_money_team === "a" ? room.team_a_name : room.team_b_name;
   return (
     <>
-      <p className="text-2xl">💰</p>
       <h2 className="text-3xl font-black text-amber-400">Fast Money Results</h2>
       <p className="text-xl text-slate-300">{teamName} scored {total} points</p>
       <div className="grid grid-cols-2 gap-4 w-full max-w-4xl text-left">
@@ -292,7 +289,7 @@ function FastMoneyReveal({
         ))}
       </div>
       <p className={`text-2xl font-bold ${wonBonus ? "text-amber-400" : "text-slate-400"}`}>
-        {wonBonus ? `🎉 Crossed 200 — BONUS WIN!` : `Needed 200 for the bonus`}
+        {wonBonus ? `Crossed 200, BONUS WIN!` : `Needed 200 for the bonus`}
       </p>
       <TeamScores room={room} />
     </>
