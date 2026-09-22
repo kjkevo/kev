@@ -79,6 +79,7 @@ export default function FeudScreenClient() {
                 <CircularTimer fraction={phaseCountdown.fraction} size={32} strokeWidth={3} />
               )}
             </div>
+            <TurnBanner room={room} />
             <h2 className="text-4xl font-bold max-w-4xl">{room.current_prompt}</h2>
             <div className="grid grid-cols-2 gap-4 w-full max-w-3xl">
               {board.map((slot, i) => (
@@ -158,7 +159,11 @@ export default function FeudScreenClient() {
               {room.fast_money_team === "a" ? room.team_a_name : room.team_b_name}&apos;s Fast Money
             </h2>
             <p className="text-lg text-slate-400">
-              Player {room.fast_money_turn} of 2 · Question {(room.fast_money_current_index ?? 0) + 1} of 5
+              🎤{" "}
+              {players.find(
+                (p) => p.id === (room.fast_money_turn === 1 ? room.fast_money_player1_id : room.fast_money_player2_id)
+              )?.nickname ?? "Someone"}
+              &apos;s turn · Question {(room.fast_money_current_index ?? 0) + 1} of 5
             </p>
             <h3 className="text-2xl font-semibold max-w-3xl">{room.fast_money_current_prompt}</h3>
             <p className="text-slate-500">Answers stay hidden until the round is over…</p>
@@ -191,6 +196,37 @@ export default function FeudScreenClient() {
         )}
       </div>
     </main>
+  );
+}
+
+function TurnBanner({
+  room,
+}: {
+  room: { phase: string; controlling_team: string | null; team_a_name: string; team_b_name: string };
+}) {
+  const isFaceoff = room.phase === "play" && room.controlling_team === null;
+  const activeTeamName = isFaceoff
+    ? null
+    : room.controlling_team === "a"
+      ? room.team_a_name
+      : room.team_b_name;
+  const color = isFaceoff
+    ? "bg-gradient-to-r from-rose-600 to-blue-600"
+    : room.controlling_team === "a"
+      ? "bg-rose-600"
+      : "bg-blue-600";
+  const headline = isFaceoff ? "🎙️ FACE-OFF" : room.phase === "steal" ? `🔥 ${activeTeamName}'S STEAL CHANCE` : `${activeTeamName}'S TURN`;
+  const subtext = isFaceoff
+    ? "Either team — first correct guess wins control!"
+    : room.phase === "steal"
+      ? "One guess, winner takes the pot!"
+      : "Anyone on the team can call out the answer";
+
+  return (
+    <div className={`${color} rounded-2xl px-6 py-3 max-w-3xl w-full`}>
+      <p className="font-black text-xl tracking-wide">{headline}</p>
+      <p className="text-sm text-white/90">{subtext}</p>
+    </div>
   );
 }
 

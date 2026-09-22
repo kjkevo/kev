@@ -268,15 +268,33 @@ export default function FeudPlayPage() {
       (room.phase === "play" && room.controlling_team === myTeam) ||
       (room.phase === "steal" && room.controlling_team !== myTeam);
 
-    const statusLine = isFaceoff
-      ? "🎙️ Face-off! First correct guess wins control."
+    const activeTeamName = isFaceoff
+      ? null
       : room.phase === "steal"
         ? room.controlling_team === myTeam
-          ? `😬 ${otherTeamName} is trying to steal your points!`
-          : "🔥 Steal chance — one guess for the win!"
+          ? otherTeamName
+          : myTeamName
         : room.controlling_team === myTeam
-          ? "✅ Your team is in control — keep guessing!"
-          : `⏳ ${otherTeamName} is playing…`;
+          ? myTeamName
+          : otherTeamName;
+    const activeTeamColor = isFaceoff
+      ? "bg-gradient-to-r from-rose-600 to-blue-600"
+      : activeTeamName === teamAName
+        ? "bg-rose-600"
+        : "bg-blue-600";
+
+    const bannerHeadline = isFaceoff
+      ? "🎙️ FACE-OFF"
+      : room.phase === "steal"
+        ? `🔥 ${activeTeamName}'S STEAL CHANCE`
+        : `${activeTeamName}'S TURN`;
+    const bannerSubtext = isFaceoff
+      ? "Either team — first correct guess wins control!"
+      : room.phase === "steal"
+        ? room.controlling_team === myTeam
+          ? `${otherTeamName} gets one guess to steal your points!`
+          : "One guess, winner takes the pot!"
+        : "Anyone on the team can type the answer below";
 
     return (
       <main className="min-h-screen bg-slate-950 text-white flex flex-col px-5 py-6 relative">
@@ -313,9 +331,12 @@ export default function FeudPlayPage() {
           ))}
         </div>
 
-        <div className="flex items-center justify-center gap-2 mb-3">
-          <p className="text-center text-sm text-slate-300">{statusLine}</p>
-          {isFaceoff && <CircularTimer fraction={phaseCountdown.fraction} size={28} strokeWidth={3} />}
+        <div className={`${activeTeamColor} rounded-2xl px-4 py-3 mb-3 flex items-center justify-between gap-3`}>
+          <div>
+            <p className="font-black text-base tracking-wide">{bannerHeadline}</p>
+            <p className="text-xs text-white/90">{bannerSubtext}</p>
+          </div>
+          {isFaceoff && <CircularTimer fraction={phaseCountdown.fraction} size={32} strokeWidth={3} />}
         </div>
 
         <div className="grid grid-cols-2 gap-2 mb-3">
@@ -355,8 +376,12 @@ export default function FeudPlayPage() {
             onChange={(e) => setGuess(e.target.value)}
             disabled={!myTurn || guessing}
             maxLength={60}
-            placeholder={myTurn ? "Type your guess…" : "Not your turn…"}
-            className="flex-1 bg-white/10 border border-white/20 rounded-xl px-4 py-3 outline-none focus:border-amber-400 disabled:opacity-40"
+            placeholder={myTurn ? "Ready when you are" : "Stay ready — your turn is coming!"}
+            className={`flex-1 rounded-xl px-4 py-3 outline-none border transition ${
+              myTurn
+                ? "bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:border-amber-400"
+                : "bg-white/5 border-white/10 text-slate-500 placeholder:text-slate-500"
+            }`}
           />
           <button
             disabled={!myTurn || guessing || guess.trim().length === 0}
@@ -446,58 +471,58 @@ export default function FeudPlayPage() {
     const soloBothTurns = room.fast_money_player1_id === room.fast_money_player2_id;
     const myTurnNow = room.fast_money_turn === 1 ? isP1 : isP2;
     const fmTeamName = room.fast_money_team === "a" ? teamAName : teamBName;
+    const fmTeamColor = room.fast_money_team === "a" ? "bg-rose-600" : "bg-blue-600";
+    const currentPlayerId = room.fast_money_turn === 1 ? room.fast_money_player1_id : room.fast_money_player2_id;
+    const currentPlayerName = players.find((p) => p.id === currentPlayerId)?.nickname ?? "Someone";
 
     return (
       <Center>
         <QuitButton onClick={() => setConfirmingQuit(true)} />
         <p className="text-3xl mb-1">💰</p>
-        <h1 className="text-xl font-bold mb-1">Fast Money!</h1>
-        <p className="text-slate-400 mb-1">{fmTeamName}&apos;s bonus round</p>
-        <p className="text-xs text-slate-500 mb-4">
-          {soloBothTurns ? "Solo run" : `Player ${room.fast_money_turn} of 2`} · Question{" "}
-          {(room.fast_money_current_index ?? 0) + 1} of 5
-        </p>
+        <h1 className="text-xl font-bold mb-3">Fast Money!</h1>
 
-        {myTurnNow ? (
-          <>
-            <h2 className="text-lg font-bold mb-4 max-w-xs">{room.fast_money_current_prompt}</h2>
-            {fmLastResult && (
-              <p className={`font-bold mb-2 ${fmLastResult.matched ? "text-emerald-400" : "text-red-400"}`}>
-                {fmLastResult.matched ? `✅ Locked in! +${fmLastResult.points}` : "❌ Not on the board"}
-              </p>
-            )}
-            <form onSubmit={submitFastMoneyGuess} className="flex gap-2 w-full max-w-xs">
-              <input
-                value={fmGuess}
-                onChange={(e) => setFmGuess(e.target.value)}
-                disabled={fmGuessing}
-                maxLength={60}
-                placeholder="Type your guess…"
-                autoFocus
-                className="flex-1 bg-white/10 border border-white/20 rounded-xl px-4 py-3 outline-none focus:border-amber-400 disabled:opacity-40"
-              />
-              <button
-                disabled={fmGuessing || fmGuess.trim().length === 0}
-                className="rounded-xl bg-amber-400 text-black font-bold px-5 disabled:opacity-40 active:scale-95 transition"
-              >
-                Go
-              </button>
-            </form>
-            {fmError && <p className="text-red-400 text-xs mt-2">{fmError}</p>}
-            <p className="text-xs text-slate-500 mt-4 max-w-xs">
-              Answers stay hidden until the bonus round is over — no peeking at your partner&apos;s guesses!
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="text-lg mb-2">
-              🎤 Waiting on {room.fast_money_turn === 1 ? "Player 1" : "Player 2"}&apos;s answer…
-            </p>
-            <p className="text-sm text-slate-400 max-w-xs">
-              Answers are hidden until the whole bonus round wraps up — hang tight!
-            </p>
-          </>
+        <div className={`${fmTeamColor} rounded-2xl px-4 py-3 mb-4 w-full max-w-xs`}>
+          <p className="font-black text-base tracking-wide">
+            {fmTeamName} · {soloBothTurns ? currentPlayerName : `${currentPlayerName}'s turn`}
+          </p>
+          <p className="text-xs text-white/90">Question {(room.fast_money_current_index ?? 0) + 1} of 5</p>
+        </div>
+
+        {myTurnNow && <h2 className="text-lg font-bold mb-4 max-w-xs">{room.fast_money_current_prompt}</h2>}
+        {!myTurnNow && (
+          <p className="text-sm text-slate-400 mb-4 max-w-xs">
+            🎤 {currentPlayerName} is answering — everyone else stays quiet, answers are hidden until the bonus round wraps up!
+          </p>
         )}
+
+        {fmLastResult && (
+          <p className={`font-bold mb-2 ${fmLastResult.matched ? "text-emerald-400" : "text-red-400"}`}>
+            {fmLastResult.matched ? `✅ Locked in! +${fmLastResult.points}` : "❌ Not on the board"}
+          </p>
+        )}
+
+        <form onSubmit={submitFastMoneyGuess} className="flex gap-2 w-full max-w-xs">
+          <input
+            value={fmGuess}
+            onChange={(e) => setFmGuess(e.target.value)}
+            disabled={!myTurnNow || fmGuessing}
+            maxLength={60}
+            placeholder={myTurnNow ? "Ready when you are" : "Stay ready — you're up soon!"}
+            autoFocus={myTurnNow}
+            className={`flex-1 rounded-xl px-4 py-3 outline-none border transition ${
+              myTurnNow
+                ? "bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:border-amber-400"
+                : "bg-white/5 border-white/10 text-slate-500 placeholder:text-slate-500"
+            }`}
+          />
+          <button
+            disabled={!myTurnNow || fmGuessing || fmGuess.trim().length === 0}
+            className="rounded-xl bg-amber-400 text-black font-bold px-5 disabled:opacity-40 active:scale-95 transition"
+          >
+            Go
+          </button>
+        </form>
+        {fmError && <p className="text-red-400 text-xs mt-2">{fmError}</p>}
         {confirmingQuit && <QuitConfirm onCancel={() => setConfirmingQuit(false)} onConfirm={quit} />}
       </Center>
     );
