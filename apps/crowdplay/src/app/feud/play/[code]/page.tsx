@@ -5,7 +5,13 @@ import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useFeudRoomRealtime } from "@/hooks/useFeudRoomRealtime";
 import { useCountdownTo } from "@/hooks/useCountdownTo";
-import { feudPlayerKey, type FeudPlayerCredentials, type FeudBoardSlot, type FeudTeam } from "@/lib/types";
+import {
+  feudPlayerKey,
+  type FeudPlayerCredentials,
+  type FeudBoardSlot,
+  type FeudTeam,
+  type FeudFastMoneyAnswer,
+} from "@/lib/types";
 import { randomFunName } from "@/lib/funNames";
 import { haptics } from "@/lib/haptics";
 
@@ -39,6 +45,10 @@ export default function FeudPlayPage() {
   const [guessError, setGuessError] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<{ matched: boolean; points: number } | null>(null);
   const [confirmingQuit, setConfirmingQuit] = useState(false);
+  const [fmGuess, setFmGuess] = useState("");
+  const [fmGuessing, setFmGuessing] = useState(false);
+  const [fmError, setFmError] = useState<string | null>(null);
+  const [fmLastResult, setFmLastResult] = useState<{ matched: boolean; points: number } | null>(null);
 
   useEffect(() => {
     setNickname(randomFunName());
@@ -55,6 +65,12 @@ export default function FeudPlayPage() {
     setLastResult(null);
     setGuessError(null);
   }, [room?.board]);
+
+  useEffect(() => {
+    setFmLastResult(null);
+    setFmError(null);
+    setFmGuess("");
+  }, [room?.fast_money_turn, room?.fast_money_current_index]);
 
   const teamAPlayers = useMemo(() => players.filter((p) => p.team === "a"), [players]);
   const teamBPlayers = useMemo(() => players.filter((p) => p.team === "b"), [players]);
@@ -106,6 +122,29 @@ export default function FeudPlayPage() {
     if (data[0].o_matched) haptics.correct();
     else haptics.wrong();
     setLastResult({ matched: data[0].o_matched, points: data[0].o_points_awarded });
+  }
+
+  async function submitFastMoneyGuess(e: React.FormEvent) {
+    e.preventDefault();
+    if (!room || !creds || fmGuess.trim().length === 0 || fmGuessing) return;
+    setFmGuessing(true);
+    setFmError(null);
+    const { data, error } = await supabase.rpc("submit_fast_money_guess", {
+      p_room_id: room.id,
+      p_player_id: creds.playerId,
+      p_client_token: creds.clientToken,
+      p_guess: fmGuess.trim(),
+    });
+    setFmGuessing(false);
+    setFmGuess("");
+    if (error || !data?.[0]) {
+      setFmError(friendlyError(error?.message ?? "", "Couldn't submit that guess — try again."));
+      return;
+    }
+    haptics.tap();
+    if (data[0].o_matched) haptics.correct();
+    else haptics.wrong();
+    setFmLastResult({ matched: data[0].o_matched, points: data[0].o_points });
   }
 
   function quit() {
@@ -261,6 +300,31 @@ export default function FeudPlayPage() {
 
         <p className="text-center text-sm text-slate-300 mb-3">{statusLine}</p>
 
+        <div className="grid grid-cols-2 gap-2 mb-3">
+          <CompactRoster
+            name={teamAName}
+            color="bg-rose-600"
+            players={teamAPlayers.map((p) => p.nickname)}
+            active={room.phase === "play" ? room.controlling_team === "a" || isFaceoff : room.controlling_team !== "a"}
+            lastGuessNickname={
+              room.last_guess && (room.last_guess as { team: string }).team === "a"
+                ? (room.last_guess as { nickname: string }).nickname
+                : null
+            }
+          />
+          <CompactRoster
+            name={teamBName}
+            color="bg-blue-600"
+            players={teamBPlayers.map((p) => p.nickname)}
+            active={room.phase === "play" ? room.controlling_team === "b" || isFaceoff : room.controlling_team !== "b"}
+            lastGuessNickname={
+              room.last_guess && (room.last_guess as { team: string }).team === "b"
+                ? (room.last_guess as { nickname: string }).nickname
+                : null
+            }
+          />
+        </div>
+
         {lastResult && (
           <p className={`text-center font-bold mb-2 ${lastResult.matched ? "text-emerald-400" : "text-red-400"}`}>
             {lastResult.matched ? `✅ On the board! +${lastResult.points}` : "❌ Not on the board"}
@@ -295,9 +359,49 @@ export default function FeudPlayPage() {
     );
   }
 
+  if (room.phase === "reveal" && room.last_round_was_fast_money) {
+    const fmAnswers = (room.fast_money_answers as unknown as FeudFastMoneyAnswer[]) ?? [];
+    const total = room.fast_money_total ?? 0;
+    const wonBonus = total >= 200;
+    return (
+      <Center>
+        <p className="text-3xl mb-1">💰</p>
+        <h1 className="text-2xl font-bold mb-1">Fast Money Results</h1>
+        <p className="text-slate-400 mb-4">
+          {room.fast_money_team === "a" ? teamAName : teamBName} scored {total} points
+        </p>
+        <div className="flex flex-col gap-1.5 w-full max-w-sm mb-4 text-left">
+          {fmAnswers.map((a, i) => (
+            <div
+              key={i}
+              className={`rounded-xl px-3 py-2 flex items-center justify-between text-sm ${
+                a.points > 0 ? "bg-emerald-700" : "bg-white/5 border border-white/10"
+              }`}
+            >
+              <div className="flex-1 min-w-0">
+                <div className="text-[10px] text-slate-400 uppercase tracking-wide">Player {a.player}</div>
+                <div className="truncate">{a.guess || "(no answer)"}</div>
+              </div>
+              <span className="font-bold text-amber-300 ml-2">{a.points}</span>
+            </div>
+          ))}
+        </div>
+        <p className={`text-lg font-bold mb-4 ${wonBonus ? "text-amber-400" : "text-slate-400"}`}>
+          {wonBonus ? `🎉 ${total} points — crossed 200, BONUS WIN!` : `${total} points — needed 200 for the bonus`}
+        </p>
+        <ScoreRow teamAName={teamAName} teamBName={teamBName} teamAScore={room.team_a_score} teamBScore={room.team_b_score} />
+      </Center>
+    );
+  }
+
   if (room.phase === "reveal") {
     return (
       <Center>
+        {room.last_round_winner && (
+          <p className="text-lg font-bold text-amber-400 mb-2">
+            🎉 {room.last_round_winner === "a" ? teamAName : teamBName} won this round! +{room.last_round_points}
+          </p>
+        )}
         <h2 className="text-lg font-bold mb-3">{room.current_prompt}</h2>
         <div className="flex flex-col gap-1.5 w-full max-w-sm mb-4">
           {board.map((slot, i) => (
@@ -312,14 +416,84 @@ export default function FeudPlayPage() {
     );
   }
 
+  if (room.phase === "fast_money") {
+    const isP1 = creds.playerId === room.fast_money_player1_id;
+    const isP2 = creds.playerId === room.fast_money_player2_id;
+    const soloBothTurns = room.fast_money_player1_id === room.fast_money_player2_id;
+    const myTurnNow = room.fast_money_turn === 1 ? isP1 : isP2;
+    const fmTeamName = room.fast_money_team === "a" ? teamAName : teamBName;
+
+    return (
+      <Center>
+        <QuitButton onClick={() => setConfirmingQuit(true)} />
+        <p className="text-3xl mb-1">💰</p>
+        <h1 className="text-xl font-bold mb-1">Fast Money!</h1>
+        <p className="text-slate-400 mb-1">{fmTeamName}&apos;s bonus round</p>
+        <p className="text-xs text-slate-500 mb-4">
+          {soloBothTurns ? "Solo run" : `Player ${room.fast_money_turn} of 2`} · Question{" "}
+          {(room.fast_money_current_index ?? 0) + 1} of 5
+        </p>
+
+        {myTurnNow ? (
+          <>
+            <h2 className="text-lg font-bold mb-4 max-w-xs">{room.fast_money_current_prompt}</h2>
+            {fmLastResult && (
+              <p className={`font-bold mb-2 ${fmLastResult.matched ? "text-emerald-400" : "text-red-400"}`}>
+                {fmLastResult.matched ? `✅ Locked in! +${fmLastResult.points}` : "❌ Not on the board"}
+              </p>
+            )}
+            <form onSubmit={submitFastMoneyGuess} className="flex gap-2 w-full max-w-xs">
+              <input
+                value={fmGuess}
+                onChange={(e) => setFmGuess(e.target.value)}
+                disabled={fmGuessing}
+                maxLength={60}
+                placeholder="Type your guess…"
+                autoFocus
+                className="flex-1 bg-white/10 border border-white/20 rounded-xl px-4 py-3 outline-none focus:border-amber-400 disabled:opacity-40"
+              />
+              <button
+                disabled={fmGuessing || fmGuess.trim().length === 0}
+                className="rounded-xl bg-amber-400 text-black font-bold px-5 disabled:opacity-40 active:scale-95 transition"
+              >
+                Go
+              </button>
+            </form>
+            {fmError && <p className="text-red-400 text-xs mt-2">{fmError}</p>}
+            <p className="text-xs text-slate-500 mt-4 max-w-xs">
+              Answers stay hidden until the bonus round is over — no peeking at your partner&apos;s guesses!
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="text-lg mb-2">
+              🎤 Waiting on {room.fast_money_turn === 1 ? "Player 1" : "Player 2"}&apos;s answer…
+            </p>
+            <p className="text-sm text-slate-400 max-w-xs">
+              Answers are hidden until the whole bonus round wraps up — hang tight!
+            </p>
+          </>
+        )}
+        {confirmingQuit && <QuitConfirm onCancel={() => setConfirmingQuit(false)} onConfirm={quit} />}
+      </Center>
+    );
+  }
+
   if (room.phase === "leaderboard" || room.phase === "final") {
     return (
       <Center>
         {room.phase === "leaderboard" && <QuitButton onClick={() => setConfirmingQuit(true)} />}
         <h1 className="text-2xl font-bold mb-1">{room.phase === "final" ? "🎉 Final Results" : "Scoreboard"}</h1>
-        <p className="text-slate-400 mb-6">
+        <p className="text-slate-400 mb-1">
           {room.phase === "final" ? "Thanks for playing!" : `Round ${room.current_round_index} of ${room.total_rounds}`}
         </p>
+        {room.last_round_winner && (
+          <p className="text-xs text-amber-400/80 mb-5">
+            {room.last_round_was_fast_money ? "Fast Money: " : "Last round: "}
+            {room.last_round_winner === "a" ? teamAName : teamBName} +{room.last_round_points}
+          </p>
+        )}
+        {!room.last_round_winner && <div className="mb-5" />}
         <ScoreRow teamAName={teamAName} teamBName={teamBName} teamAScore={room.team_a_score} teamBScore={room.team_b_score} big />
         {room.phase === "final" && (
           <p className="text-lg font-bold mt-6 text-amber-400">
@@ -357,6 +531,42 @@ function TeamPickButton({
     >
       {label}
     </button>
+  );
+}
+
+function CompactRoster({
+  name,
+  color,
+  players,
+  active,
+  lastGuessNickname,
+}: {
+  name: string;
+  color: string;
+  players: string[];
+  active: boolean;
+  lastGuessNickname: string | null;
+}) {
+  return (
+    <div className={`rounded-xl p-2 border ${active ? "border-amber-400/60 bg-white/10" : "border-white/10 bg-white/5"}`}>
+      <div className={`${color} text-[10px] font-bold rounded-full px-2 py-0.5 inline-block mb-1`}>{name}</div>
+      <div className="flex flex-wrap gap-1">
+        {players.length === 0 ? (
+          <span className="text-slate-500 text-[11px]">No one yet</span>
+        ) : (
+          players.map((n) => (
+            <span
+              key={n}
+              className={`text-[11px] px-1.5 py-0.5 rounded ${
+                n === lastGuessNickname ? "bg-amber-400 text-black font-semibold" : "text-slate-300"
+              }`}
+            >
+              {n}
+            </span>
+          ))
+        )}
+      </div>
+    </div>
   );
 }
 

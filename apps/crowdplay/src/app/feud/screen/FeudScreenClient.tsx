@@ -4,7 +4,7 @@ import { useActiveFeudRoom } from "@/hooks/useActiveFeudRoom";
 import { useFeudRoomRealtime } from "@/hooks/useFeudRoomRealtime";
 import { useCountdownTo } from "@/hooks/useCountdownTo";
 import { JoinQRCode } from "@/components/JoinQRCode";
-import type { FeudBoardSlot } from "@/lib/types";
+import type { FeudBoardSlot, FeudFastMoneyAnswer } from "@/lib/types";
 
 /**
  * The venue's TV/projector view for Family Feud — pure spectator, no
@@ -85,12 +85,35 @@ export default function FeudScreenClient() {
                 </span>
               ))}
             </div>
+            <div className="grid grid-cols-2 gap-6 w-full max-w-2xl">
+              <TeamList
+                name={room.team_a_name}
+                color="bg-rose-600"
+                players={teamAPlayers.map((p) => p.nickname)}
+                active={room.phase === "play" ? room.controlling_team === "a" || room.controlling_team === null : room.controlling_team !== "a"}
+              />
+              <TeamList
+                name={room.team_b_name}
+                color="bg-blue-600"
+                players={teamBPlayers.map((p) => p.nickname)}
+                active={room.phase === "play" ? room.controlling_team === "b" || room.controlling_team === null : room.controlling_team !== "b"}
+              />
+            </div>
             <TeamScores room={room} />
           </>
         )}
 
-        {room.phase === "reveal" && (
+        {room.phase === "reveal" && room.last_round_was_fast_money && (
+          <FastMoneyReveal room={room} />
+        )}
+
+        {room.phase === "reveal" && !room.last_round_was_fast_money && (
           <>
+            {room.last_round_winner && (
+              <p className="text-3xl font-black text-amber-400">
+                🎉 {room.last_round_winner === "a" ? room.team_a_name : room.team_b_name} won this round! +{room.last_round_points}
+              </p>
+            )}
             <h2 className="text-3xl font-bold max-w-4xl">{room.current_prompt}</h2>
             <div className="grid grid-cols-2 gap-4 w-full max-w-3xl">
               {board.map((slot, i) => (
@@ -104,11 +127,31 @@ export default function FeudScreenClient() {
           </>
         )}
 
+        {room.phase === "fast_money" && (
+          <>
+            <p className="text-2xl">💰</p>
+            <h2 className="text-3xl font-bold text-amber-400">
+              {room.fast_money_team === "a" ? room.team_a_name : room.team_b_name}&apos;s Fast Money
+            </h2>
+            <p className="text-lg text-slate-400">
+              Player {room.fast_money_turn} of 2 · Question {(room.fast_money_current_index ?? 0) + 1} of 5
+            </p>
+            <h3 className="text-2xl font-semibold max-w-3xl">{room.fast_money_current_prompt}</h3>
+            <p className="text-slate-500">Answers stay hidden until the round is over…</p>
+          </>
+        )}
+
         {(room.phase === "leaderboard" || room.phase === "final") && (
           <>
             <h2 className="text-4xl font-black text-amber-400">
               {room.phase === "final" ? "🎉 Final Results 🎉" : `Round ${room.current_round_index} of ${room.total_rounds}`}
             </h2>
+            {room.last_round_winner && (
+              <p className="text-lg text-slate-400">
+                {room.last_round_was_fast_money ? "Fast Money: " : "Last round: "}
+                {room.last_round_winner === "a" ? room.team_a_name : room.team_b_name} +{room.last_round_points}
+              </p>
+            )}
             <TeamScores room={room} big />
             {room.phase === "final" ? (
               <p className="text-2xl font-bold text-amber-400">
@@ -126,9 +169,21 @@ export default function FeudScreenClient() {
   );
 }
 
-function TeamList({ name, color, players }: { name: string; color: string; players: string[] }) {
+function TeamList({
+  name,
+  color,
+  players,
+  active,
+}: {
+  name: string;
+  color: string;
+  players: string[];
+  active?: boolean;
+}) {
   return (
-    <div className="rounded-2xl bg-white/5 border border-white/10 p-4 text-left">
+    <div
+      className={`rounded-2xl bg-white/5 border p-4 text-left ${active ? "border-amber-400/60" : "border-white/10"}`}
+    >
       <div className={`${color} text-sm font-bold rounded-full px-3 py-1 inline-block mb-3`}>{name}</div>
       <div className="flex flex-wrap gap-2">
         {players.length === 0 ? (
@@ -142,6 +197,44 @@ function TeamList({ name, color, players }: { name: string; color: string; playe
         )}
       </div>
     </div>
+  );
+}
+
+function FastMoneyReveal({
+  room,
+}: {
+  room: { fast_money_team: string | null; fast_money_total: number | null; fast_money_answers: unknown; team_a_name: string; team_b_name: string; team_a_score: number; team_b_score: number };
+}) {
+  const answers = (room.fast_money_answers as FeudFastMoneyAnswer[]) ?? [];
+  const total = room.fast_money_total ?? 0;
+  const wonBonus = total >= 200;
+  const teamName = room.fast_money_team === "a" ? room.team_a_name : room.team_b_name;
+  return (
+    <>
+      <p className="text-2xl">💰</p>
+      <h2 className="text-3xl font-black text-amber-400">Fast Money Results</h2>
+      <p className="text-xl text-slate-300">{teamName} scored {total} points</p>
+      <div className="grid grid-cols-2 gap-4 w-full max-w-4xl text-left">
+        {answers.map((a, i) => (
+          <div
+            key={i}
+            className={`rounded-xl py-3 px-4 flex items-center justify-between ${
+              a.points > 0 ? "bg-emerald-700" : "bg-white/5 border border-white/10"
+            }`}
+          >
+            <div className="min-w-0">
+              <div className="text-[10px] text-slate-400 uppercase tracking-wide">Player {a.player}</div>
+              <div className="truncate text-sm">{a.guess || "(no answer)"}</div>
+            </div>
+            <span className="font-bold text-amber-300 ml-2">{a.points}</span>
+          </div>
+        ))}
+      </div>
+      <p className={`text-2xl font-bold ${wonBonus ? "text-amber-400" : "text-slate-400"}`}>
+        {wonBonus ? `🎉 Crossed 200 — BONUS WIN!` : `Needed 200 for the bonus`}
+      </p>
+      <TeamScores room={room} />
+    </>
   );
 }
 

@@ -100,6 +100,21 @@ export type Database = {
           team_b_score: number
           last_guess: Json | null
           retired: boolean
+          last_round_winner: string | null
+          last_round_points: number | null
+          last_round_was_fast_money: boolean
+          fast_money_played: boolean
+          fast_money_team: string | null
+          fast_money_player1_id: string | null
+          fast_money_player2_id: string | null
+          fast_money_questions: Json | null
+          fast_money_turn: number | null
+          fast_money_current_index: number | null
+          fast_money_current_prompt: string | null
+          fast_money_turn_started_at: string | null
+          fast_money_prompts: Json | null
+          fast_money_answers: Json
+          fast_money_total: number | null
         }
         Insert: {
           id?: string
@@ -123,6 +138,21 @@ export type Database = {
           team_b_score?: number
           last_guess?: Json | null
           retired?: boolean
+          last_round_winner?: string | null
+          last_round_points?: number | null
+          last_round_was_fast_money?: boolean
+          fast_money_played?: boolean
+          fast_money_team?: string | null
+          fast_money_player1_id?: string | null
+          fast_money_player2_id?: string | null
+          fast_money_questions?: Json | null
+          fast_money_turn?: number | null
+          fast_money_current_index?: number | null
+          fast_money_current_prompt?: string | null
+          fast_money_turn_started_at?: string | null
+          fast_money_prompts?: Json | null
+          fast_money_answers?: Json
+          fast_money_total?: number | null
         }
         Update: {
           id?: string
@@ -146,6 +176,21 @@ export type Database = {
           team_b_score?: number
           last_guess?: Json | null
           retired?: boolean
+          last_round_winner?: string | null
+          last_round_points?: number | null
+          last_round_was_fast_money?: boolean
+          fast_money_played?: boolean
+          fast_money_team?: string | null
+          fast_money_player1_id?: string | null
+          fast_money_player2_id?: string | null
+          fast_money_questions?: Json | null
+          fast_money_turn?: number | null
+          fast_money_current_index?: number | null
+          fast_money_current_prompt?: string | null
+          fast_money_turn_started_at?: string | null
+          fast_money_prompts?: Json | null
+          fast_money_answers?: Json
+          fast_money_total?: number | null
         }
         Relationships: []
       }
@@ -331,6 +376,10 @@ export type Database = {
       join_room: {
         Args: { p_code: string; p_nickname: string; p_team_members?: string[] }
         Returns: { client_token: string; player_id: string; room_id: string }[]
+      }
+      submit_fast_money_guess: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_guess: string }
+        Returns: { o_matched: boolean; o_points: number; o_phase: string }[]
       }
       submit_feud_guess: {
         Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_guess: string }
