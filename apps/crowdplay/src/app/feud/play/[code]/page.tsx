@@ -5,6 +5,12 @@ import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useFeudRoomRealtime } from "@/hooks/useFeudRoomRealtime";
 import { useCountdownTo } from "@/hooks/useCountdownTo";
+import { useCountdown } from "@/hooks/useCountdown";
+import { CircularTimer } from "@/components/CircularTimer";
+
+const REVEAL_DWELL_SECONDS = 6;
+const LEADERBOARD_DWELL_SECONDS = 6;
+const FACEOFF_TIMEOUT_SECONDS = 20;
 import {
   feudPlayerKey,
   type FeudPlayerCredentials,
@@ -34,6 +40,15 @@ export default function FeudPlayPage() {
   const code = params.code?.toUpperCase();
   const { room, players, loading, notFound } = useFeudRoomRealtime(code ?? null);
   const scheduledCountdown = useCountdownTo(room?.phase === "lobby" ? room.starts_at : null);
+  const phaseDwellLimit =
+    room?.phase === "reveal"
+      ? REVEAL_DWELL_SECONDS
+      : room?.phase === "leaderboard"
+        ? LEADERBOARD_DWELL_SECONDS
+        : room?.phase === "play" && room.controlling_team === null
+          ? FACEOFF_TIMEOUT_SECONDS
+          : 1;
+  const phaseCountdown = useCountdown(room?.phase_started_at ?? null, phaseDwellLimit);
 
   const [creds, setCreds] = useState<FeudPlayerCredentials | null>(null);
   const [nickname, setNickname] = useState("");
@@ -298,7 +313,10 @@ export default function FeudPlayPage() {
           ))}
         </div>
 
-        <p className="text-center text-sm text-slate-300 mb-3">{statusLine}</p>
+        <div className="flex items-center justify-center gap-2 mb-3">
+          <p className="text-center text-sm text-slate-300">{statusLine}</p>
+          {isFaceoff && <CircularTimer fraction={phaseCountdown.fraction} size={28} strokeWidth={3} />}
+        </div>
 
         <div className="grid grid-cols-2 gap-2 mb-3">
           <CompactRoster
@@ -365,6 +383,9 @@ export default function FeudPlayPage() {
     const wonBonus = total >= 200;
     return (
       <Center>
+        <div className="absolute top-4 right-4">
+          <CircularTimer fraction={phaseCountdown.fraction} />
+        </div>
         <p className="text-3xl mb-1">💰</p>
         <h1 className="text-2xl font-bold mb-1">Fast Money Results</h1>
         <p className="text-slate-400 mb-4">
@@ -397,6 +418,9 @@ export default function FeudPlayPage() {
   if (room.phase === "reveal") {
     return (
       <Center>
+        <div className="absolute top-4 right-4">
+          <CircularTimer fraction={phaseCountdown.fraction} />
+        </div>
         {room.last_round_winner && (
           <p className="text-lg font-bold text-amber-400 mb-2">
             🎉 {room.last_round_winner === "a" ? teamAName : teamBName} won this round! +{room.last_round_points}
@@ -483,6 +507,11 @@ export default function FeudPlayPage() {
     return (
       <Center>
         {room.phase === "leaderboard" && <QuitButton onClick={() => setConfirmingQuit(true)} />}
+        {room.phase === "leaderboard" && (
+          <div className="absolute top-4 left-4">
+            <CircularTimer fraction={phaseCountdown.fraction} />
+          </div>
+        )}
         <h1 className="text-2xl font-bold mb-1">{room.phase === "final" ? "🎉 Final Results" : "Scoreboard"}</h1>
         <p className="text-slate-400 mb-1">
           {room.phase === "final" ? "Thanks for playing!" : `Round ${room.current_round_index} of ${room.total_rounds}`}
