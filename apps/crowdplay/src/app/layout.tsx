@@ -15,7 +15,7 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   title: "CrowdPlay",
-  description: "Live trivia for bars and events — no app, no login, just a phone.",
+  description: "Live trivia for bars and events. No app, no login, just a phone.",
 };
 
 export default function RootLayout({

@@ -74,7 +74,7 @@ export function LiveGameGlance({ room, players }: { room: Room; players: Player[
                   i === room.revealed_correct_index ? "ring-2 ring-white" : "opacity-40"
                 }`}
               >
-                {choice} {i === room.revealed_correct_index && "✓"}
+                {choice} {i === room.revealed_correct_index && "(Correct)"}
               </div>
             ))}
           </div>
@@ -83,7 +83,7 @@ export function LiveGameGlance({ room, players }: { room: Room; players: Player[
 
       {(room.phase === "leaderboard" || room.phase === "final") && (
         <div className="w-full flex flex-col gap-1.5">
-          {room.phase === "final" && <p className="text-sm font-bold text-amber-400 mb-1">🎉 Final Results</p>}
+          {room.phase === "final" && <p className="text-sm font-bold text-amber-400 mb-1">Final Results</p>}
           {sorted.slice(0, 5).map((p, i) => (
             <div key={p.id} className="flex items-center justify-between bg-white/5 rounded-lg px-3 py-1.5 text-sm">
               <span>

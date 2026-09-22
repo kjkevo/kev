@@ -19,11 +19,11 @@ const CHOICE_STYLES = ["bg-rose-600", "bg-blue-600", "bg-amber-500", "bg-emerald
 
 const JOIN_ERRORS: Record<string, string> = {
   ROOM_NOT_FOUND: "That room code doesn't exist. Double check with your host.",
-  ROOM_ALREADY_STARTED: "This game already started — ask your host to make you a new room, or wait for the next one.",
+  ROOM_ALREADY_STARTED: "This game already started. Ask your host to make you a new room, or wait for the next one.",
   INVALID_NICKNAME: "Enter a name between 1 and 30 characters.",
-  NICKNAME_TAKEN: "Someone in this room already picked that name — try another.",
-  ROOM_FULL_TEAMS: "We've hit our 20-team limit for this beta round — try joining solo, or wait for the next game.",
-  ROOM_FULL_SOLO: "We've hit our 50-player limit for this beta round — wait for the next game to join in.",
+  NICKNAME_TAKEN: "Someone in this room already picked that name. Try another.",
+  ROOM_FULL_TEAMS: "We've hit our 20 team limit for this beta round. Try joining solo, or wait for the next game.",
+  ROOM_FULL_SOLO: "We've hit our 50 player limit for this beta round. Wait for the next game to join in.",
 };
 
 function friendlyError(raw: string) {
@@ -173,9 +173,8 @@ export default function PlayPage() {
   if (notFound)
     return (
       <Center>
-        <p className="text-3xl mb-3">🤔</p>
         <h1 className="text-xl font-bold mb-2">That room doesn&apos;t exist</h1>
-        <p className="text-slate-400 max-w-xs">Double-check the code with your host, or ask if there&#39;s a new one.</p>
+        <p className="text-slate-400 max-w-xs">Double check the code with your host, or ask if there&#39;s a new one.</p>
       </Center>
     );
   if (!room) return null;
@@ -211,10 +210,10 @@ export default function PlayPage() {
           {(teamsFull || soloFull) && (
             <p className="text-xs text-amber-400/80 -mt-1">
               {teamsFull && soloFull
-                ? "This room is at capacity for our beta (20 teams, 50 solo players) — wait for the next game."
+                ? "This room is at capacity for our beta (20 teams, 50 solo players). Wait for the next game."
                 : teamsFull
-                  ? "Teams are full for this beta round (20 max) — join solo instead."
-                  : "Solo spots are full for this beta round (50 max) — start or join a team instead."}
+                  ? "Teams are full for this beta round (20 max). Join solo instead."
+                  : "Solo spots are full for this beta round (50 max). Start or join a team instead."}
             </p>
           )}
 
@@ -230,9 +229,9 @@ export default function PlayPage() {
               type="button"
               onClick={() => setNickname(isTeam ? `Team ${randomFunName()}` : randomFunName())}
               aria-label="Shuffle name"
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-2xl w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white/10 active:scale-90 transition"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-bold w-14 h-10 flex items-center justify-center rounded-xl hover:bg-white/10 active:scale-90 transition"
             >
-              🎲
+              Shuffle
             </button>
           </div>
 
@@ -268,7 +267,7 @@ export default function PlayPage() {
           >
             {joining ? "Joining…" : "Join Game"}
           </button>
-          <p className="text-xs text-slate-500">Don&#39;t like the name? Tap 🎲 for another, or type your own.</p>
+          <p className="text-xs text-slate-500">Don&#39;t like the name? Tap Shuffle for another, or type your own.</p>
         </form>
       </Center>
     );
@@ -279,7 +278,6 @@ export default function PlayPage() {
     return (
       <Center>
         <QuitButton onClick={() => setConfirmingQuit(true)} />
-        <p className="text-4xl mb-4">🎉</p>
         <h1 className="text-2xl font-bold mb-2">You&apos;re in, {me?.nickname}!</h1>
         {showCountdown ? (
           <p className="text-slate-300 mb-1">
@@ -310,7 +308,7 @@ export default function PlayPage() {
         )}
 
         <p className="text-amber-400 font-semibold mt-4">
-          {players.length} player{players.length === 1 ? "" : "s"} ready 🔥
+          {players.length} player{players.length === 1 ? "" : "s"} ready
         </p>
         <div className="flex flex-wrap gap-2 justify-center max-w-xs mt-3">
           {recentJoiners.map((p) => (
@@ -362,11 +360,12 @@ export default function PlayPage() {
       <Center>
         <QuitButton onClick={() => setConfirmingQuit(true)} />
         {picked === null ? (
-          <p className="text-2xl font-bold">Time&apos;s up — no answer submitted</p>
+          <p className="text-2xl font-bold">Time&apos;s up. No answer submitted</p>
         ) : result ? (
           <>
-            <p className="text-6xl mb-3 animate-pop-in">{result.correct ? "✅" : "❌"}</p>
-            <h1 className="text-2xl font-bold">{result.correct ? "Correct!" : "Not quite"}</h1>
+            <h1 className={`text-3xl font-black mb-1 ${result.correct ? "text-emerald-400" : "text-rose-400"}`}>
+              {result.correct ? "Correct!" : "Not quite"}
+            </h1>
             {result.points > 0 && <p className="text-amber-400 text-xl mt-1">+{result.points} points</p>}
           </>
         ) : (
@@ -382,7 +381,7 @@ export default function PlayPage() {
       <Center>
         {room.phase === "leaderboard" && <QuitButton onClick={() => setConfirmingQuit(true)} />}
         <h1 className="text-2xl font-bold mb-1">
-          {room.phase === "final" ? "🎉 Final Results" : "Leaderboard"}
+          {room.phase === "final" ? "Final Results" : "Leaderboard"}
         </h1>
         <p className="text-slate-400 mb-6">
           You&apos;re #{myRank || "-"} with {me?.score ?? 0} points
