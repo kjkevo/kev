@@ -279,8 +279,12 @@ begin
     from jsonb_array_elements(v_answers) as elem;
 
   -- Case-insensitive already (normalize lowercases everything); this adds
-  -- tolerance for a letter or two being off, scaled to the answer's length
-  -- so short answers aren't trivialized by a loose edit-distance allowance.
+  -- tolerance for a letter or two being off, scaled to the answer's length.
+  -- Requiring the same first letter blocks genuinely-different short words
+  -- that happen to be one edit away (e.g. "curse" vs "Nurse", "bake" vs
+  -- "cake") from being mistaken for a typo -- real typos essentially never
+  -- change the first letter, so this costs almost nothing for legitimate
+  -- misspellings while closing that false-positive class.
   if length(v_norm_guess) >= 2 then
     for i in 0 .. jsonb_array_length(v_answers) - 1 loop
       if (v_board->i->>'revealed')::boolean is not true then
@@ -293,7 +297,10 @@ begin
         if v_norm_guess = v_norm_answer
            or (length(v_norm_guess) >= 3 and v_norm_answer like '%' || v_norm_guess || '%')
            or (length(v_norm_answer) >= 3 and v_norm_guess like '%' || v_norm_answer || '%')
-           or levenshtein(v_norm_guess, v_norm_answer) <= v_typo_budget
+           or (
+             left(v_norm_guess, 1) = left(v_norm_answer, 1)
+             and levenshtein(v_norm_guess, v_norm_answer) <= v_typo_budget
+           )
         then
           v_match_index := i;
           exit;
