@@ -104,6 +104,7 @@ export default function FeudPlayPage() {
     }
     haptics.tap();
     if (data[0].o_matched) haptics.correct();
+    else haptics.wrong();
     setLastResult({ matched: data[0].o_matched, points: data[0].o_points_awarded });
   }
 
