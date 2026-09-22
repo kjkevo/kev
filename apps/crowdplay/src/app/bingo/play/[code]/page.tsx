@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useBingoRoomRealtime } from "@/hooks/useBingoRoomRealtime";
@@ -8,6 +8,7 @@ import { useCountdown } from "@/hooks/useCountdown";
 import { useCountdownTo } from "@/hooks/useCountdownTo";
 import { CircularTimer } from "@/components/CircularTimer";
 import { bingoPlayerKey, type BingoPlayerCredentials, type BingoSquare } from "@/lib/types";
+import { randomFunName } from "@/lib/funNames";
 import { haptics } from "@/lib/haptics";
 
 const JOIN_ERRORS: Record<string, string> = {
@@ -42,34 +43,36 @@ export default function BingoPlayPage() {
   );
 
   const [creds, setCreds] = useState<BingoPlayerCredentials | null>(null);
-  const [nickname, setNickname] = useState("");
   const [joinError, setJoinError] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
   const [confirmingQuit, setConfirmingQuit] = useState(false);
+  const autoJoinedRef = useRef(false);
 
+  // TESTING MODE: solo/small-scale testing means re-typing a nickname and
+  // tapping Join every single time the page loads (including after every
+  // fresh deploy) is pure friction with nobody around to actually read a
+  // name. Skip the manual step entirely -- the instant a room is found,
+  // auto-join with a freshly generated name, every load, no reuse of any
+  // previously stored session. REVERT BEFORE REAL BAR SERVICE: restore the
+  // nickname input + Join button form (and reading any stored creds back
+  // from localStorage on mount) removed below.
   useEffect(() => {
-    if (!code) return;
-    const raw = localStorage.getItem(bingoPlayerKey(code));
-    if (raw) {
-      try {
-        setCreds(JSON.parse(raw));
-      } catch {
-        localStorage.removeItem(bingoPlayerKey(code));
-      }
-    }
-  }, [code]);
+    if (!code || !room || autoJoinedRef.current) return;
+    autoJoinedRef.current = true;
+    join();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code, room]);
 
   const me = useMemo(() => players.find((p) => p.id === creds?.playerId), [players, creds]);
   const sorted = useMemo(() => [...players].sort((a, b) => b.score - a.score), [players]);
   const myRank = creds ? sorted.findIndex((p) => p.id === creds.playerId) + 1 : 0;
-  const roomFull = players.length >= 50;
 
-  async function join(e: React.FormEvent) {
-    e.preventDefault();
+  async function join() {
     if (!code) return;
     setJoining(true);
     setJoinError(null);
-    const { data, error } = await supabase.rpc("join_bingo_room", { p_code: code, p_nickname: nickname });
+    const generatedName = `${randomFunName()} ${Math.floor(1000 + Math.random() * 9000)}`;
+    const { data, error } = await supabase.rpc("join_bingo_room", { p_code: code, p_nickname: generatedName });
     setJoining(false);
     if (error || !data?.[0]) {
       setJoinError(friendlyError(error?.message ?? ""));
@@ -82,6 +85,11 @@ export default function BingoPlayPage() {
     };
     localStorage.setItem(bingoPlayerKey(code), JSON.stringify(newCreds));
     setCreds(newCreds);
+  }
+
+  function retryJoin() {
+    autoJoinedRef.current = true;
+    join();
   }
 
   async function markSquare(index: number) {
@@ -118,28 +126,20 @@ export default function BingoPlayPage() {
     return (
       <Center>
         <h1 className="text-2xl font-bold mb-1">Room {room.code}</h1>
-        <p className="text-slate-400 mb-6">Ready to play?</p>
-        <form onSubmit={join} className="flex flex-col gap-3 w-full max-w-xs">
-          {roomFull && (
-            <p className="text-xs text-amber-400/80 -mt-1">
-              This room is at capacity for our beta (50 players). Wait for the next game.
-            </p>
-          )}
-          <input
-            value={nickname}
-            onChange={(e) => setNickname(e.target.value)}
-            maxLength={30}
-            placeholder="Your name"
-            className="w-full text-center text-xl font-bold bg-white/10 border border-white/20 rounded-2xl py-4 outline-none focus:border-amber-400"
-          />
-          {joinError && <p className="text-red-400 text-sm">{joinError}</p>}
-          <button
-            disabled={joining || nickname.trim().length === 0 || roomFull}
-            className="rounded-2xl bg-amber-400 text-black font-bold text-lg py-4 disabled:opacity-40 active:scale-95 transition"
-          >
-            {joining ? "Joining…" : "Join Game"}
-          </button>
-        </form>
+        {joinError ? (
+          <>
+            <p className="text-red-400 text-sm mb-4 max-w-xs">{joinError}</p>
+            <button
+              onClick={retryJoin}
+              disabled={joining}
+              className="rounded-2xl bg-amber-400 text-black font-bold text-lg py-4 px-8 disabled:opacity-40 active:scale-95 transition"
+            >
+              {joining ? "Joining…" : "Try again"}
+            </button>
+          </>
+        ) : (
+          <p className="text-slate-400">Joining automatically…</p>
+        )}
       </Center>
     );
   }
