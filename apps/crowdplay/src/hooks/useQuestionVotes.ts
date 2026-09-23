@@ -4,13 +4,14 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 /**
- * Live "who voted for what" for the current question. `choice_index` is
- * meaningless as a correctness signal in team mode (it's never scored per
- * vote), so exposing it live is safe -- only the eventual team majority and
- * whether that was right stays hidden until the final recap.
+ * Live "who voted for what" for the current question. The typed
+ * `answer_text` is meaningless as a correctness signal in team mode (it's
+ * never scored per vote), so exposing it live is safe -- only the eventual
+ * team majority and whether that was right stays hidden until the final
+ * recap.
  */
 export function useQuestionVotes(questionId: string | undefined) {
-  const [votes, setVotes] = useState<Record<string, number>>({}); // player_id -> choice_index
+  const [votes, setVotes] = useState<Record<string, string>>({}); // player_id -> answer_text
 
   useEffect(() => {
     if (!questionId) {
@@ -22,12 +23,12 @@ export function useQuestionVotes(questionId: string | undefined) {
     const refresh = () =>
       supabase
         .from("answers")
-        .select("player_id, choice_index")
+        .select("player_id, answer_text")
         .eq("question_id", questionId)
         .then(({ data }) => {
           if (cancelled || !data) return;
-          const next: Record<string, number> = {};
-          for (const row of data) next[row.player_id] = row.choice_index;
+          const next: Record<string, string> = {};
+          for (const row of data) if (row.answer_text) next[row.player_id] = row.answer_text;
           setVotes(next);
         });
 

@@ -16,8 +16,6 @@ import { playerKey, type PlayerCredentials, type FinalRecapRow } from "@/lib/typ
 import { randomFunName } from "@/lib/funNames";
 import { haptics } from "@/lib/haptics";
 
-const CHOICE_STYLES = ["bg-rose-600", "bg-blue-600", "bg-amber-500", "bg-emerald-600"];
-
 const JOIN_ERRORS: Record<string, string> = {
   ROOM_NOT_FOUND: "That room code doesn't exist. Double check with your host.",
   INVALID_NICKNAME: "Enter a name between 1 and 30 characters.",
@@ -50,8 +48,8 @@ export default function PlayPage() {
   // Realtime confirmation typically lands well under a second, but the tap
   // should feel instant regardless — bump the shown count immediately and
   // let the next real tally (which will already agree) replace it.
-  const [displayTally, setDisplayTally] = useState(voteTally);
-  useEffect(() => setDisplayTally(voteTally), [voteTally.a, voteTally.b]);
+  const [displayTally, setDisplayTally] = useState<Record<string, number>>(voteTally);
+  useEffect(() => setDisplayTally(voteTally), [voteTally]);
 
   const [creds, setCreds] = useState<PlayerCredentials | null>(null);
   const [nickname, setNickname] = useState("");
@@ -59,8 +57,9 @@ export default function PlayPage() {
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
-  const [picked, setPicked] = useState<number | null>(null);
-  const [myVote, setMyVote] = useState<0 | 1 | null>(null);
+  const [answerText, setAnswerText] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [myVote, setMyVote] = useState<string | null>(null);
   const [confirmingQuit, setConfirmingQuit] = useState(false);
   const [recap, setRecap] = useState<FinalRecapRow[] | null>(null);
 
@@ -76,7 +75,8 @@ export default function PlayPage() {
 
   // Reset per-question vote state whenever the room moves to a new question.
   useEffect(() => {
-    setPicked(null);
+    setAnswerText("");
+    setSubmitted(false);
   }, [room?.current_question_index]);
 
   // Reset category vote choice whenever a fresh room (new code) shows up.
@@ -142,35 +142,34 @@ export default function PlayPage() {
     setCreds(c);
   }
 
-  async function vote(choice: 0 | 1) {
-    if (!room || !creds || choice === myVote) return;
+  async function vote(packId: string) {
+    if (!room || !creds || packId === myVote) return;
     setDisplayTally((prev) => {
       const next = { ...prev };
-      if (myVote === 0) next.a = Math.max(0, next.a - 1);
-      if (myVote === 1) next.b = Math.max(0, next.b - 1);
-      if (choice === 0) next.a += 1;
-      else next.b += 1;
+      if (myVote) next[myVote] = Math.max(0, (next[myVote] ?? 0) - 1);
+      next[packId] = (next[packId] ?? 0) + 1;
       return next;
     });
-    setMyVote(choice);
+    setMyVote(packId);
     await supabase.rpc("cast_vote", {
       p_room_id: room.id,
       p_player_id: creds.playerId,
       p_client_token: creds.clientToken,
-      p_choice: choice,
+      p_pack_id: packId,
     });
   }
 
-  async function castTeamVote(index: number) {
-    if (!room || !creds || !question || picked !== null || countdown.expired) return;
+  async function submitAnswer(e: React.FormEvent) {
+    e.preventDefault();
+    if (!room || !creds || !question || submitted || countdown.expired || answerText.trim().length === 0) return;
     haptics.tap();
-    setPicked(index);
+    setSubmitted(true);
     await supabase.rpc("cast_team_vote", {
       p_room_id: room.id,
       p_player_id: creds.playerId,
       p_client_token: creds.clientToken,
       p_question_id: question.id,
-      p_choice_index: index,
+      p_answer_text: answerText.trim(),
     });
   }
 
@@ -329,22 +328,19 @@ export default function PlayPage() {
           </p>
         )}
 
-        {room.category_option_a && room.category_option_b && (
+        {room.category_options && room.category_options.length > 0 && (
           <div className="w-full max-w-xs mt-4">
-            <p className="text-sm text-slate-400 mb-2">Vote for the topic:</p>
-            <div className="grid grid-cols-2 gap-3">
-              <VoteButton
-                name={packs[room.category_option_a]?.name}
-                count={displayTally.a}
-                selected={myVote === 0}
-                onClick={() => vote(0)}
-              />
-              <VoteButton
-                name={packs[room.category_option_b]?.name}
-                count={displayTally.b}
-                selected={myVote === 1}
-                onClick={() => vote(1)}
-              />
+            <p className="text-sm text-slate-400 mb-2">Vote for the category:</p>
+            <div className="grid grid-cols-2 gap-2">
+              {room.category_options.map((packId) => (
+                <VoteButton
+                  key={packId}
+                  name={packs[packId]?.name}
+                  count={displayTally[packId] ?? 0}
+                  selected={myVote === packId}
+                  onClick={() => vote(packId)}
+                />
+              ))}
             </div>
           </div>
         )}
@@ -387,23 +383,28 @@ export default function PlayPage() {
           Question {room.current_question_index + 1} of {totalQuestions || "?"} · {votedCount} of {activePlayers.length} votes cast
         </p>
         <h2 className="text-xl font-bold mb-6 text-center">{question.prompt}</h2>
-        <div className="flex-1 grid grid-cols-1 gap-3">
-          {(question.choices as string[]).map((choice, i) => (
+        <div className="flex-1 flex flex-col items-center justify-center gap-4">
+          <form onSubmit={submitAnswer} className="w-full max-w-sm flex flex-col gap-3">
+            <input
+              value={answerText}
+              onChange={(e) => setAnswerText(e.target.value)}
+              disabled={submitted || countdown.expired}
+              maxLength={200}
+              placeholder="Type your team's answer…"
+              autoComplete="off"
+              className="w-full text-center text-lg font-semibold bg-white/10 border border-white/20 rounded-2xl py-4 px-4 outline-none focus:border-amber-400 disabled:opacity-50"
+            />
             <button
-              key={i}
-              onClick={() => castTeamVote(i)}
-              disabled={picked !== null || countdown.expired}
-              className={`${CHOICE_STYLES[i]} rounded-2xl py-6 px-4 text-lg font-semibold text-left disabled:opacity-40 ${
-                picked === i ? "ring-4 ring-white" : ""
-              }`}
+              disabled={submitted || countdown.expired || answerText.trim().length === 0}
+              className="rounded-2xl bg-amber-400 text-black font-bold text-lg py-4 disabled:opacity-40 active:scale-95 transition"
             >
-              {choice}
+              {submitted ? "Vote submitted" : "Submit Vote"}
             </button>
-          ))}
+          </form>
         </div>
         <div className="mt-4">
           <p className="text-center text-slate-400 mb-2">
-            {picked !== null ? "Your vote is in!" : countdown.expired ? "Time's up!" : "Cast your vote"}
+            {submitted ? "Your vote is in!" : countdown.expired ? "Time's up!" : "Type your answer and submit"}
           </p>
           <div className="flex flex-wrap gap-2 justify-center">
             {teammates.map((p) => (
@@ -413,7 +414,7 @@ export default function PlayPage() {
                   questionVotes[p.id] !== undefined ? "bg-amber-400/20 text-amber-300" : "bg-white/5 text-slate-500"
                 }`}
               >
-                {p.nickname} {questionVotes[p.id] !== undefined ? "voted" : "..."}
+                {p.nickname} {questionVotes[p.id] !== undefined ? `said "${questionVotes[p.id]}"` : "..."}
               </span>
             ))}
           </div>
@@ -457,12 +458,12 @@ export default function PlayPage() {
               <div key={r.o_question_order} className="rounded-xl bg-white/5 px-4 py-3 text-left">
                 <p className="text-sm font-semibold mb-1">{r.o_prompt}</p>
                 <p className="text-xs text-slate-400">
-                  Correct: <span className="text-emerald-400">{r.o_choices[r.o_correct_index]}</span>
+                  Correct: <span className="text-emerald-400">{r.o_correct_answer}</span>
                 </p>
                 <p className="text-xs text-slate-400">
                   Your team said:{" "}
                   <span className={r.o_team_correct ? "text-emerald-400" : "text-rose-400"}>
-                    {r.o_team_choice !== null ? r.o_choices[r.o_team_choice] : "No vote cast"}
+                    {r.o_team_answer ?? "No vote cast"}
                   </span>
                 </p>
               </div>

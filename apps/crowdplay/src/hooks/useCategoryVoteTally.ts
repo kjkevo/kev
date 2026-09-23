@@ -3,26 +3,29 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
-/** Live vote counts for the 2 candidate categories during a room's lobby/voting window. */
+/** Live vote counts per candidate category (pack id) during a room's lobby/voting window. */
 export function useCategoryVoteTally(roomId: string | undefined) {
-  const [tally, setTally] = useState({ a: 0, b: 0 });
+  const [tally, setTally] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (!roomId) {
-      setTally({ a: 0, b: 0 });
+      setTally({});
       return;
     }
     let cancelled = false;
     const refresh = () =>
       supabase
         .from("category_votes")
-        .select("choice")
+        .select("choice_pack_id")
         .eq("room_id", roomId)
         .then(({ data }) => {
           if (cancelled || !data) return;
-          const a = data.filter((v) => v.choice === 0).length;
-          const b = data.filter((v) => v.choice === 1).length;
-          setTally({ a, b });
+          const next: Record<string, number> = {};
+          for (const row of data) {
+            if (!row.choice_pack_id) continue;
+            next[row.choice_pack_id] = (next[row.choice_pack_id] ?? 0) + 1;
+          }
+          setTally(next);
         });
     refresh();
     const channel = supabase
