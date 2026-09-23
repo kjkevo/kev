@@ -286,6 +286,7 @@ export type Database = {
           client_token: string
           id: string
           joined_at: string
+          left_at: string | null
           nickname: string
           room_id: string
           score: number
@@ -295,6 +296,7 @@ export type Database = {
           client_token?: string
           id?: string
           joined_at?: string
+          left_at?: string | null
           nickname: string
           room_id: string
           score?: number
@@ -304,6 +306,7 @@ export type Database = {
           client_token?: string
           id?: string
           joined_at?: string
+          left_at?: string | null
           nickname?: string
           room_id?: string
           score?: number
@@ -471,6 +474,10 @@ export type Database = {
       join_room: {
         Args: { p_code: string; p_nickname: string; p_team_members?: string[] }
         Returns: { client_token: string; player_id: string; room_id: string }[]
+      }
+      leave_room: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string }
+        Returns: undefined
       }
       mark_bingo_square: {
         Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_index: number }

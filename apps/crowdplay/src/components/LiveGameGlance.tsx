@@ -19,6 +19,9 @@ export function LiveGameGlance({ room, players }: { room: Room; players: Player[
   const totalQuestions = useTotalQuestions(room.id, room.phase);
   const packs = useAllPacks();
   const voteTally = useCategoryVoteTally(room.phase === "lobby" ? room.id : undefined);
+  // "Active" excludes anyone who's left -- the leaderboard keeps everyone,
+  // since a score already earned shouldn't just vanish.
+  const activePlayers = useMemo(() => players.filter((p) => !p.left_at), [players]);
   const sorted = useMemo(() => [...players].sort((a, b) => b.score - a.score), [players]);
 
   return (
@@ -28,7 +31,7 @@ export function LiveGameGlance({ room, players }: { room: Room; players: Player[
       {room.phase === "lobby" && (
         <>
           <p className="text-sm text-indigo-200">
-            {players.length} player{players.length === 1 ? "" : "s"} in the lobby
+            {activePlayers.length} player{activePlayers.length === 1 ? "" : "s"} in the lobby
           </p>
           {room.starts_at && !scheduledCountdown.reached && (
             <p className="text-2xl font-black text-amber-400 tabular-nums">{scheduledCountdown.label}</p>

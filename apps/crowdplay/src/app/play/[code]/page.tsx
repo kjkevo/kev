@@ -89,11 +89,16 @@ export default function PlayPage() {
     else haptics.wrong();
   }, [result]);
 
+  // "Active" excludes anyone who's left -- used for the lobby roster, the
+  // ready/answered counts, and capacity math. The leaderboard further down
+  // deliberately uses the full `players` list instead, so a score someone
+  // already earned before leaving doesn't just disappear.
+  const activePlayers = useMemo(() => players.filter((p) => !p.left_at), [players]);
   const teamCount = useMemo(
-    () => players.filter((p) => p.team_members && p.team_members.length > 0).length,
-    [players]
+    () => activePlayers.filter((p) => p.team_members && p.team_members.length > 0).length,
+    [activePlayers]
   );
-  const soloCount = players.length - teamCount;
+  const soloCount = activePlayers.length - teamCount;
   const teamsFull = teamCount >= 20;
   const soloFull = soloCount >= 50;
 
@@ -101,8 +106,9 @@ export default function PlayPage() {
   const sorted = useMemo(() => [...players].sort((a, b) => b.score - a.score), [players]);
   const myRank = useMemo(() => sorted.findIndex((p) => p.id === creds?.playerId) + 1, [sorted, creds]);
   const recentJoiners = useMemo(
-    () => [...players].sort((a, b) => new Date(b.joined_at).getTime() - new Date(a.joined_at).getTime()).slice(0, 5),
-    [players]
+    () =>
+      [...activePlayers].sort((a, b) => new Date(b.joined_at).getTime() - new Date(a.joined_at).getTime()).slice(0, 5),
+    [activePlayers]
   );
 
   async function join(e: React.FormEvent) {
@@ -164,9 +170,21 @@ export default function PlayPage() {
     setResult({ correct: data[0].correct, points: data[0].points_awarded });
   }
 
-  function quit() {
-    if (code) localStorage.removeItem(playerKey(code));
-    router.push("/trivia");
+  // Leaving is a soft flag server-side (players.left_at), not a delete, so a
+  // score already earned still shows up on the leaderboard -- it just marks
+  // this player as no longer active, which realtime pushes to everyone else
+  // already subscribed to this room (other players, host, the venue screen)
+  // for free, and frees their spot in the 20-team/50-solo beta cap.
+  async function leaveRoom(destination: string) {
+    if (creds && code) {
+      await supabase.rpc("leave_room", {
+        p_room_id: creds.roomId,
+        p_player_id: creds.playerId,
+        p_client_token: creds.clientToken,
+      });
+      localStorage.removeItem(playerKey(code));
+    }
+    router.push(destination);
   }
 
   if (loading) return <Center text="Loading room…" />;
@@ -182,8 +200,23 @@ export default function PlayPage() {
   if (!creds) {
     return (
       <Center>
+        <BackButton onClick={() => leaveRoom("/")} />
         <h1 className="text-2xl font-bold mb-1">Room {room.code}</h1>
         <p className="text-slate-400 mb-6">Ready to play?</p>
+        {activePlayers.length > 0 && (
+          <div className="w-full max-w-xs mb-6 rounded-2xl bg-white/5 border border-white/10 p-4">
+            <p className="text-xs uppercase tracking-widest text-slate-500 mb-2">
+              {activePlayers.length} already here
+            </p>
+            <div className="flex flex-wrap gap-2 justify-center">
+              {recentJoiners.map((p) => (
+                <span key={p.id} className="bg-white/10 rounded-full px-3 py-1 text-sm">
+                  {p.nickname}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
         <form onSubmit={join} className="flex flex-col gap-3 w-full max-w-xs">
           <div className="flex rounded-2xl bg-white/5 border border-white/10 p-1">
             <button
@@ -277,7 +310,7 @@ export default function PlayPage() {
     const showCountdown = room.starts_at && !scheduledCountdown.reached;
     return (
       <Center>
-        <QuitButton onClick={() => setConfirmingQuit(true)} />
+        <BackButton onClick={() => leaveRoom("/")} />
         <h1 className="text-2xl font-bold mb-2">You&apos;re in, {me?.nickname}!</h1>
         {showCountdown ? (
           <p className="text-slate-300 mb-1">
@@ -308,7 +341,7 @@ export default function PlayPage() {
         )}
 
         <p className="text-amber-400 font-semibold mt-4">
-          {players.length} player{players.length === 1 ? "" : "s"} ready
+          {activePlayers.length} player{activePlayers.length === 1 ? "" : "s"} ready
         </p>
         <div className="flex flex-wrap gap-2 justify-center max-w-xs mt-3">
           {recentJoiners.map((p) => (
@@ -317,7 +350,6 @@ export default function PlayPage() {
             </span>
           ))}
         </div>
-        {confirmingQuit && <QuitConfirm onCancel={() => setConfirmingQuit(false)} onConfirm={quit} />}
       </Center>
     );
   }
@@ -330,7 +362,7 @@ export default function PlayPage() {
           <div className="h-full bg-amber-400 transition-[width] duration-100 linear" style={{ width: `${countdown.fraction * 100}%` }} />
         </div>
         <p className="text-center text-xs text-slate-500 mb-4">
-          Question {room.current_question_index + 1} of {totalQuestions || "?"} · {answeredCount} of {players.length} answered
+          Question {room.current_question_index + 1} of {totalQuestions || "?"} · {answeredCount} of {activePlayers.length} answered
         </p>
         <h2 className="text-xl font-bold mb-6 text-center">{question.prompt}</h2>
         <div className="flex-1 grid grid-cols-1 gap-3">
@@ -350,7 +382,7 @@ export default function PlayPage() {
         <p className="text-center text-slate-400 mt-4">
           {picked !== null ? "Answer locked in!" : countdown.expired ? "Time's up!" : "Tap your answer"}
         </p>
-        {confirmingQuit && <QuitConfirm onCancel={() => setConfirmingQuit(false)} onConfirm={quit} />}
+        {confirmingQuit && <QuitConfirm onCancel={() => setConfirmingQuit(false)} onConfirm={() => leaveRoom("/trivia")} />}
       </main>
     );
   }
@@ -371,7 +403,7 @@ export default function PlayPage() {
         ) : (
           <p className="text-xl">Checking your answer…</p>
         )}
-        {confirmingQuit && <QuitConfirm onCancel={() => setConfirmingQuit(false)} onConfirm={quit} />}
+        {confirmingQuit && <QuitConfirm onCancel={() => setConfirmingQuit(false)} onConfirm={() => leaveRoom("/trivia")} />}
       </Center>
     );
   }
@@ -396,7 +428,7 @@ export default function PlayPage() {
             Thanks for playing! Ask your host about the next round.
           </p>
         )}
-        {confirmingQuit && <QuitConfirm onCancel={() => setConfirmingQuit(false)} onConfirm={quit} />}
+        {confirmingQuit && <QuitConfirm onCancel={() => setConfirmingQuit(false)} onConfirm={() => leaveRoom("/trivia")} />}
       </Center>
     );
   }
@@ -441,6 +473,17 @@ function PlayerRow({ player, rank, highlight }: { player: Player; rank: number; 
       </span>
       <span>{player.score}</span>
     </div>
+  );
+}
+
+function BackButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="absolute top-4 left-4 text-xs text-slate-500 hover:text-slate-300 underline"
+    >
+      Back
+    </button>
   );
 }
 
