@@ -32,7 +32,12 @@ export default function ScreenClient() {
   const packs = useAllPacks();
   const voteTally = useCategoryVoteTally(room?.phase === "lobby" ? room?.id : undefined);
 
+  // "Active" excludes anyone who's left -- the leaderboard keeps everyone
+  // (including anyone who left), since a score already earned shouldn't
+  // just vanish from the standings.
+  const activePlayers = useMemo(() => players.filter((p) => !p.left_at), [players]);
   const sortedPlayers = useMemo(() => [...players].sort((a, b) => b.score - a.score), [players]);
+  const sortedActivePlayers = useMemo(() => [...activePlayers].sort((a, b) => b.score - a.score), [activePlayers]);
 
   if (activeRoom === undefined || !room) {
     return <FullscreenMessage text="Waiting for the next game…" />;
@@ -45,7 +50,7 @@ export default function ScreenClient() {
           Crowd<span className="text-amber-400">Play</span>
         </span>
         <span className="text-slate-400">
-          {sortedPlayers.length} player{sortedPlayers.length === 1 ? "" : "s"}
+          {activePlayers.length} player{activePlayers.length === 1 ? "" : "s"}
         </span>
       </header>
 
@@ -70,7 +75,7 @@ export default function ScreenClient() {
               </div>
             )}
             <div className="flex flex-wrap gap-3 justify-center max-w-2xl">
-              {sortedPlayers.map((p) => (
+              {sortedActivePlayers.map((p) => (
                 <span key={p.id} className="bg-white/10 rounded-full px-4 py-2 text-lg">
                   {p.nickname}
                 </span>

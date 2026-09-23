@@ -38,7 +38,12 @@ export default function HostGamePage() {
     if (raw) setCreds(JSON.parse(raw));
   }, [code]);
 
+  // "Active" excludes anyone who's left -- used for the roster/header count
+  // and the answered denominator. The leaderboard keeps everyone (including
+  // anyone who left), since a score already earned shouldn't just vanish.
+  const activePlayers = useMemo(() => players.filter((p) => !p.left_at), [players]);
   const sortedPlayers = useMemo(() => [...players].sort((a, b) => b.score - a.score), [players]);
+  const sortedActivePlayers = useMemo(() => [...activePlayers].sort((a, b) => b.score - a.score), [activePlayers]);
 
   async function act(fn: () => Promise<{ error: Error | null }>) {
     if (!room || !creds || busy) return;
@@ -102,7 +107,7 @@ export default function HostGamePage() {
           Crowd<span className="text-amber-400">Play</span>
         </span>
         <span className="text-slate-400">
-          {sortedPlayers.length} player{sortedPlayers.length === 1 ? "" : "s"}
+          {activePlayers.length} player{activePlayers.length === 1 ? "" : "s"}
         </span>
       </header>
 
@@ -129,13 +134,13 @@ export default function HostGamePage() {
             )}
 
             <div className="flex flex-wrap gap-3 justify-center max-w-2xl">
-              {sortedPlayers.map((p) => (
+              {sortedActivePlayers.map((p) => (
                 <PlayerChip key={p.id} player={p} />
               ))}
             </div>
             <button
               onClick={start}
-              disabled={busy || sortedPlayers.length === 0}
+              disabled={busy || sortedActivePlayers.length === 0}
               className="mt-4 rounded-2xl bg-amber-400 text-black font-bold text-2xl px-10 py-5 disabled:opacity-40"
             >
               {room.starts_at && !scheduledCountdown.reached ? "Start Now" : "Start Game"}
@@ -163,7 +168,7 @@ export default function HostGamePage() {
               ))}
             </div>
             <p className="text-slate-400">
-              {answeredCount} of {sortedPlayers.length} answered
+              {answeredCount} of {activePlayers.length} answered
             </p>
             <button
               onClick={() => advance("reveal")}
