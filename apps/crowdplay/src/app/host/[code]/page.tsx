@@ -15,8 +15,6 @@ import { useCategoryVoteTally } from "@/hooks/useCategoryVoteTally";
 import { JoinQRCode } from "@/components/JoinQRCode";
 import { hostKey, type HostCredentials, type Team, type FinalRecapRow } from "@/lib/types";
 
-const CHOICE_STYLES = ["bg-rose-600", "bg-blue-600", "bg-amber-500", "bg-emerald-600"];
-
 export default function HostGamePage() {
   const params = useParams<{ code: string }>();
   const code = params.code?.toUpperCase();
@@ -132,12 +130,13 @@ export default function HostGamePage() {
               </p>
             )}
 
-            {room.category_option_a && room.category_option_b && (
+            {room.category_options && room.category_options.length > 0 && (
               <div className="w-full max-w-md">
-                <p className="text-sm text-slate-400 mb-2">Players are voting on the topic:</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <VoteOption name={packs[room.category_option_a]?.name} count={voteTally.a} />
-                  <VoteOption name={packs[room.category_option_b]?.name} count={voteTally.b} />
+                <p className="text-sm text-slate-400 mb-2">Players are voting on the category:</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {room.category_options.map((packId) => (
+                    <VoteOption key={packId} name={packs[packId]?.name} count={voteTally[packId] ?? 0} />
+                  ))}
                 </div>
               </div>
             )}
@@ -169,13 +168,7 @@ export default function HostGamePage() {
               Question {room.current_question_index + 1} of {totalQuestions || "?"} · {countdown.remainingSeconds}s
             </p>
             <h2 className="text-4xl font-bold max-w-3xl">{question.prompt}</h2>
-            <div className="grid grid-cols-2 gap-4 w-full max-w-3xl">
-              {(question.choices as string[]).map((choice, i) => (
-                <div key={i} className={`${CHOICE_STYLES[i]} rounded-xl py-6 px-4 text-xl font-semibold`}>
-                  {choice}
-                </div>
-              ))}
-            </div>
+            <p className="text-lg text-amber-400">Teams are typing their answers now</p>
             <p className="text-slate-400">
               {votedCount} of {activePlayers.length} votes cast &middot; results reveal at the end
             </p>
@@ -247,10 +240,10 @@ function TeamStandings({ teams }: { teams: Team[] }) {
 
 function Recap({ recap }: { recap: FinalRecapRow[] }) {
   const byQuestion = useMemo(() => {
-    const map = new Map<number, { prompt: string; choices: string[]; correctIndex: number }>();
+    const map = new Map<number, { prompt: string; correctAnswer: string }>();
     for (const r of recap) {
       if (!map.has(r.o_question_order)) {
-        map.set(r.o_question_order, { prompt: r.o_prompt, choices: r.o_choices, correctIndex: r.o_correct_index });
+        map.set(r.o_question_order, { prompt: r.o_prompt, correctAnswer: r.o_correct_answer });
       }
     }
     return Array.from(map.entries()).sort((a, b) => a[0] - b[0]);
@@ -262,7 +255,7 @@ function Recap({ recap }: { recap: FinalRecapRow[] }) {
       {byQuestion.map(([order, q]) => (
         <div key={order} className="rounded-xl bg-white/5 px-5 py-3">
           <p className="font-semibold mb-1">{q.prompt}</p>
-          <p className="text-sm text-emerald-400 mb-1">Correct: {q.choices[q.correctIndex]}</p>
+          <p className="text-sm text-emerald-400 mb-1">Correct: {q.correctAnswer}</p>
           <p className="text-xs text-slate-400">
             {recap
               .filter((r) => r.o_question_order === order && r.o_team_name)

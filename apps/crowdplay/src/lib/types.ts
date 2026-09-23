@@ -36,15 +36,16 @@ export const playerKey = (code: string) => `crowdplay_player_${code.toUpperCase(
 
 // A flat row per (question, team) -- group by o_question_order client-side
 // to render the recap. Only ever fetched once the room is in its 'final'
-// phase; the RPC itself refuses to return anything before that.
+// phase; the RPC itself refuses to return anything before that. Questions
+// are open-answer now, so this carries the correct answer's text and each
+// team's typed answer, not a choices array + indices.
 export type FinalRecapRow = {
   o_question_order: number;
   o_prompt: string;
-  o_choices: string[];
-  o_correct_index: number;
+  o_correct_answer: string;
   o_team_id: string | null;
   o_team_name: string | null;
-  o_team_choice: number | null;
+  o_team_answer: string | null;
   o_team_correct: boolean;
   o_team_points: number;
 };

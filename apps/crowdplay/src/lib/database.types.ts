@@ -14,8 +14,9 @@ export type Database = {
     Tables: {
       answers: {
         Row: {
+          answer_text: string | null
           answered_at: string
-          choice_index: number
+          choice_index: number | null
           correct: boolean
           id: string
           player_id: string
@@ -24,8 +25,9 @@ export type Database = {
           room_id: string
         }
         Insert: {
+          answer_text?: string | null
           answered_at?: string
-          choice_index: number
+          choice_index?: number | null
           correct: boolean
           id?: string
           player_id: string
@@ -34,8 +36,9 @@ export type Database = {
           room_id: string
         }
         Update: {
+          answer_text?: string | null
           answered_at?: string
-          choice_index?: number
+          choice_index?: number | null
           correct?: boolean
           id?: string
           player_id?: string
@@ -46,9 +49,21 @@ export type Database = {
         Relationships: []
       }
       category_votes: {
-        Row: { room_id: string; player_id: string; choice: number; voted_at: string }
-        Insert: { room_id: string; player_id: string; choice: number; voted_at?: string }
-        Update: { room_id?: string; player_id?: string; choice?: number; voted_at?: string }
+        Row: { room_id: string; player_id: string; choice: number; choice_pack_id: string | null; voted_at: string }
+        Insert: {
+          room_id: string
+          player_id: string
+          choice: number
+          choice_pack_id?: string | null
+          voted_at?: string
+        }
+        Update: {
+          room_id?: string
+          player_id?: string
+          choice?: number
+          choice_pack_id?: string | null
+          voted_at?: string
+        }
         Relationships: []
       }
       bingo_players: {
@@ -405,6 +420,7 @@ export type Database = {
         Row: {
           category_option_a: string | null
           category_option_b: string | null
+          category_options: string[] | null
           code: string
           created_at: string
           current_question_index: number
@@ -420,6 +436,7 @@ export type Database = {
         Insert: {
           category_option_a?: string | null
           category_option_b?: string | null
+          category_options?: string[] | null
           code: string
           created_at?: string
           current_question_index?: number
@@ -435,6 +452,7 @@ export type Database = {
         Update: {
           category_option_a?: string | null
           category_option_b?: string | null
+          category_options?: string[] | null
           code?: string
           created_at?: string
           current_question_index?: number
@@ -481,7 +499,7 @@ export type Database = {
         Returns: undefined
       }
       cast_vote: {
-        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_choice: number }
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_pack_id: string }
         Returns: undefined
       }
       create_bingo_room: {
@@ -509,7 +527,7 @@ export type Database = {
         Returns: { client_token: string; player_id: string; room_id: string; team_id: string; team_name: string }[]
       }
       cast_team_vote: {
-        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_question_id: string; p_choice_index: number }
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_question_id: string; p_answer_text: string }
         Returns: { o_recorded: boolean }[]
       }
       get_final_recap: {
@@ -517,11 +535,10 @@ export type Database = {
         Returns: {
           o_question_order: number
           o_prompt: string
-          o_choices: Json
-          o_correct_index: number
+          o_correct_answer: string
           o_team_id: string | null
           o_team_name: string | null
-          o_team_choice: number | null
+          o_team_answer: string | null
           o_team_correct: boolean
           o_team_points: number
         }[]

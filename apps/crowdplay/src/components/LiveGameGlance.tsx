@@ -9,8 +9,6 @@ import { useAllPacks } from "@/hooks/useAllPacks";
 import { useCategoryVoteTally } from "@/hooks/useCategoryVoteTally";
 import type { Player, Room, Team } from "@/lib/types";
 
-const CHOICE_STYLES = ["bg-rose-600", "bg-blue-600", "bg-amber-500", "bg-emerald-600"];
-
 /** A compact, read-only live view of a room's progress — used wherever someone is watching without playing. */
 export function LiveGameGlance({ room, players, teams }: { room: Room; players: Player[]; teams: Team[] }) {
   const question = useCurrentQuestion(room.id, room.current_question_index, room.phase);
@@ -36,10 +34,11 @@ export function LiveGameGlance({ room, players, teams }: { room: Room; players: 
           {room.starts_at && !scheduledCountdown.reached && (
             <p className="text-2xl font-black text-amber-400 tabular-nums">{scheduledCountdown.label}</p>
           )}
-          {room.category_option_a && room.category_option_b && (
+          {room.category_options && room.category_options.length > 0 && (
             <div className="w-full grid grid-cols-2 gap-2 mt-1">
-              <VoteChip name={packs[room.category_option_a]?.name} count={voteTally.a} />
-              <VoteChip name={packs[room.category_option_b]?.name} count={voteTally.b} />
+              {room.category_options.slice(0, 4).map((packId) => (
+                <VoteChip key={packId} name={packs[packId]?.name} count={voteTally[packId] ?? 0} />
+              ))}
             </div>
           )}
         </>
@@ -51,14 +50,7 @@ export function LiveGameGlance({ room, players, teams }: { room: Room; players: 
             Question {room.current_question_index + 1} of {totalQuestions || "?"} · {countdown.remainingSeconds}s
           </p>
           <p className="font-semibold text-center">{question.prompt}</p>
-          <div className="grid grid-cols-2 gap-2 w-full">
-            {(question.choices as string[]).map((choice, i) => (
-              <div key={i} className={`${CHOICE_STYLES[i]} rounded-lg py-2 px-2 text-xs font-medium text-center`}>
-                {choice}
-              </div>
-            ))}
-          </div>
-          <p className="text-xs text-slate-500">Results reveal at the end</p>
+          <p className="text-xs text-slate-500">Teams are typing their answers. Results reveal at the end</p>
         </>
       )}
 
