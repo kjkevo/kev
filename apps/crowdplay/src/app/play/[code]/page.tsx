@@ -424,7 +424,11 @@ export default function PlayPage() {
           Question {room.current_question_index + 1} of {totalQuestions || "?"} · {votedCount} of {activePlayers.length} votes cast
         </p>
         <h2 className="text-xl font-bold mb-6 text-center">{question.prompt}</h2>
-        <div className="flex-1 flex flex-col items-center justify-center gap-4">
+        <div className="flex-1 flex flex-col items-center justify-center gap-6">
+          <div className="flex flex-col items-center gap-3">
+            <CategoryBadge name={room.winning_category_id ? packs[room.winning_category_id]?.name : undefined} />
+            <CountdownRing fraction={countdown.fraction} seconds={countdown.remainingSeconds} />
+          </div>
           <form onSubmit={submitAnswer} className="w-full max-w-sm flex flex-col gap-3">
             <input
               value={answerText}
@@ -573,6 +577,53 @@ function ExitButton({ onClick }: { onClick: () => void }) {
     >
       Exit
     </button>
+  );
+}
+
+function CategoryBadge({ name }: { name?: string }) {
+  if (!name) return null;
+  return (
+    <span className="rounded-full bg-white/10 border border-white/20 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-slate-300">
+      {name}
+    </span>
+  );
+}
+
+// Fills the gap between the prompt and the answer box with something that
+// actually communicates urgency, rather than leaving it visually dead —
+// the same fraction/seconds already driving the top progress bar, just
+// rendered as a ring since that's the natural shape for "time remaining."
+function CountdownRing({ fraction, seconds }: { fraction: number; seconds: number }) {
+  const size = 96;
+  const stroke = 6;
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference * (1 - fraction);
+  const urgent = fraction <= 0.2;
+
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={radius} stroke="rgba(255,255,255,0.1)" strokeWidth={stroke} fill="none" />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={urgent ? "#f87171" : "#fbbf24"}
+          strokeWidth={stroke}
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          className="transition-[stroke-dashoffset] duration-100 linear"
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className={`text-2xl font-black tabular-nums ${urgent ? "text-red-400" : "text-amber-400"}`}>
+          {seconds}
+        </span>
+      </div>
+    </div>
   );
 }
 
