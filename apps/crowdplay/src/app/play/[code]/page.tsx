@@ -47,7 +47,6 @@ export default function PlayPage() {
   const votedCount = useAnsweredCount(room?.phase === "question" ? question?.id : undefined);
   const packs = useAllPacks();
   const voteTally = useCategoryVoteTally(room?.phase === "lobby" ? room?.id : undefined);
-  const questionVotes = useQuestionVotes(room?.phase === "question" ? question?.id : undefined);
   // Realtime confirmation typically lands well under a second, but the tap
   // should feel instant regardless — bump the shown count immediately and
   // let the next real tally (which will already agree) replace it.
@@ -62,10 +61,16 @@ export default function PlayPage() {
   const [joinError, setJoinError] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
   const [answerText, setAnswerText] = useState("");
-  const [submitted, setSubmitted] = useState(false);
+  const [sendingVote, setSendingVote] = useState(false);
+  const [voteError, setVoteError] = useState<string | null>(null);
   const [myVote, setMyVote] = useState<string | null>(null);
   const [confirmingQuit, setConfirmingQuit] = useState(false);
   const [recap, setRecap] = useState<FinalRecapRow[] | null>(null);
+  const { votes: questionVotes, refresh: refreshVotes } = useQuestionVotes(
+    room?.id,
+    room?.phase === "question" ? question?.id : undefined,
+    creds
+  );
 
   useEffect(() => {
     setNickname(randomFunName());
@@ -80,7 +85,7 @@ export default function PlayPage() {
   // Reset per-question vote state whenever the room moves to a new question.
   useEffect(() => {
     setAnswerText("");
-    setSubmitted(false);
+    setVoteError(null);
   }, [room?.current_question_index]);
 
   // Reset category vote choice whenever a fresh room (new code) shows up.
@@ -210,18 +215,37 @@ export default function PlayPage() {
     });
   }
 
-  async function submitAnswer(e: React.FormEvent) {
-    e.preventDefault();
-    if (!room || !creds || !question || submitted || countdown.expired || answerText.trim().length === 0) return;
+  // A vote can be changed any time before the timer runs out; the team's
+  // answer is whatever most of the team is voting for when it does.
+  async function castVote(text: string) {
+    const t = text.trim();
+    if (!room || !creds || !question || countdown.expired || sendingVote || t.length === 0) return;
     haptics.tap();
-    setSubmitted(true);
-    await supabase.rpc("cast_team_vote", {
+    setSendingVote(true);
+    setVoteError(null);
+    const { error } = await supabase.rpc("cast_team_vote", {
       p_room_id: room.id,
       p_player_id: creds.playerId,
       p_client_token: creds.clientToken,
       p_question_id: question.id,
-      p_answer_text: answerText.trim(),
+      p_answer_text: t,
     });
+    setSendingVote(false);
+    if (error) {
+      setVoteError(
+        /TIME_EXPIRED|NOT_ACCEPTING_ANSWERS|STALE_QUESTION/.test(error.message)
+          ? "Time ran out before that vote landed, so it didn't count."
+          : "Your vote didn't go through. Try again."
+      );
+      return;
+    }
+    setAnswerText(t);
+    refreshVotes();
+  }
+
+  function submitAnswer(e: React.FormEvent) {
+    e.preventDefault();
+    castVote(answerText);
   }
 
   // Leaving is a soft flag server-side (players.left_at), not a delete, so a
@@ -477,6 +501,14 @@ export default function PlayPage() {
   }
 
   if (room.phase === "question" && question) {
+    const myVote = questionVotes[creds.playerId];
+    const teamOptions = groupTeamVotes(teammates, questionVotes, creds.playerId);
+    const waitingOn = teammates.filter((p) => questionVotes[p.id] === undefined).map((p) => (p.id === creds.playerId ? "You" : p.nickname));
+    const canVote =
+      !countdown.expired &&
+      !sendingVote &&
+      answerText.trim().length > 0 &&
+      !(myVote !== undefined && normalizeAnswer(myVote) === normalizeAnswer(answerText));
     return (
       <main className="min-h-screen bg-slate-950 text-white flex flex-col px-5 py-6 relative">
         <div className="flex items-center justify-between mb-2">
@@ -502,41 +534,61 @@ export default function PlayPage() {
             <input
               value={answerText}
               onChange={(e) => setAnswerText(e.target.value)}
-              disabled={submitted || countdown.expired}
+              disabled={countdown.expired}
               maxLength={200}
-              placeholder="Type your team's answer…"
+              placeholder="Type your answer…"
               autoComplete="off"
               className="w-full text-center text-lg font-semibold bg-white/10 border border-white/20 rounded-2xl py-4 px-4 outline-none focus:border-amber-400 disabled:opacity-50"
             />
             <button
-              disabled={submitted || countdown.expired || answerText.trim().length === 0}
+              disabled={!canVote}
               className="rounded-2xl bg-amber-400 text-black font-bold text-lg py-4 disabled:opacity-40 active:scale-95 transition"
             >
-              {submitted ? "Vote submitted" : "Submit Vote"}
+              {sendingVote ? "Sending…" : !myVote ? "Submit Vote" : canVote ? "Change my vote" : "Vote in"}
             </button>
+            {voteError && <p className="text-center text-sm text-rose-400">{voteError}</p>}
           </form>
         </div>
-        <div className="mt-4">
-          <p className="text-center text-slate-400 mb-1">
-            {submitted ? "Your vote is in!" : countdown.expired ? "Time's up!" : "Type your answer and submit"}
-          </p>
-          <p className="text-center text-xs text-slate-500 mb-2">
+        <div className="mt-4 w-full max-w-sm mx-auto">
+          <p className="text-xs uppercase tracking-widest text-amber-400 mb-2 text-center">Your team&apos;s votes</p>
+          {teamOptions.length > 0 ? (
+            <div className="flex flex-col gap-2">
+              {teamOptions.map((o, i) => (
+                <button
+                  key={o.text}
+                  type="button"
+                  onClick={() => !o.mine && castVote(o.text)}
+                  disabled={o.mine || countdown.expired || sendingVote}
+                  className={`flex items-center justify-between gap-3 rounded-xl px-4 py-3 text-left transition active:scale-[0.98] ${
+                    o.mine ? "bg-amber-400/20 border border-amber-400/50" : "bg-white/5 border border-white/10 hover:border-white/30"
+                  }`}
+                >
+                  <span className="min-w-0">
+                    <span className="block font-semibold truncate">
+                      {o.text}
+                      {i === 0 && teamOptions.length > 1 && o.voters.length > teamOptions[1].voters.length && (
+                        <span className="ml-2 text-[10px] uppercase tracking-wider text-amber-300">Leading</span>
+                      )}
+                    </span>
+                    <span className="block text-xs text-slate-400 truncate">{o.voters.join(", ")}</span>
+                  </span>
+                  <span className="shrink-0 text-xs text-slate-300">
+                    {o.mine ? "Your vote" : countdown.expired ? `${o.voters.length} vote${o.voters.length === 1 ? "" : "s"}` : "Go with this"}
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-sm text-slate-500">No votes yet. Be the first.</p>
+          )}
+          {waitingOn.length > 0 && !countdown.expired && (
+            <p className="text-center text-xs text-slate-500 mt-2">Still thinking: {waitingOn.join(", ")}</p>
+          )}
+          <p className="text-center text-xs text-slate-500 mt-3">
             {countdown.expired
-              ? "Moving to the next question. Correct answers and scores are revealed at the end of the game."
-              : "Results are revealed at the end of the game, not after each question."}
+              ? "Time's up. Your team's answer is whatever got the most votes. Results are revealed at the end of the game."
+              : "Tap a teammate's answer to go with it, or type your own. You can change your vote until time runs out."}
           </p>
-          <div className="flex flex-wrap gap-2 justify-center">
-            {teammates.map((p) => (
-              <span
-                key={p.id}
-                className={`rounded-full px-3 py-1 text-xs ${
-                  questionVotes[p.id] !== undefined ? "bg-amber-400/20 text-amber-300" : "bg-white/5 text-slate-500"
-                }`}
-              >
-                {p.nickname} {questionVotes[p.id] !== undefined ? "submitted" : "..."}
-              </span>
-            ))}
-          </div>
         </div>
         {confirmingQuit && <QuitConfirm onCancel={() => setConfirmingQuit(false)} onConfirm={() => leaveRoom("/trivia")} />}
       </main>
@@ -788,4 +840,32 @@ function Center({ text, children }: { text?: string; children?: React.ReactNode 
       {text ?? children}
     </main>
   );
+}
+
+function normalizeAnswer(s: string) {
+  return s.toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
+}
+
+type TeamVoteOption = { text: string; voters: string[]; mine: boolean };
+
+// Groups the team's votes by answer (ignoring case and punctuation) so
+// everyone can see what's leading. The server groups more loosely -- by
+// meaning, so "mint" and "mint leaves" count together -- this is just the
+// at-a-glance view.
+function groupTeamVotes(
+  teammates: { id: string; nickname: string }[],
+  votes: Record<string, string>,
+  myId: string
+): TeamVoteOption[] {
+  const groups = new Map<string, TeamVoteOption>();
+  for (const p of teammates) {
+    const v = votes[p.id];
+    if (!v) continue;
+    const key = normalizeAnswer(v);
+    const g = groups.get(key) ?? { text: v, voters: [], mine: false };
+    g.voters.push(p.id === myId ? "You" : p.nickname);
+    if (p.id === myId) g.mine = true;
+    groups.set(key, g);
+  }
+  return Array.from(groups.values()).sort((a, b) => b.voters.length - a.voters.length);
 }

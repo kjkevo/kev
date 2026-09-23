@@ -533,6 +533,10 @@ export type Database = {
         Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_question_id: string; p_answer_text: string }
         Returns: { o_recorded: boolean }[]
       }
+      get_team_votes: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_question_id: string }
+        Returns: { o_player_id: string; o_answer_text: string }[]
+      }
       get_final_recap: {
         Args: { p_room_id: string }
         Returns: {
