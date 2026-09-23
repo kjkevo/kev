@@ -11,6 +11,8 @@ import { useAnsweredCount } from "@/hooks/useAnsweredCount";
 import { useAllPacks } from "@/hooks/useAllPacks";
 import { useCategoryVoteTally } from "@/hooks/useCategoryVoteTally";
 import { JoinQRCode } from "@/components/JoinQRCode";
+import { ScreenAgent } from "@/components/ScreenAgent";
+import { useScreenVenue } from "@/lib/venue";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { supabase } from "@/lib/supabase";
 import type { Team, FinalRecapRow } from "@/lib/types";
@@ -26,6 +28,7 @@ import type { Team, FinalRecapRow } from "@/lib/types";
  * just the live question and vote count, then the full recap at the end.
  */
 export default function ScreenClient() {
+  const venue = useScreenVenue();
   const activeRoom = useActiveRoom();
   const code = activeRoom?.code ?? null;
   const { room, players, teams } = useRoomRealtime(code);
@@ -55,11 +58,17 @@ export default function ScreenClient() {
   }, [room?.phase, room?.id]);
 
   if (activeRoom === undefined || !room) {
-    return <FullscreenMessage text="Waiting for the next game…" />;
+    return (
+      <>
+        <ScreenAgent venue={venue} page="/screen" />
+        <FullscreenMessage text="Waiting for the next game…" />
+      </>
+    );
   }
 
   return (
     <main className="min-h-screen bg-slate-950 text-white flex flex-col">
+      <ScreenAgent venue={venue} page="/screen" />
       <header className="flex items-center justify-between px-8 py-4 border-b border-white/10">
         <span className="font-black text-xl">
           Crowd<span className="text-amber-400">Play</span>
@@ -75,7 +84,7 @@ export default function ScreenClient() {
           <>
             <p className="text-2xl text-slate-300">Join at</p>
             <p className="text-5xl font-black tracking-widest text-amber-400">{room.code}</p>
-            <JoinQRCode code={room.code} />
+            <JoinQRCode code={room.code} venue={venue} />
             {room.starts_at && !scheduledCountdown.reached && (
               <p className="text-lg text-slate-300">
                 Starting in <span className="text-amber-400 font-bold tabular-nums">{scheduledCountdown.label}</span>

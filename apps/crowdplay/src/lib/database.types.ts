@@ -497,6 +497,37 @@ export type Database = {
       }
     }
     Functions: {
+      checkin_submit: {
+        Args: { p_venue: string; p_name: string; p_contact: string }
+        Returns: { o_checkin_id: string; o_returning: boolean; o_already: boolean }[]
+      }
+      log_qr_scan: {
+        Args: { p_venue: string; p_session_key: string }
+        Returns: undefined
+      }
+      log_client_error: {
+        Args: { p_venue: string; p_source: string; p_message: string; p_detail?: Json }
+        Returns: undefined
+      }
+      screen_heartbeat: {
+        Args: { p_venue: string; p_screen_key: string; p_page: string; p_user_agent?: string }
+        Returns: { o_screen_id: string; o_venue_name: string }[]
+      }
+      get_screen_ads: {
+        Args: { p_venue: string }
+        Returns: {
+          o_sponsor_id: string
+          o_name: string
+          o_headline: string
+          o_tagline: string | null
+          o_accent: string
+          o_slot_type: string
+        }[]
+      }
+      log_ad_play: {
+        Args: { p_venue: string; p_screen_key: string; p_sponsor_id: string; p_seconds: number }
+        Returns: undefined
+      }
       advance_phase: {
         Args: { p_action: string; p_host_secret: string; p_room_id: string }
         Returns: undefined

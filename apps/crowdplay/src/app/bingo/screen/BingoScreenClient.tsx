@@ -5,6 +5,8 @@ import { useBingoRoomRealtime } from "@/hooks/useBingoRoomRealtime";
 import { useCountdownTo } from "@/hooks/useCountdownTo";
 import { useCountdown } from "@/hooks/useCountdown";
 import { JoinQRCode } from "@/components/JoinQRCode";
+import { ScreenAgent } from "@/components/ScreenAgent";
+import { useScreenVenue } from "@/lib/venue";
 import { CircularTimer } from "@/components/CircularTimer";
 import type { BingoPlayer } from "@/lib/types";
 
@@ -17,6 +19,7 @@ const LEADERBOARD_DWELL_SECONDS = 8;
  * autonomous ticker drives every phase change on its own.
  */
 export default function BingoScreenClient() {
+  const venue = useScreenVenue();
   const activeRoom = useActiveBingoRoom();
   const code = activeRoom?.code ?? null;
   const { room, players } = useBingoRoomRealtime(code);
@@ -30,7 +33,12 @@ export default function BingoScreenClient() {
   const dwellCountdown = useCountdown(room?.phase_started_at ?? null, phaseDwellLimit);
 
   if (activeRoom === undefined || !room) {
-    return <FullscreenMessage text="Waiting for the next game…" />;
+    return (
+      <>
+        <ScreenAgent venue={venue} page="/bingo/screen" />
+        <FullscreenMessage text="Waiting for the next game…" />
+      </>
+    );
   }
 
   const sorted = [...players].sort((a, b) => b.score - a.score);
@@ -38,6 +46,7 @@ export default function BingoScreenClient() {
 
   return (
     <main className="min-h-screen bg-slate-950 text-white flex flex-col">
+      <ScreenAgent venue={venue} page="/bingo/screen" />
       <header className="flex items-center justify-between px-8 py-4 border-b border-white/10">
         <span className="font-black text-xl">
           Crowd<span className="text-amber-400">Play</span> &middot; Social Bingo
@@ -52,7 +61,7 @@ export default function BingoScreenClient() {
           <>
             <p className="text-2xl text-slate-300">Join at</p>
             <p className="text-5xl font-black tracking-widest text-amber-400">{room.code}</p>
-            <JoinQRCode code={room.code} basePath="/bingo/play" />
+            <JoinQRCode code={room.code} basePath="/bingo/play" venue={venue} />
             {room.starts_at && !scheduledCountdown.reached && (
               <p className="text-xl text-slate-400">
                 Starting in <span className="text-amber-400 font-bold tabular-nums">{scheduledCountdown.label}</span>
