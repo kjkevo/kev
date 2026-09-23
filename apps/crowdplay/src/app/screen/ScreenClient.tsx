@@ -1,16 +1,18 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useActiveRoom } from "@/hooks/useActiveRoom";
 import { useRoomRealtime } from "@/hooks/useRoomRealtime";
 import { useCurrentQuestion } from "@/hooks/useCurrentQuestion";
 import { useCountdown } from "@/hooks/useCountdown";
 import { useCountdownTo } from "@/hooks/useCountdownTo";
 import { useTotalQuestions } from "@/hooks/useTotalQuestions";
+import { useAnsweredCount } from "@/hooks/useAnsweredCount";
 import { useAllPacks } from "@/hooks/useAllPacks";
 import { useCategoryVoteTally } from "@/hooks/useCategoryVoteTally";
 import { JoinQRCode } from "@/components/JoinQRCode";
-import type { Player } from "@/lib/types";
+import { supabase } from "@/lib/supabase";
+import type { Team, FinalRecapRow } from "@/lib/types";
 
 const CHOICE_STYLES = ["bg-rose-600", "bg-blue-600", "bg-amber-500", "bg-emerald-600"];
 
@@ -19,25 +21,39 @@ const CHOICE_STYLES = ["bg-rose-600", "bg-blue-600", "bg-amber-500", "bg-emerald
  * follows whatever game is currently active (no room code needed) and is
  * pure spectator: no buttons, nothing to click. The database's autonomous
  * ticker drives every phase change on its own, so this page just reflects
- * whatever's true right now, the same as any player's phone would.
+ * whatever's true right now, the same as any player's phone would. Scoring
+ * is team-based and hidden until the game actually ends, so this screen
+ * never shows a per-question correct answer or a mid-game leaderboard —
+ * just the live question and vote count, then the full recap at the end.
  */
 export default function ScreenClient() {
   const activeRoom = useActiveRoom();
   const code = activeRoom?.code ?? null;
-  const { room, players } = useRoomRealtime(code);
+  const { room, players, teams } = useRoomRealtime(code);
   const question = useCurrentQuestion(room?.id, room?.current_question_index, room?.phase);
   const countdown = useCountdown(room?.question_started_at ?? null, question?.time_limit_seconds ?? 15);
   const scheduledCountdown = useCountdownTo(room?.starts_at ?? null);
   const totalQuestions = useTotalQuestions(room?.id, room?.phase);
+  const votedCount = useAnsweredCount(room?.phase === "question" ? question?.id : undefined);
   const packs = useAllPacks();
   const voteTally = useCategoryVoteTally(room?.phase === "lobby" ? room?.id : undefined);
+  const [recap, setRecap] = useState<FinalRecapRow[] | null>(null);
 
-  // "Active" excludes anyone who's left -- the leaderboard keeps everyone
-  // (including anyone who left), since a score already earned shouldn't
-  // just vanish from the standings.
+  // "Active" excludes anyone who's left -- the standings keep every team
+  // (including ones whose members left), since a score already earned
+  // shouldn't just vanish.
   const activePlayers = useMemo(() => players.filter((p) => !p.left_at), [players]);
-  const sortedPlayers = useMemo(() => [...players].sort((a, b) => b.score - a.score), [players]);
-  const sortedActivePlayers = useMemo(() => [...activePlayers].sort((a, b) => b.score - a.score), [activePlayers]);
+  const sortedTeams = useMemo(() => [...teams].sort((a, b) => b.score - a.score), [teams]);
+
+  useEffect(() => {
+    if (room?.phase !== "final" || !room.id) {
+      setRecap(null);
+      return;
+    }
+    supabase.rpc("get_final_recap", { p_room_id: room.id }).then(({ data }) => {
+      if (data) setRecap(data as FinalRecapRow[]);
+    });
+  }, [room?.phase, room?.id]);
 
   if (activeRoom === undefined || !room) {
     return <FullscreenMessage text="Waiting for the next game…" />;
@@ -50,7 +66,8 @@ export default function ScreenClient() {
           Crowd<span className="text-amber-400">Play</span>
         </span>
         <span className="text-slate-400">
-          {activePlayers.length} player{activePlayers.length === 1 ? "" : "s"}
+          {activePlayers.length} player{activePlayers.length === 1 ? "" : "s"} · {teams.length} team
+          {teams.length === 1 ? "" : "s"}
         </span>
       </header>
 
@@ -75,22 +92,19 @@ export default function ScreenClient() {
               </div>
             )}
             <div className="flex flex-wrap gap-3 justify-center max-w-2xl">
-              {sortedActivePlayers.map((p) => (
-                <span key={p.id} className="bg-white/10 rounded-full px-4 py-2 text-lg">
-                  {p.nickname}
+              {teams.map((t) => (
+                <span key={t.id} className="bg-white/10 rounded-full px-4 py-2 text-lg">
+                  {t.name}{" "}
+                  <span className="text-sm text-slate-400">
+                    ({activePlayers.filter((p) => p.team_id === t.id).length}/4)
+                  </span>
                 </span>
               ))}
             </div>
           </>
         )}
 
-        {/* If every player answers fast, the room advances to "reveal"
-            before this screen's own countdown runs out — that's the point
-            for players (instant feedback), but the shared TV shouldn't
-            spoil the answer early for a whole room of onlookers. Hold on
-            the question view here until the real timer has actually
-            elapsed, regardless of how fast the phase itself moved on. */}
-        {(room.phase === "question" || (room.phase === "reveal" && !countdown.expired)) && question && (
+        {room.phase === "question" && question && (
           <>
             <div className="w-full max-w-3xl h-3 bg-white/10 rounded-full overflow-hidden">
               <div
@@ -109,33 +123,17 @@ export default function ScreenClient() {
                 </div>
               ))}
             </div>
+            <p className="text-slate-400">
+              {votedCount} of {activePlayers.length} votes cast &middot; results reveal at the end
+            </p>
           </>
         )}
-
-        {room.phase === "reveal" && countdown.expired && question && (
-          <>
-            <h2 className="text-3xl font-bold max-w-3xl">{question.prompt}</h2>
-            <div className="grid grid-cols-2 gap-4 w-full max-w-3xl">
-              {(question.choices as string[]).map((choice, i) => (
-                <div
-                  key={i}
-                  className={`${CHOICE_STYLES[i]} rounded-xl py-6 px-4 text-xl font-semibold ${
-                    i === room.revealed_correct_index ? "ring-4 ring-white scale-105" : "opacity-40"
-                  } transition`}
-                >
-                  {choice} {i === room.revealed_correct_index && "(Correct)"}
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-
-        {room.phase === "leaderboard" && <Leaderboard players={sortedPlayers} />}
 
         {room.phase === "final" && (
           <>
             <h2 className="text-4xl font-black text-amber-400">Final Results</h2>
-            <Leaderboard players={sortedPlayers} />
+            <TeamStandings teams={sortedTeams} />
+            {recap && <Recap recap={recap} />}
             <p className="text-slate-400">Next game boarding shortly…</p>
           </>
         )}
@@ -153,15 +151,39 @@ function VoteOption({ name, count }: { name: string | undefined; count: number }
   );
 }
 
-function Leaderboard({ players }: { players: Player[] }) {
+function TeamStandings({ teams }: { teams: Team[] }) {
   return (
     <div className="w-full max-w-lg flex flex-col gap-2">
-      {players.slice(0, 10).map((p, i) => (
-        <div key={p.id} className="flex items-center justify-between bg-white/5 rounded-xl px-5 py-3 text-lg">
+      {teams.slice(0, 10).map((t, i) => (
+        <div key={t.id} className="flex items-center justify-between bg-white/5 rounded-xl px-5 py-3 text-lg">
           <span className="font-semibold">
-            #{i + 1} {p.nickname}
+            #{i + 1} {t.name}
           </span>
-          <span className="text-amber-400 font-bold">{p.score}</span>
+          <span className="text-amber-400 font-bold">{t.score}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Recap({ recap }: { recap: FinalRecapRow[] }) {
+  const byQuestion = useMemo(() => {
+    const map = new Map<number, { prompt: string; choices: string[]; correctIndex: number }>();
+    for (const r of recap) {
+      if (!map.has(r.o_question_order)) {
+        map.set(r.o_question_order, { prompt: r.o_prompt, choices: r.o_choices, correctIndex: r.o_correct_index });
+      }
+    }
+    return Array.from(map.entries()).sort((a, b) => a[0] - b[0]);
+  }, [recap]);
+
+  return (
+    <div className="w-full max-w-2xl flex flex-col gap-2 max-h-72 overflow-y-auto text-left">
+      <p className="text-xs uppercase tracking-widest text-slate-500 mb-1">Question recap</p>
+      {byQuestion.map(([order, q]) => (
+        <div key={order} className="rounded-xl bg-white/5 px-5 py-3">
+          <p className="font-semibold mb-1">{q.prompt}</p>
+          <p className="text-sm text-emerald-400">Correct: {q.choices[q.correctIndex]}</p>
         </div>
       ))}
     </div>

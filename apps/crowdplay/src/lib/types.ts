@@ -3,6 +3,7 @@ import type { Database } from "./database.types";
 export type Room = Database["public"]["Tables"]["rooms"]["Row"];
 export type Player = Database["public"]["Tables"]["players"]["Row"];
 export type Answer = Database["public"]["Tables"]["answers"]["Row"];
+export type Team = Database["public"]["Tables"]["teams"]["Row"];
 
 // The generated view type marks every column nullable (Postgres views lose
 // not-null info generically), but questions_public mirrors non-null columns
@@ -22,10 +23,31 @@ export type CategoryVote = Database["public"]["Tables"]["category_votes"]["Row"]
 export type Phase = "lobby" | "question" | "reveal" | "leaderboard" | "final";
 
 export type HostCredentials = { roomId: string; hostSecret: string };
-export type PlayerCredentials = { playerId: string; clientToken: string; roomId: string };
+export type PlayerCredentials = {
+  playerId: string;
+  clientToken: string;
+  roomId: string;
+  teamId: string;
+  teamName: string;
+};
 
 export const hostKey = (code: string) => `crowdplay_host_${code.toUpperCase()}`;
 export const playerKey = (code: string) => `crowdplay_player_${code.toUpperCase()}`;
+
+// A flat row per (question, team) -- group by o_question_order client-side
+// to render the recap. Only ever fetched once the room is in its 'final'
+// phase; the RPC itself refuses to return anything before that.
+export type FinalRecapRow = {
+  o_question_order: number;
+  o_prompt: string;
+  o_choices: string[];
+  o_correct_index: number;
+  o_team_id: string | null;
+  o_team_name: string | null;
+  o_team_choice: number | null;
+  o_team_correct: boolean;
+  o_team_points: number;
+};
 
 // --- Family Feud ---
 

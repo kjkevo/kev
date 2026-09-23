@@ -19,7 +19,7 @@ import { LiveGameGlance } from "@/components/LiveGameGlance";
  * current game either way, so waiting never means staring at a blank page.
  */
 export default function TriviaLandingClient() {
-  const { room, players } = useLiveActiveRoom();
+  const { room, players, teams } = useLiveActiveRoom();
   const router = useRouter();
   const countdown = useCountdownTo(room?.phase === "lobby" ? room.starts_at : null);
 
@@ -63,7 +63,7 @@ export default function TriviaLandingClient() {
           <p className="text-indigo-200 max-w-xs text-sm">
             Here&apos;s what&apos;s happening right now. This updates itself the moment a new game boards.
           </p>
-          <LiveGameGlance room={room} players={players} />
+          <LiveGameGlance room={room} players={players} teams={teams} />
           {canJoinNow && (
             <button
               onClick={() => setDeclinedCode(null)}
@@ -115,7 +115,7 @@ export default function TriviaLandingClient() {
           visits will land mid-round. This proves the game is actually
           alive and shows how far along it is, rather than leaving the
           button as an unexplained dead end. */}
-      {!canJoinNow && room && <LiveGameGlance room={room} players={players} />}
+      {!canJoinNow && room && <LiveGameGlance room={room} players={players} teams={teams} />}
 
       {canJoinNow && (
         <p className="text-xs text-indigo-300/60 max-w-xs">

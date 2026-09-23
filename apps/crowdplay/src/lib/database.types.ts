@@ -290,6 +290,7 @@ export type Database = {
           nickname: string
           room_id: string
           score: number
+          team_id: string | null
           team_members: string[] | null
         }
         Insert: {
@@ -300,6 +301,7 @@ export type Database = {
           nickname: string
           room_id: string
           score?: number
+          team_id?: string | null
           team_members?: string[] | null
         }
         Update: {
@@ -310,7 +312,38 @@ export type Database = {
           nickname?: string
           room_id?: string
           score?: number
+          team_id?: string | null
           team_members?: string[] | null
+        }
+        Relationships: []
+      }
+      teams: {
+        Row: {
+          id: string
+          room_id: string
+          name: string
+          kind: string
+          locked: boolean
+          score: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          room_id: string
+          name: string
+          kind?: string
+          locked?: boolean
+          score?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          room_id?: string
+          name?: string
+          kind?: string
+          locked?: boolean
+          score?: number
+          created_at?: string
         }
         Relationships: []
       }
@@ -472,8 +505,26 @@ export type Database = {
         Returns: { client_token: string; player_id: string; room_id: string; team: string }[]
       }
       join_room: {
-        Args: { p_code: string; p_nickname: string; p_team_members?: string[] }
-        Returns: { client_token: string; player_id: string; room_id: string }[]
+        Args: { p_code: string; p_nickname: string; p_team_id?: string; p_new_team_name?: string }
+        Returns: { client_token: string; player_id: string; room_id: string; team_id: string; team_name: string }[]
+      }
+      cast_team_vote: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_question_id: string; p_choice_index: number }
+        Returns: { o_recorded: boolean }[]
+      }
+      get_final_recap: {
+        Args: { p_room_id: string }
+        Returns: {
+          o_question_order: number
+          o_prompt: string
+          o_choices: Json
+          o_correct_index: number
+          o_team_id: string | null
+          o_team_name: string | null
+          o_team_choice: number | null
+          o_team_correct: boolean
+          o_team_points: number
+        }[]
       }
       leave_room: {
         Args: { p_room_id: string; p_player_id: string; p_client_token: string }
@@ -500,16 +551,6 @@ export type Database = {
       start_room: {
         Args: { p_host_secret: string; p_room_id: string }
         Returns: undefined
-      }
-      submit_answer: {
-        Args: {
-          p_choice_index: number
-          p_client_token: string
-          p_player_id: string
-          p_question_id: string
-          p_room_id: string
-        }
-        Returns: { correct: boolean; points_awarded: number }[]
       }
     }
     Enums: Record<string, never>

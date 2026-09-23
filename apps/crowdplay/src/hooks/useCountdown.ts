@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 
 /**
- * Purely a display timer — the real deadline is enforced server-side in
- * submit_answer(). A phone with a fast/slow clock might see :01 more or
- * less than everyone else, but it can never buy extra scoring time.
+ * Purely a display timer — the real deadline is enforced server-side (the
+ * autonomous tick() closes a question and tallies votes on its own clock).
+ * A phone with a fast/slow clock might see :01 more or less than everyone
+ * else, but it can never buy extra time to vote.
  */
 export function useCountdown(startedAt: string | null, limitSeconds: number) {
   const [remainingMs, setRemainingMs] = useState<number>(limitSeconds * 1000);
