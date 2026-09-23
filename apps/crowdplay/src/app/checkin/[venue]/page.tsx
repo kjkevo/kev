@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { safeNextPath, stableKey } from "@/lib/venue";
+import { rememberPlayerVenue, safeNextPath, stableKey } from "@/lib/venue";
 
 type Queued = { venue: string; name: string; contact: string; at: number };
 
@@ -77,6 +77,7 @@ export default function CheckinPage() {
     setSaving(false);
 
     if (!error && data?.[0]) {
+      rememberPlayerVenue(venue);
       setDone({ returning: data[0].o_returning, name: name.trim() });
       return;
     }
@@ -93,6 +94,7 @@ export default function CheckinPage() {
       p_source: "checkin",
       p_message: `Check-in save failed: ${error?.message ?? "no response"}`.slice(0, 300),
     });
+    rememberPlayerVenue(venue);
     setDone({ returning: false, name: name.trim() });
   }
 
@@ -109,9 +111,9 @@ export default function CheckinPage() {
           </Link>
         ) : (
           <div className="w-full max-w-xs flex flex-col gap-3">
-            <GameLink href="/trivia" label="Trivia" />
-            <GameLink href="/feud" label="Family Feud" />
-            <GameLink href="/bingo" label="Social Bingo" />
+            <GameLink href={`/trivia?venue=${venue}`} label="Trivia" />
+            <GameLink href={`/feud?venue=${venue}`} label="Family Feud" />
+            <GameLink href={`/bingo?venue=${venue}`} label="Social Bingo" />
           </div>
         )}
       </Shell>

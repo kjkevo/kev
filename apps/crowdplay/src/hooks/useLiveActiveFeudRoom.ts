@@ -4,8 +4,8 @@ import { useActiveFeudRoom } from "./useActiveFeudRoom";
 import { useFeudRoomRealtime } from "./useFeudRoomRealtime";
 
 /** Feud's version of useLiveActiveRoom: finds the current game and subscribes to it in full. */
-export function useLiveActiveFeudRoom() {
-  const activeRoom = useActiveFeudRoom();
+export function useLiveActiveFeudRoom(venueId: string | null | undefined) {
+  const activeRoom = useActiveFeudRoom(venueId);
   const code = activeRoom?.code ?? null;
   const { room, players } = useFeudRoomRealtime(code);
 

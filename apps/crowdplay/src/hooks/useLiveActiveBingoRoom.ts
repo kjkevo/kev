@@ -4,8 +4,8 @@ import { useActiveBingoRoom } from "./useActiveBingoRoom";
 import { useBingoRoomRealtime } from "./useBingoRoomRealtime";
 
 /** Bingo's version of useLiveActiveRoom: finds the current game and subscribes to it in full. */
-export function useLiveActiveBingoRoom() {
-  const activeRoom = useActiveBingoRoom();
+export function useLiveActiveBingoRoom(venueId: string | null | undefined) {
+  const activeRoom = useActiveBingoRoom(venueId);
   const code = activeRoom?.code ?? null;
   const { room, players } = useBingoRoomRealtime(code);
 

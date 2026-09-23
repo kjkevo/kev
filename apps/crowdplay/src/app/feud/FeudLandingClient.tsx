@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLiveActiveFeudRoom } from "@/hooks/useLiveActiveFeudRoom";
+import { usePlayerVenue, useVenueId } from "@/lib/venue";
 import { useCountdownTo } from "@/hooks/useCountdownTo";
 
 /**
@@ -13,7 +14,9 @@ import { useCountdownTo } from "@/hooks/useCountdownTo";
  * happen, or wait for a clean start -- with a live glance either way.
  */
 export default function FeudLandingClient() {
-  const { room, players } = useLiveActiveFeudRoom();
+  const venue = usePlayerVenue();
+  const venueId = useVenueId(venue);
+  const { room, players } = useLiveActiveFeudRoom(venueId);
   const router = useRouter();
   const countdown = useCountdownTo(room?.phase === "lobby" ? room.starts_at : null);
 

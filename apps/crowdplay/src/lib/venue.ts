@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 export const DEFAULT_VENUE = "main";
 
@@ -47,4 +48,62 @@ export function stableKey(storageKey: string, storage: "local" | "session" = "lo
 export function safeNextPath(raw: string | null | undefined) {
   if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return null;
   return raw;
+}
+
+const PLAYER_VENUE_KEY = "crowdplay_venue";
+
+/** Remember which venue this phone checked in at, for the game pages. */
+export function rememberPlayerVenue(slug: string) {
+  try {
+    if (SLUG.test(slug)) localStorage.setItem(PLAYER_VENUE_KEY, slug);
+  } catch {
+    // storage blocked: the game pages fall back to ?venue= or the default
+  }
+}
+
+/**
+ * Which venue's games a phone should see: ?venue= on the link, else the
+ * venue it last checked in at, else the default venue.
+ */
+export function usePlayerVenue() {
+  const [venue, setVenue] = useState<string | null>(null);
+  useEffect(() => {
+    const fromUrl = new URLSearchParams(window.location.search).get("venue")?.toLowerCase() ?? "";
+    let chosen = SLUG.test(fromUrl) ? fromUrl : "";
+    if (chosen) rememberPlayerVenue(chosen);
+    else {
+      try {
+        chosen = localStorage.getItem(PLAYER_VENUE_KEY) ?? "";
+      } catch {
+        chosen = "";
+      }
+    }
+    setVenue(SLUG.test(chosen) ? chosen : DEFAULT_VENUE);
+  }, []);
+  return venue;
+}
+
+/**
+ * A venue's id from its short code. undefined while loading, null if there's
+ * no active venue with that code (then the default venue is used instead,
+ * so a stale bookmark still lands in a game).
+ */
+export function useVenueId(slug: string | null) {
+  const [id, setId] = useState<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (!slug) return;
+    let cancelled = false;
+    const lookup = async (s: string): Promise<string | null> => {
+      const { data } = await supabase.from("venues").select("id").eq("slug", s).eq("active", true).maybeSingle();
+      return data?.id ?? null;
+    };
+    (async () => {
+      const found = (await lookup(slug)) ?? (slug !== DEFAULT_VENUE ? await lookup(DEFAULT_VENUE) : null);
+      if (!cancelled) setId(found);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [slug]);
+  return id;
 }

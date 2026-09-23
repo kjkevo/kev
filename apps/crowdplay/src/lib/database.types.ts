@@ -122,6 +122,7 @@ export type Database = {
           winner_player_id: string | null
           winner_pattern: string | null
           retired: boolean
+          venue_id: string
         }
         Insert: {
           id?: string
@@ -136,6 +137,7 @@ export type Database = {
           winner_player_id?: string | null
           winner_pattern?: string | null
           retired?: boolean
+          venue_id?: string
         }
         Update: {
           id?: string
@@ -150,6 +152,7 @@ export type Database = {
           winner_player_id?: string | null
           winner_pattern?: string | null
           retired?: boolean
+          venue_id?: string
         }
         Relationships: []
       }
@@ -202,6 +205,7 @@ export type Database = {
           team_b_score: number
           last_guess: Json | null
           retired: boolean
+          venue_id: string
           last_round_winner: string | null
           last_round_points: number | null
           last_round_was_fast_money: boolean
@@ -240,6 +244,7 @@ export type Database = {
           team_b_score?: number
           last_guess?: Json | null
           retired?: boolean
+          venue_id?: string
           last_round_winner?: string | null
           last_round_points?: number | null
           last_round_was_fast_money?: boolean
@@ -278,6 +283,7 @@ export type Database = {
           team_b_score?: number
           last_guess?: Json | null
           retired?: boolean
+          venue_id?: string
           last_round_winner?: string | null
           last_round_points?: number | null
           last_round_was_fast_money?: boolean
@@ -419,6 +425,27 @@ export type Database = {
         }
         Relationships: []
       }
+      venues: {
+        Row: {
+          id: string
+          slug: string
+          name: string
+          active: boolean
+        }
+        Insert: {
+          id?: string
+          slug: string
+          name: string
+          active?: boolean
+        }
+        Update: {
+          id?: string
+          slug?: string
+          name?: string
+          active?: boolean
+        }
+        Relationships: []
+      }
       rooms: {
         Row: {
           category_option_a: string | null
@@ -432,6 +459,7 @@ export type Database = {
           phase_started_at: string
           question_started_at: string | null
           retired: boolean
+          venue_id: string
           revealed_correct_index: number | null
           starts_at: string | null
           winning_category_id: string | null
@@ -448,6 +476,7 @@ export type Database = {
           phase_started_at?: string
           question_started_at?: string | null
           retired?: boolean
+          venue_id?: string
           revealed_correct_index?: number | null
           starts_at?: string | null
           winning_category_id?: string | null
@@ -464,6 +493,7 @@ export type Database = {
           phase_started_at?: string
           question_started_at?: string | null
           retired?: boolean
+          venue_id?: string
           revealed_correct_index?: number | null
           starts_at?: string | null
           winning_category_id?: string | null
@@ -545,7 +575,7 @@ export type Database = {
         Returns: { code: string; room_id: string }[]
       }
       create_room: {
-        Args: { p_starts_at?: string }
+        Args: { p_starts_at?: string; p_venue_id?: string }
         Returns: { code: string; host_secret: string; room_id: string }[]
       }
       join_bingo_room: {
@@ -608,7 +638,7 @@ export type Database = {
         Returns: undefined
       }
       restart_trivia_now: {
-        Args: Record<PropertyKey, never>
+        Args: { p_venue?: string }
         Returns: { room_id: string; code: string }[]
       }
     }

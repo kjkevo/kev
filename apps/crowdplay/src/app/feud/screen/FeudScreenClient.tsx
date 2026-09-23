@@ -6,7 +6,7 @@ import { useCountdownTo } from "@/hooks/useCountdownTo";
 import { useCountdown } from "@/hooks/useCountdown";
 import { JoinQRCode } from "@/components/JoinQRCode";
 import { ScreenAgent } from "@/components/ScreenAgent";
-import { useScreenVenue } from "@/lib/venue";
+import { useScreenVenue, useVenueId } from "@/lib/venue";
 import { CircularTimer } from "@/components/CircularTimer";
 import type { FeudBoardSlot, FeudFastMoneyAnswer } from "@/lib/types";
 
@@ -21,7 +21,8 @@ const FACEOFF_TIMEOUT_SECONDS = 20;
  */
 export default function FeudScreenClient() {
   const venue = useScreenVenue();
-  const activeRoom = useActiveFeudRoom();
+  const venueId = useVenueId(venue);
+  const activeRoom = useActiveFeudRoom(venueId);
   const code = activeRoom?.code ?? null;
   const { room, players } = useFeudRoomRealtime(code);
   const scheduledCountdown = useCountdownTo(room?.starts_at ?? null);

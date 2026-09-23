@@ -12,7 +12,7 @@ import { useAllPacks } from "@/hooks/useAllPacks";
 import { useCategoryVoteTally } from "@/hooks/useCategoryVoteTally";
 import { JoinQRCode } from "@/components/JoinQRCode";
 import { ScreenAgent } from "@/components/ScreenAgent";
-import { useScreenVenue } from "@/lib/venue";
+import { useScreenVenue, useVenueId } from "@/lib/venue";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { supabase } from "@/lib/supabase";
 import type { Team, FinalRecapRow } from "@/lib/types";
@@ -29,7 +29,8 @@ import type { Team, FinalRecapRow } from "@/lib/types";
  */
 export default function ScreenClient() {
   const venue = useScreenVenue();
-  const activeRoom = useActiveRoom();
+  const venueId = useVenueId(venue);
+  const activeRoom = useActiveRoom(venueId);
   const code = activeRoom?.code ?? null;
   const { room, players, teams } = useRoomRealtime(code);
   const question = useCurrentQuestion(room?.id, room?.current_question_index, room?.phase);

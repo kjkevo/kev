@@ -6,7 +6,7 @@ import { useCountdownTo } from "@/hooks/useCountdownTo";
 import { useCountdown } from "@/hooks/useCountdown";
 import { JoinQRCode } from "@/components/JoinQRCode";
 import { ScreenAgent } from "@/components/ScreenAgent";
-import { useScreenVenue } from "@/lib/venue";
+import { useScreenVenue, useVenueId } from "@/lib/venue";
 import { CircularTimer } from "@/components/CircularTimer";
 import type { BingoPlayer } from "@/lib/types";
 
@@ -20,7 +20,8 @@ const LEADERBOARD_DWELL_SECONDS = 8;
  */
 export default function BingoScreenClient() {
   const venue = useScreenVenue();
-  const activeRoom = useActiveBingoRoom();
+  const venueId = useVenueId(venue);
+  const activeRoom = useActiveBingoRoom(venueId);
   const code = activeRoom?.code ?? null;
   const { room, players } = useBingoRoomRealtime(code);
   const scheduledCountdown = useCountdownTo(room?.starts_at ?? null);
