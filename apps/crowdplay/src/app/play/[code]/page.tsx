@@ -412,8 +412,13 @@ export default function PlayPage() {
           </form>
         </div>
         <div className="mt-4">
-          <p className="text-center text-slate-400 mb-2">
+          <p className="text-center text-slate-400 mb-1">
             {submitted ? "Your vote is in!" : countdown.expired ? "Time's up!" : "Type your answer and submit"}
+          </p>
+          <p className="text-center text-xs text-slate-500 mb-2">
+            {countdown.expired
+              ? "Moving to the next question. Correct answers and scores are revealed at the end of the game."
+              : "Results are revealed at the end of the game, not after each question."}
           </p>
           <div className="flex flex-wrap gap-2 justify-center">
             {teammates.map((p) => (
