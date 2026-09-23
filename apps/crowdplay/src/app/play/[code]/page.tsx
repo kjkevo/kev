@@ -317,20 +317,21 @@ export default function PlayPage() {
       <Center>
         <BackButton onClick={() => leaveRoom("/")} />
         <h1 className="text-2xl font-bold mb-1">You&apos;re on {myTeam?.name ?? creds.teamName}!</h1>
-        <p className="text-slate-400 mb-2">{me?.nickname}</p>
-        {showCountdown ? (
-          <p className="text-slate-300 mb-1">
-            Starting in <span className="text-amber-400 font-bold tabular-nums">{scheduledCountdown.label}</span>
-          </p>
-        ) : (
-          <p className="text-slate-400 mb-1">
-            This game runs itself. It starts automatically, whether people are here yet or not.
-          </p>
-        )}
+        <p className="text-slate-400 mb-4">{me?.nickname}</p>
 
-        {room.category_options && room.category_options.length > 0 && (
-          <div className="w-full max-w-xs mt-4">
-            <p className="text-sm text-slate-400 mb-2">Vote for the category:</p>
+        {room.category_options && room.category_options.length > 0 ? (
+          <div className="w-full max-w-xs rounded-2xl bg-amber-400/10 border border-amber-400/30 p-4">
+            <p className="text-base font-bold text-white mb-1">Vote for tonight&apos;s category</p>
+            {showCountdown ? (
+              <p className="text-xs text-slate-300 mb-3">
+                Voting closes in{" "}
+                <span className="text-amber-400 font-bold tabular-nums">{scheduledCountdown.label}</span>
+              </p>
+            ) : (
+              <p className="text-xs text-slate-400 mb-3">
+                This game runs itself. It starts automatically, whether people are here yet or not.
+              </p>
+            )}
             <div className="grid grid-cols-2 gap-2">
               {room.category_options.map((packId) => (
                 <VoteButton
@@ -343,6 +344,14 @@ export default function PlayPage() {
               ))}
             </div>
           </div>
+        ) : showCountdown ? (
+          <p className="text-slate-300 mb-1">
+            Starting in <span className="text-amber-400 font-bold tabular-nums">{scheduledCountdown.label}</span>
+          </p>
+        ) : (
+          <p className="text-slate-400 mb-1">
+            This game runs itself. It starts automatically, whether people are here yet or not.
+          </p>
         )}
 
         <div className="w-full max-w-xs mt-4 rounded-2xl bg-amber-400/10 border border-amber-400/30 p-4">
