@@ -460,7 +460,7 @@ export default function PlayPage() {
                   questionVotes[p.id] !== undefined ? "bg-amber-400/20 text-amber-300" : "bg-white/5 text-slate-500"
                 }`}
               >
-                {p.nickname} {questionVotes[p.id] !== undefined ? `said "${questionVotes[p.id]}"` : "..."}
+                {p.nickname} {questionVotes[p.id] !== undefined ? "submitted" : "..."}
               </span>
             ))}
           </div>
