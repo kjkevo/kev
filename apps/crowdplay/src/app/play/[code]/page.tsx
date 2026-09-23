@@ -18,6 +18,7 @@ import { haptics } from "@/lib/haptics";
 
 const JOIN_ERRORS: Record<string, string> = {
   ROOM_NOT_FOUND: "That room code doesn't exist. Double check with your host.",
+  ROOM_ALREADY_STARTED: "This game already started. Wait for the next one to board.",
   INVALID_NICKNAME: "Enter a name between 1 and 30 characters.",
   NICKNAME_TAKEN: "Someone in this room already picked that name. Try another.",
   INVALID_TEAM_NAME: "Team names need to be between 1 and 30 characters.",

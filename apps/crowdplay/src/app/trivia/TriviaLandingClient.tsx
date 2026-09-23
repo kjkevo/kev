@@ -55,11 +55,9 @@ export default function TriviaLandingClient() {
     );
   }
 
-  // TESTING MODE: normally gated on room.phase === "lobby" so mid-round
-  // joins are blocked for fairness. Relaxed to always-joinable while
-  // solo-testing (the join_room RPC accepts joins at any phase for now
-  // too) -- revert both before real bar service.
-  const canJoinNow = room !== null;
+  // Mid-round joins are blocked so everyone starts on equal footing --
+  // once question 1 is up, Join goes grey and Wait becomes the one to tap.
+  const canJoinNow = room !== null && room.phase === "lobby";
   const isWaiting = room !== null && declinedCode === room.code;
 
   const statusLine =
@@ -105,13 +103,21 @@ export default function TriviaLandingClient() {
         <button
           onClick={() => canJoinNow && router.push(`/play/${room.code}`)}
           disabled={!canJoinNow}
-          className="flex-1 rounded-2xl bg-amber-400 text-black font-bold text-lg py-5 shadow-lg shadow-amber-400/20 active:scale-95 transition disabled:opacity-30 disabled:active:scale-100"
+          className={`flex-1 rounded-2xl font-bold text-lg py-5 transition active:scale-95 disabled:active:scale-100 ${
+            canJoinNow
+              ? "bg-amber-400 text-black shadow-lg shadow-amber-400/20"
+              : "bg-white/5 text-slate-500 cursor-not-allowed"
+          }`}
         >
           Join the Game
         </button>
         <button
           onClick={() => room && setDeclinedCode(room.code)}
-          className="flex-1 rounded-2xl bg-white/10 border border-white/20 font-bold text-lg py-5 backdrop-blur active:scale-95 transition"
+          className={`flex-1 rounded-2xl font-bold text-lg py-5 backdrop-blur transition active:scale-95 ${
+            canJoinNow
+              ? "bg-white/10 border border-white/20"
+              : "bg-white/15 border-2 border-amber-400 shadow-lg shadow-amber-400/40"
+          }`}
         >
           Wait for the Next Game
         </button>
