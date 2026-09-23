@@ -195,6 +195,7 @@ export default function PlayPage() {
   if (notFound)
     return (
       <Center>
+        <BackButton onClick={() => router.push("/")} />
         <h1 className="text-xl font-bold mb-2">That room doesn&apos;t exist</h1>
         <p className="text-slate-400 max-w-xs">Double check the code with your host, or ask if there&#39;s a new one.</p>
       </Center>
@@ -268,13 +269,26 @@ export default function PlayPage() {
               <p className="text-xs text-slate-400 text-left">
                 Your team&apos;s name (needs 3 people total by round start, or you&apos;ll be folded into an open team)
               </p>
-              <input
-                value={newTeamName}
-                onChange={(e) => setNewTeamName(e.target.value)}
-                maxLength={30}
-                placeholder="Team name"
-                className="w-full text-center font-bold bg-white/10 border border-white/10 rounded-xl py-3 px-3 outline-none focus:border-amber-400"
-              />
+              <div className="relative">
+                <input
+                  value={newTeamName}
+                  onChange={(e) => setNewTeamName(e.target.value)}
+                  maxLength={30}
+                  placeholder="Team name"
+                  className="w-full text-center font-bold bg-white/10 border border-white/10 rounded-xl py-3 pr-16 pl-3 outline-none focus:border-amber-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => setNewTeamName(`Team ${randomFunName()}`)}
+                  aria-label="Shuffle team name"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 text-xs font-bold px-2.5 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 active:scale-90 transition"
+                >
+                  Shuffle
+                </button>
+              </div>
+              <p className="text-xs text-slate-500 text-left">
+                Tap Shuffle for another name, or type your own to display it however you like.
+              </p>
               <button type="button" onClick={() => setNewTeamName("")} className="text-xs text-slate-400 self-start">
                 Never mind, join a team instead
               </button>
@@ -310,7 +324,9 @@ export default function PlayPage() {
             Starting in <span className="text-amber-400 font-bold tabular-nums">{scheduledCountdown.label}</span>
           </p>
         ) : (
-          <p className="text-slate-400 mb-1">Waiting for the host to start the game…</p>
+          <p className="text-slate-400 mb-1">
+            This game runs itself. It starts automatically, whether people are here yet or not.
+          </p>
         )}
 
         {room.category_option_a && room.category_option_b && (
@@ -353,7 +369,6 @@ export default function PlayPage() {
           {activePlayers.length} player{activePlayers.length === 1 ? "" : "s"} ready across {teams.length} team
           {teams.length === 1 ? "" : "s"}
         </p>
-        {confirmingQuit && <QuitConfirm onCancel={() => setConfirmingQuit(false)} onConfirm={() => leaveRoom("/trivia")} />}
       </Center>
     );
   }
@@ -361,7 +376,10 @@ export default function PlayPage() {
   if (room.phase === "question" && question) {
     return (
       <main className="min-h-screen bg-slate-950 text-white flex flex-col px-5 py-6 relative">
-        <QuitButton onClick={() => setConfirmingQuit(true)} />
+        <div className="flex items-center justify-between mb-2">
+          <ExitButton onClick={() => setConfirmingQuit(true)} />
+          <TeamBadge name={myTeam?.name ?? creds.teamName} />
+        </div>
         <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden mb-2">
           <div className="h-full bg-amber-400 transition-[width] duration-100 linear" style={{ width: `${countdown.fraction * 100}%` }} />
         </div>
@@ -409,6 +427,10 @@ export default function PlayPage() {
     const myRecap = recap?.filter((r) => r.o_team_id === creds.teamId) ?? [];
     return (
       <Center>
+        <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
+          <ExitButton onClick={() => leaveRoom("/trivia")} />
+          <TeamBadge name={myTeam?.name ?? creds.teamName} />
+        </div>
         <h1 className="text-2xl font-bold mb-1">Final Results</h1>
         <p className="text-slate-400 mb-6">
           {myTeam?.name ?? creds.teamName} finished #{myTeamRank || "-"} with {myTeam?.score ?? 0} points
@@ -479,25 +501,39 @@ function VoteButton({
   );
 }
 
+// Before the round starts there's nothing at stake, so Back just leaves
+// immediately -- no confirmation. It's deliberately a solid, high-contrast
+// pill (not a subtle text link) so it's never in doubt where the exit is.
 function BackButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="absolute top-4 left-4 text-xs text-slate-500 hover:text-slate-300 underline"
+      className="absolute top-4 left-4 z-10 rounded-full bg-white/15 border border-white/30 px-4 py-2 text-sm font-bold text-white hover:bg-white/25 active:scale-95 transition"
     >
       Back
     </button>
   );
 }
 
-function QuitButton({ onClick }: { onClick: () => void }) {
+// Once the round is live, leaving means abandoning your team mid-vote, so
+// this is styled to stand out (and gated by a confirmation) -- same "big,
+// obvious pill" idea as BackButton, just relabeled and colored as a warning.
+function ExitButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="absolute top-4 right-4 text-xs text-slate-500 hover:text-slate-300 underline"
+      className="rounded-full bg-red-500/20 border border-red-500/50 px-4 py-2 text-sm font-bold text-red-300 hover:bg-red-500/30 active:scale-95 transition"
     >
-      Quit game
+      Exit
     </button>
+  );
+}
+
+function TeamBadge({ name }: { name: string }) {
+  return (
+    <span className="rounded-full bg-amber-400/15 border border-amber-400/40 px-4 py-2 text-sm font-bold text-amber-300">
+      {name}
+    </span>
   );
 }
 
@@ -505,14 +541,14 @@ function QuitConfirm({ onCancel, onConfirm }: { onCancel: () => void; onConfirm:
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center px-6 z-50">
       <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 max-w-xs w-full text-center">
-        <p className="font-bold text-lg mb-1">Quit the game?</p>
-        <p className="text-sm text-slate-400 mb-5">You&#39;ll head back to the join/next-game screen.</p>
+        <p className="font-bold text-lg mb-1">Exit the game?</p>
+        <p className="text-sm text-slate-400 mb-5">Your team will be notified, and your spot opens up for someone else.</p>
         <div className="flex gap-3">
           <button onClick={onCancel} className="flex-1 rounded-xl bg-white/10 py-3 font-semibold">
             Cancel
           </button>
           <button onClick={onConfirm} className="flex-1 rounded-xl bg-red-500 py-3 font-semibold">
-            Yes, quit
+            Yes, exit
           </button>
         </div>
       </div>
