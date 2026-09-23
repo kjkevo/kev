@@ -7,22 +7,22 @@ import { useCountdownTo } from "@/hooks/useCountdownTo";
 import { useTotalQuestions } from "@/hooks/useTotalQuestions";
 import { useAllPacks } from "@/hooks/useAllPacks";
 import { useCategoryVoteTally } from "@/hooks/useCategoryVoteTally";
-import type { Player, Room } from "@/lib/types";
+import type { Player, Room, Team } from "@/lib/types";
 
 const CHOICE_STYLES = ["bg-rose-600", "bg-blue-600", "bg-amber-500", "bg-emerald-600"];
 
 /** A compact, read-only live view of a room's progress — used wherever someone is watching without playing. */
-export function LiveGameGlance({ room, players }: { room: Room; players: Player[] }) {
+export function LiveGameGlance({ room, players, teams }: { room: Room; players: Player[]; teams: Team[] }) {
   const question = useCurrentQuestion(room.id, room.current_question_index, room.phase);
   const countdown = useCountdown(room.question_started_at, question?.time_limit_seconds ?? 15);
   const scheduledCountdown = useCountdownTo(room.starts_at);
   const totalQuestions = useTotalQuestions(room.id, room.phase);
   const packs = useAllPacks();
   const voteTally = useCategoryVoteTally(room.phase === "lobby" ? room.id : undefined);
-  // "Active" excludes anyone who's left -- the leaderboard keeps everyone,
+  // "Active" excludes anyone who's left -- the standings keep every team,
   // since a score already earned shouldn't just vanish.
   const activePlayers = useMemo(() => players.filter((p) => !p.left_at), [players]);
-  const sorted = useMemo(() => [...players].sort((a, b) => b.score - a.score), [players]);
+  const sortedTeams = useMemo(() => [...teams].sort((a, b) => b.score - a.score), [teams]);
 
   return (
     <div className="w-full max-w-sm rounded-2xl bg-white/5 border border-white/10 p-5 flex flex-col items-center gap-3">
@@ -45,12 +45,7 @@ export function LiveGameGlance({ room, players }: { room: Room; players: Player[
         </>
       )}
 
-      {/* If every player answers fast, the room advances to "reveal" before
-          this card's own countdown runs out — fine for players (instant
-          feedback on their own phone), but a spectator watching here
-          didn't answer anything, so hold on the question view until the
-          real timer has actually elapsed. */}
-      {(room.phase === "question" || (room.phase === "reveal" && !countdown.expired)) && question && (
+      {room.phase === "question" && question && (
         <>
           <p className="text-xs text-slate-400">
             Question {room.current_question_index + 1} of {totalQuestions || "?"} · {countdown.remainingSeconds}s
@@ -63,36 +58,19 @@ export function LiveGameGlance({ room, players }: { room: Room; players: Player[
               </div>
             ))}
           </div>
+          <p className="text-xs text-slate-500">Results reveal at the end</p>
         </>
       )}
 
-      {room.phase === "reveal" && countdown.expired && question && (
-        <>
-          <p className="font-semibold text-center text-sm">{question.prompt}</p>
-          <div className="grid grid-cols-2 gap-2 w-full">
-            {(question.choices as string[]).map((choice, i) => (
-              <div
-                key={i}
-                className={`${CHOICE_STYLES[i]} rounded-lg py-2 px-2 text-xs font-medium text-center ${
-                  i === room.revealed_correct_index ? "ring-2 ring-white" : "opacity-40"
-                }`}
-              >
-                {choice} {i === room.revealed_correct_index && "(Correct)"}
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-
-      {(room.phase === "leaderboard" || room.phase === "final") && (
+      {room.phase === "final" && (
         <div className="w-full flex flex-col gap-1.5">
-          {room.phase === "final" && <p className="text-sm font-bold text-amber-400 mb-1">Final Results</p>}
-          {sorted.slice(0, 5).map((p, i) => (
-            <div key={p.id} className="flex items-center justify-between bg-white/5 rounded-lg px-3 py-1.5 text-sm">
+          <p className="text-sm font-bold text-amber-400 mb-1">Final Results</p>
+          {sortedTeams.slice(0, 5).map((t, i) => (
+            <div key={t.id} className="flex items-center justify-between bg-white/5 rounded-lg px-3 py-1.5 text-sm">
               <span>
-                #{i + 1} {p.nickname}
+                #{i + 1} {t.name}
               </span>
-              <span className="text-amber-400 font-bold">{p.score}</span>
+              <span className="text-amber-400 font-bold">{t.score}</span>
             </div>
           ))}
         </div>

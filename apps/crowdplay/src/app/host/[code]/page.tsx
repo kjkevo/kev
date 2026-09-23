@@ -13,24 +13,25 @@ import { useTotalQuestions } from "@/hooks/useTotalQuestions";
 import { useAllPacks } from "@/hooks/useAllPacks";
 import { useCategoryVoteTally } from "@/hooks/useCategoryVoteTally";
 import { JoinQRCode } from "@/components/JoinQRCode";
-import { hostKey, type HostCredentials, type Player } from "@/lib/types";
+import { hostKey, type HostCredentials, type Team, type FinalRecapRow } from "@/lib/types";
 
 const CHOICE_STYLES = ["bg-rose-600", "bg-blue-600", "bg-amber-500", "bg-emerald-600"];
 
 export default function HostGamePage() {
   const params = useParams<{ code: string }>();
   const code = params.code?.toUpperCase();
-  const { room, players, loading, notFound } = useRoomRealtime(code ?? null);
+  const { room, players, teams, loading, notFound } = useRoomRealtime(code ?? null);
   const question = useCurrentQuestion(room?.id, room?.current_question_index, room?.phase);
   const countdown = useCountdown(room?.question_started_at ?? null, question?.time_limit_seconds ?? 15);
   const scheduledCountdown = useCountdownTo(room?.starts_at ?? null);
-  const answeredCount = useAnsweredCount(room?.phase === "question" ? question?.id : undefined);
+  const votedCount = useAnsweredCount(room?.phase === "question" ? question?.id : undefined);
   const totalQuestions = useTotalQuestions(room?.id, room?.phase);
   const packs = useAllPacks();
   const voteTally = useCategoryVoteTally(room?.phase === "lobby" ? room?.id : undefined);
 
   const [creds, setCreds] = useState<HostCredentials | null>(null);
   const [busy, setBusy] = useState(false);
+  const [recap, setRecap] = useState<FinalRecapRow[] | null>(null);
 
   useEffect(() => {
     if (!code) return;
@@ -38,12 +39,19 @@ export default function HostGamePage() {
     if (raw) setCreds(JSON.parse(raw));
   }, [code]);
 
+  useEffect(() => {
+    if (room?.phase !== "final" || !room.id || recap) return;
+    supabase.rpc("get_final_recap", { p_room_id: room.id }).then(({ data }) => {
+      if (data) setRecap(data as FinalRecapRow[]);
+    });
+  }, [room?.phase, room?.id, recap]);
+
   // "Active" excludes anyone who's left -- used for the roster/header count
-  // and the answered denominator. The leaderboard keeps everyone (including
-  // anyone who left), since a score already earned shouldn't just vanish.
+  // and the votes-cast denominator. The standings keep every team
+  // (including ones whose members left), since a score already earned
+  // shouldn't just vanish.
   const activePlayers = useMemo(() => players.filter((p) => !p.left_at), [players]);
-  const sortedPlayers = useMemo(() => [...players].sort((a, b) => b.score - a.score), [players]);
-  const sortedActivePlayers = useMemo(() => [...activePlayers].sort((a, b) => b.score - a.score), [activePlayers]);
+  const sortedTeams = useMemo(() => [...teams].sort((a, b) => b.score - a.score), [teams]);
 
   async function act(fn: () => Promise<{ error: Error | null }>) {
     if (!room || !creds || busy) return;
@@ -62,7 +70,7 @@ export default function HostGamePage() {
       return { error };
     });
 
-  const advance = (action: "reveal" | "leaderboard" | "next_question" | "end") =>
+  const advance = (action: "next_question" | "end") =>
     act(async () => {
       const { error } = await supabase.rpc("advance_phase", {
         p_room_id: room!.id,
@@ -107,7 +115,8 @@ export default function HostGamePage() {
           Crowd<span className="text-amber-400">Play</span>
         </span>
         <span className="text-slate-400">
-          {activePlayers.length} player{activePlayers.length === 1 ? "" : "s"}
+          {activePlayers.length} player{activePlayers.length === 1 ? "" : "s"} · {teams.length} team
+          {teams.length === 1 ? "" : "s"}
         </span>
       </header>
 
@@ -134,13 +143,13 @@ export default function HostGamePage() {
             )}
 
             <div className="flex flex-wrap gap-3 justify-center max-w-2xl">
-              {sortedActivePlayers.map((p) => (
-                <PlayerChip key={p.id} player={p} />
+              {teams.map((t) => (
+                <TeamChip key={t.id} team={t} memberCount={activePlayers.filter((p) => p.team_id === t.id).length} />
               ))}
             </div>
             <button
               onClick={start}
-              disabled={busy || sortedActivePlayers.length === 0}
+              disabled={busy || activePlayers.length === 0}
               className="mt-4 rounded-2xl bg-amber-400 text-black font-bold text-2xl px-10 py-5 disabled:opacity-40"
             >
               {room.starts_at && !scheduledCountdown.reached ? "Start Now" : "Start Game"}
@@ -168,62 +177,26 @@ export default function HostGamePage() {
               ))}
             </div>
             <p className="text-slate-400">
-              {answeredCount} of {activePlayers.length} answered
+              {votedCount} of {activePlayers.length} votes cast &middot; results reveal at the end
             </p>
             <button
-              onClick={() => advance("reveal")}
+              onClick={() => advance("next_question")}
               disabled={busy}
               className="rounded-2xl bg-white/10 border border-white/20 font-bold text-xl px-8 py-4"
             >
-              Reveal Answer
+              Next Question
+            </button>
+            <button onClick={() => advance("end")} disabled={busy} className="text-sm text-slate-500 underline">
+              End game now
             </button>
           </>
-        )}
-
-        {room.phase === "reveal" && question && (
-          <>
-            <h2 className="text-3xl font-bold max-w-3xl">{question.prompt}</h2>
-            <div className="grid grid-cols-2 gap-4 w-full max-w-3xl">
-              {(question.choices as string[]).map((choice, i) => (
-                <div
-                  key={i}
-                  className={`${CHOICE_STYLES[i]} rounded-xl py-6 px-4 text-xl font-semibold ${
-                    i === room.revealed_correct_index ? "ring-4 ring-white scale-105" : "opacity-40"
-                  } transition`}
-                >
-                  {choice} {i === room.revealed_correct_index && "(Correct)"}
-                </div>
-              ))}
-            </div>
-            <button
-              onClick={() => advance("leaderboard")}
-              disabled={busy}
-              className="rounded-2xl bg-amber-400 text-black font-bold text-2xl px-10 py-5"
-            >
-              Show Leaderboard
-            </button>
-          </>
-        )}
-
-        {room.phase === "leaderboard" && (
-          <Leaderboard
-            players={sortedPlayers}
-            action={
-              <button
-                onClick={() => advance("next_question")}
-                disabled={busy}
-                className="rounded-2xl bg-amber-400 text-black font-bold text-2xl px-10 py-5"
-              >
-                Next Question
-              </button>
-            }
-          />
         )}
 
         {room.phase === "final" && (
           <>
             <h2 className="text-4xl font-black text-amber-400">Final Results</h2>
-            <Leaderboard players={sortedPlayers} />
+            <TeamStandings teams={sortedTeams} />
+            {recap && <Recap recap={recap} />}
             <Link
               href="/host"
               className="mt-6 inline-block rounded-2xl bg-white/10 border border-white/20 font-bold text-xl px-8 py-4"
@@ -246,32 +219,58 @@ function VoteOption({ name, count }: { name: string | undefined; count: number }
   );
 }
 
-function PlayerChip({ player }: { player: Player }) {
+function TeamChip({ team, memberCount }: { team: Team; memberCount: number }) {
   return (
     <span className="bg-white/10 rounded-full px-4 py-2 text-lg">
-      {player.nickname}
-      {player.team_members && player.team_members.length > 0 && (
-        <span className="text-xs text-slate-400 ml-2">({player.team_members.join(", ")})</span>
-      )}
+      {team.name}
+      <span className="text-xs text-slate-400 ml-2">
+        ({memberCount}/4{team.kind === "self" && memberCount < 3 ? ", needs more" : ""})
+      </span>
     </span>
   );
 }
 
-function Leaderboard({ players, action }: { players: Player[]; action?: React.ReactNode }) {
+function TeamStandings({ teams }: { teams: Team[] }) {
   return (
     <div className="w-full max-w-lg flex flex-col gap-2">
-      {players.slice(0, 10).map((p, i) => (
-        <div key={p.id} className="flex items-center justify-between bg-white/5 rounded-xl px-5 py-3 text-lg">
+      {teams.slice(0, 10).map((t, i) => (
+        <div key={t.id} className="flex items-center justify-between bg-white/5 rounded-xl px-5 py-3 text-lg">
           <span className="font-semibold">
-            #{i + 1} {p.nickname}
-            {p.team_members && p.team_members.length > 0 && (
-              <span className="block text-xs text-slate-400 font-normal">{p.team_members.join(", ")}</span>
-            )}
+            #{i + 1} {t.name}
           </span>
-          <span className="text-amber-400 font-bold">{p.score}</span>
+          <span className="text-amber-400 font-bold">{t.score}</span>
         </div>
       ))}
-      {action && <div className="mt-6">{action}</div>}
+    </div>
+  );
+}
+
+function Recap({ recap }: { recap: FinalRecapRow[] }) {
+  const byQuestion = useMemo(() => {
+    const map = new Map<number, { prompt: string; choices: string[]; correctIndex: number }>();
+    for (const r of recap) {
+      if (!map.has(r.o_question_order)) {
+        map.set(r.o_question_order, { prompt: r.o_prompt, choices: r.o_choices, correctIndex: r.o_correct_index });
+      }
+    }
+    return Array.from(map.entries()).sort((a, b) => a[0] - b[0]);
+  }, [recap]);
+
+  return (
+    <div className="w-full max-w-2xl flex flex-col gap-2 max-h-80 overflow-y-auto text-left">
+      <p className="text-xs uppercase tracking-widest text-slate-500 mb-1">Question recap</p>
+      {byQuestion.map(([order, q]) => (
+        <div key={order} className="rounded-xl bg-white/5 px-5 py-3">
+          <p className="font-semibold mb-1">{q.prompt}</p>
+          <p className="text-sm text-emerald-400 mb-1">Correct: {q.choices[q.correctIndex]}</p>
+          <p className="text-xs text-slate-400">
+            {recap
+              .filter((r) => r.o_question_order === order && r.o_team_name)
+              .map((r) => `${r.o_team_name} (${r.o_team_correct ? "correct" : "wrong"})`)
+              .join(", ")}
+          </p>
+        </div>
+      ))}
     </div>
   );
 }

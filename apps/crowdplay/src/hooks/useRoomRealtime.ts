@@ -2,18 +2,21 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import type { Player, Room } from "@/lib/types";
+import type { Player, Room, Team } from "@/lib/types";
 
 /**
  * Single source of truth for "what's happening in this room right now",
  * shared by both the host screen and every player's phone. Rides on
- * Postgres realtime changes to `rooms` and `players` — if a phone's
- * websocket drops (locked screen, bad wifi) and reconnects, the initial
- * select below re-syncs it rather than leaving it stuck on stale state.
+ * Postgres realtime changes to `rooms`, `players`, and `teams` — if a
+ * phone's websocket drops (locked screen, bad wifi) and reconnects, the
+ * initial select below re-syncs it rather than leaving it stuck on stale
+ * state. Scoring is team-based now, so `teams` (with each team's score) is
+ * as core to "what's happening" as `players` (who's on which team) is.
  */
 export function useRoomRealtime(code: string | null) {
   const [room, setRoom] = useState<Room | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -37,14 +40,34 @@ export function useRoomRealtime(code: string | null) {
       }
       setRoom(roomRow);
 
-      const { data: playerRows } = await supabase
-        .from("players")
-        .select("*")
-        .eq("room_id", roomRow.id)
-        .order("score", { ascending: false });
+      const [{ data: playerRows }, { data: teamRows }] = await Promise.all([
+        supabase.from("players").select("*").eq("room_id", roomRow.id).order("joined_at", { ascending: true }),
+        supabase.from("teams").select("*").eq("room_id", roomRow.id).order("created_at", { ascending: true }),
+      ]);
       if (cancelled) return;
       setPlayers(playerRows ?? []);
+      setTeams(teamRows ?? []);
       setLoading(false);
+
+      const refetchPlayers = () =>
+        supabase
+          .from("players")
+          .select("*")
+          .eq("room_id", roomRow.id)
+          .order("joined_at", { ascending: true })
+          .then(({ data }) => {
+            if (!cancelled) setPlayers(data ?? []);
+          });
+
+      const refetchTeams = () =>
+        supabase
+          .from("teams")
+          .select("*")
+          .eq("room_id", roomRow.id)
+          .order("created_at", { ascending: true })
+          .then(({ data }) => {
+            if (!cancelled) setTeams(data ?? []);
+          });
 
       const channel = supabase
         .channel(`room:${roomRow.id}`)
@@ -59,18 +82,12 @@ export function useRoomRealtime(code: string | null) {
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "players", filter: `room_id=eq.${roomRow.id}` },
-          () => {
-            // Score changes need a re-sort, so just refetch the (small) list
-            // rather than trying to patch-and-resort by hand.
-            supabase
-              .from("players")
-              .select("*")
-              .eq("room_id", roomRow.id)
-              .order("score", { ascending: false })
-              .then(({ data }) => {
-                if (!cancelled) setPlayers(data ?? []);
-              });
-          }
+          refetchPlayers
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "teams", filter: `room_id=eq.${roomRow.id}` },
+          refetchTeams
         )
         .subscribe();
 
@@ -86,5 +103,5 @@ export function useRoomRealtime(code: string | null) {
     };
   }, [code]);
 
-  return { room, players, loading, notFound };
+  return { room, players, teams, loading, notFound };
 }
