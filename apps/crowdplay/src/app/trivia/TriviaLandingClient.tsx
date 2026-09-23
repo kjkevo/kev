@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLiveActiveRoom } from "@/hooks/useLiveActiveRoom";
+import { usePlayerVenue, useVenueId } from "@/lib/venue";
 import { useCountdownTo } from "@/hooks/useCountdownTo";
 import { LiveGameGlance } from "@/components/LiveGameGlance";
 import { supabase } from "@/lib/supabase";
@@ -20,7 +21,9 @@ import { supabase } from "@/lib/supabase";
  * current game either way, so waiting never means staring at a blank page.
  */
 export default function TriviaLandingClient() {
-  const { room, players, teams } = useLiveActiveRoom();
+  const venue = usePlayerVenue();
+  const venueId = useVenueId(venue);
+  const { room, players, teams } = useLiveActiveRoom(venueId);
   const router = useRouter();
   const countdown = useCountdownTo(room?.phase === "lobby" ? room.starts_at : null);
 
@@ -42,7 +45,7 @@ export default function TriviaLandingClient() {
   const [restarting, setRestarting] = useState(false);
   async function restartNow() {
     setRestarting(true);
-    await supabase.rpc("restart_trivia_now");
+    await supabase.rpc("restart_trivia_now", { p_venue: venue ?? "main" });
     setDeclinedCode(null);
     setRestarting(false);
   }

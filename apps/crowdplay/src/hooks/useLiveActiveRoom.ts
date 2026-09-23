@@ -9,8 +9,8 @@ import { useRoomRealtime } from "./useRoomRealtime";
  * teams — the same two-step pattern /screen uses. Shared here so /trivia's
  * waiting view can show the same live picture without re-deriving it.
  */
-export function useLiveActiveRoom() {
-  const activeRoom = useActiveRoom(); // Room | null (none exists) | undefined (loading)
+export function useLiveActiveRoom(venueId: string | null | undefined) {
+  const activeRoom = useActiveRoom(venueId); // Room | null (none exists) | undefined (loading)
   const code = activeRoom?.code ?? null;
   const { room, players, teams } = useRoomRealtime(code);
 

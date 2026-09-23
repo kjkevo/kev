@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLiveActiveBingoRoom } from "@/hooks/useLiveActiveBingoRoom";
+import { usePlayerVenue, useVenueId } from "@/lib/venue";
 import { useCountdownTo } from "@/hooks/useCountdownTo";
 
 /**
@@ -14,7 +15,9 @@ import { useCountdownTo } from "@/hooks/useCountdownTo";
  * glance either way.
  */
 export default function BingoLandingClient() {
-  const { room, players } = useLiveActiveBingoRoom();
+  const venue = usePlayerVenue();
+  const venueId = useVenueId(venue);
+  const { room, players } = useLiveActiveBingoRoom(venueId);
   const router = useRouter();
   const countdown = useCountdownTo(room?.phase === "lobby" ? room.starts_at : null);
 

@@ -11,6 +11,8 @@ import { useAnsweredCount } from "@/hooks/useAnsweredCount";
 import { useAllPacks } from "@/hooks/useAllPacks";
 import { useCategoryVoteTally } from "@/hooks/useCategoryVoteTally";
 import { JoinQRCode } from "@/components/JoinQRCode";
+import { ScreenAgent } from "@/components/ScreenAgent";
+import { useScreenVenue, useVenueId } from "@/lib/venue";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { supabase } from "@/lib/supabase";
 import type { Team, FinalRecapRow } from "@/lib/types";
@@ -26,7 +28,9 @@ import type { Team, FinalRecapRow } from "@/lib/types";
  * just the live question and vote count, then the full recap at the end.
  */
 export default function ScreenClient() {
-  const activeRoom = useActiveRoom();
+  const venue = useScreenVenue();
+  const venueId = useVenueId(venue);
+  const activeRoom = useActiveRoom(venueId);
   const code = activeRoom?.code ?? null;
   const { room, players, teams } = useRoomRealtime(code);
   const question = useCurrentQuestion(room?.id, room?.current_question_index, room?.phase);
@@ -55,11 +59,17 @@ export default function ScreenClient() {
   }, [room?.phase, room?.id]);
 
   if (activeRoom === undefined || !room) {
-    return <FullscreenMessage text="Waiting for the next game…" />;
+    return (
+      <>
+        <ScreenAgent venue={venue} page="/screen" />
+        <FullscreenMessage text="Waiting for the next game…" />
+      </>
+    );
   }
 
   return (
     <main className="min-h-screen bg-slate-950 text-white flex flex-col">
+      <ScreenAgent venue={venue} page="/screen" />
       <header className="flex items-center justify-between px-8 py-4 border-b border-white/10">
         <span className="font-black text-xl">
           Crowd<span className="text-amber-400">Play</span>
@@ -75,7 +85,7 @@ export default function ScreenClient() {
           <>
             <p className="text-2xl text-slate-300">Join at</p>
             <p className="text-5xl font-black tracking-widest text-amber-400">{room.code}</p>
-            <JoinQRCode code={room.code} />
+            <JoinQRCode code={room.code} venue={venue} />
             {room.starts_at && !scheduledCountdown.reached && (
               <p className="text-lg text-slate-300">
                 Starting in <span className="text-amber-400 font-bold tabular-nums">{scheduledCountdown.label}</span>
@@ -96,16 +106,26 @@ export default function ScreenClient() {
                 </div>
               </div>
             )}
-            <div className="flex flex-wrap gap-3 justify-center max-w-2xl">
-              {teams.map((t) => (
-                <span key={t.id} className="bg-white/10 rounded-full px-4 py-2 text-lg">
-                  {t.name}{" "}
-                  <span className="text-sm text-slate-400">
-                    ({activePlayers.filter((p) => p.team_id === t.id).length}/4)
-                  </span>
-                </span>
-              ))}
-            </div>
+            {teams.length > 0 && (
+              <div className="w-full max-w-4xl">
+                <p className="text-sm uppercase tracking-widest text-slate-400 mb-3">
+                  {teams.length} team{teams.length === 1 ? "" : "s"} playing
+                </p>
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 text-left">
+                  {teams.map((t) => {
+                    const members = activePlayers.filter((p) => p.team_id === t.id);
+                    return (
+                      <div key={t.id} className="rounded-2xl bg-white/5 border border-white/10 px-4 py-3">
+                        <p className="font-bold text-lg">
+                          {t.name} <span className="text-sm font-normal text-slate-400">({members.length}/4)</span>
+                        </p>
+                        <p className="text-sm text-slate-300">{members.map((p) => p.nickname).join(", ")}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </>
         )}
 

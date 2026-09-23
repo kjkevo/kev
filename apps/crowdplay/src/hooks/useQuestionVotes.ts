@@ -1,17 +1,42 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import type { PlayerCredentials } from "@/lib/types";
 
 /**
- * Live "who voted for what" for the current question. The typed
- * `answer_text` is meaningless as a correctness signal in team mode (it's
- * never scored per vote), so exposing it live is safe -- only the eventual
- * team majority and whether that was right stays hidden until the final
- * recap.
+ * Live "who on my team voted for what" for the current question. Answer
+ * text isn't readable from the answers table (another team could copy it),
+ * so it comes from get_team_votes, which only returns your own team's votes.
+ * Realtime on answers still fires for inserts/updates (the columns it can
+ * see) and just triggers a refetch; a slow poll covers any missed event.
+ * `refresh` lets the caller refetch right after casting its own vote.
  */
-export function useQuestionVotes(questionId: string | undefined) {
+export function useQuestionVotes(
+  roomId: string | undefined,
+  questionId: string | undefined,
+  creds: PlayerCredentials | null
+) {
   const [votes, setVotes] = useState<Record<string, string>>({}); // player_id -> answer_text
+  const playerId = creds?.playerId;
+  const clientToken = creds?.clientToken;
+
+  const fetchVotes = useCallback(async () => {
+    if (!roomId || !questionId || !playerId || !clientToken) return null;
+    const { data, error } = await supabase.rpc("get_team_votes", {
+      p_room_id: roomId,
+      p_player_id: playerId,
+      p_client_token: clientToken,
+      p_question_id: questionId,
+    });
+    if (error || !data) return null;
+    const next: Record<string, string> = {};
+    for (const row of data) if (row.o_answer_text) next[row.o_player_id] = row.o_answer_text;
+    return next;
+  }, [roomId, questionId, playerId, clientToken]);
+
+  const [refreshKey, setRefreshKey] = useState(0);
+  const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   useEffect(() => {
     if (!questionId) {
@@ -19,34 +44,28 @@ export function useQuestionVotes(questionId: string | undefined) {
       return;
     }
     let cancelled = false;
+    const load = () =>
+      fetchVotes().then((next) => {
+        if (!cancelled && next) setVotes(next);
+      });
 
-    const refresh = () =>
-      supabase
-        .from("answers")
-        .select("player_id, answer_text")
-        .eq("question_id", questionId)
-        .then(({ data }) => {
-          if (cancelled || !data) return;
-          const next: Record<string, string> = {};
-          for (const row of data) if (row.answer_text) next[row.player_id] = row.answer_text;
-          setVotes(next);
-        });
-
-    refresh();
+    load();
     const channel = supabase
       .channel(`votes:${questionId}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "answers", filter: `question_id=eq.${questionId}` },
-        refresh
+        { event: "*", schema: "public", table: "answers", filter: `question_id=eq.${questionId}` },
+        load
       )
       .subscribe();
+    const poll = setInterval(load, 3000);
 
     return () => {
       cancelled = true;
+      clearInterval(poll);
       supabase.removeChannel(channel);
     };
-  }, [questionId]);
+  }, [questionId, fetchVotes, refreshKey]);
 
-  return votes;
+  return { votes, refresh };
 }

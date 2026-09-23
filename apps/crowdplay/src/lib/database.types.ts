@@ -122,6 +122,7 @@ export type Database = {
           winner_player_id: string | null
           winner_pattern: string | null
           retired: boolean
+          venue_id: string
         }
         Insert: {
           id?: string
@@ -136,6 +137,7 @@ export type Database = {
           winner_player_id?: string | null
           winner_pattern?: string | null
           retired?: boolean
+          venue_id?: string
         }
         Update: {
           id?: string
@@ -150,6 +152,7 @@ export type Database = {
           winner_player_id?: string | null
           winner_pattern?: string | null
           retired?: boolean
+          venue_id?: string
         }
         Relationships: []
       }
@@ -202,6 +205,7 @@ export type Database = {
           team_b_score: number
           last_guess: Json | null
           retired: boolean
+          venue_id: string
           last_round_winner: string | null
           last_round_points: number | null
           last_round_was_fast_money: boolean
@@ -240,6 +244,7 @@ export type Database = {
           team_b_score?: number
           last_guess?: Json | null
           retired?: boolean
+          venue_id?: string
           last_round_winner?: string | null
           last_round_points?: number | null
           last_round_was_fast_money?: boolean
@@ -278,6 +283,7 @@ export type Database = {
           team_b_score?: number
           last_guess?: Json | null
           retired?: boolean
+          venue_id?: string
           last_round_winner?: string | null
           last_round_points?: number | null
           last_round_was_fast_money?: boolean
@@ -419,6 +425,27 @@ export type Database = {
         }
         Relationships: []
       }
+      venues: {
+        Row: {
+          id: string
+          slug: string
+          name: string
+          active: boolean
+        }
+        Insert: {
+          id?: string
+          slug: string
+          name: string
+          active?: boolean
+        }
+        Update: {
+          id?: string
+          slug?: string
+          name?: string
+          active?: boolean
+        }
+        Relationships: []
+      }
       rooms: {
         Row: {
           category_option_a: string | null
@@ -432,6 +459,7 @@ export type Database = {
           phase_started_at: string
           question_started_at: string | null
           retired: boolean
+          venue_id: string
           revealed_correct_index: number | null
           starts_at: string | null
           winning_category_id: string | null
@@ -448,6 +476,7 @@ export type Database = {
           phase_started_at?: string
           question_started_at?: string | null
           retired?: boolean
+          venue_id?: string
           revealed_correct_index?: number | null
           starts_at?: string | null
           winning_category_id?: string | null
@@ -464,6 +493,7 @@ export type Database = {
           phase_started_at?: string
           question_started_at?: string | null
           retired?: boolean
+          venue_id?: string
           revealed_correct_index?: number | null
           starts_at?: string | null
           winning_category_id?: string | null
@@ -497,6 +527,37 @@ export type Database = {
       }
     }
     Functions: {
+      checkin_submit: {
+        Args: { p_venue: string; p_name: string; p_contact: string }
+        Returns: { o_checkin_id: string; o_returning: boolean; o_already: boolean }[]
+      }
+      log_qr_scan: {
+        Args: { p_venue: string; p_session_key: string }
+        Returns: undefined
+      }
+      log_client_error: {
+        Args: { p_venue: string; p_source: string; p_message: string; p_detail?: Json }
+        Returns: undefined
+      }
+      screen_heartbeat: {
+        Args: { p_venue: string; p_screen_key: string; p_page: string; p_user_agent?: string }
+        Returns: { o_screen_id: string; o_venue_name: string }[]
+      }
+      get_screen_ads: {
+        Args: { p_venue: string }
+        Returns: {
+          o_sponsor_id: string
+          o_name: string
+          o_headline: string
+          o_tagline: string | null
+          o_accent: string
+          o_slot_type: string
+        }[]
+      }
+      log_ad_play: {
+        Args: { p_venue: string; p_screen_key: string; p_sponsor_id: string; p_seconds: number }
+        Returns: undefined
+      }
       advance_phase: {
         Args: { p_action: string; p_host_secret: string; p_room_id: string }
         Returns: undefined
@@ -514,7 +575,7 @@ export type Database = {
         Returns: { code: string; room_id: string }[]
       }
       create_room: {
-        Args: { p_starts_at?: string }
+        Args: { p_starts_at?: string; p_venue_id?: string }
         Returns: { code: string; host_secret: string; room_id: string }[]
       }
       join_bingo_room: {
@@ -532,6 +593,10 @@ export type Database = {
       cast_team_vote: {
         Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_question_id: string; p_answer_text: string }
         Returns: { o_recorded: boolean }[]
+      }
+      get_team_votes: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_question_id: string }
+        Returns: { o_player_id: string; o_answer_text: string }[]
       }
       get_final_recap: {
         Args: { p_room_id: string }
@@ -573,7 +638,7 @@ export type Database = {
         Returns: undefined
       }
       restart_trivia_now: {
-        Args: Record<PropertyKey, never>
+        Args: { p_venue?: string }
         Returns: { room_id: string; code: string }[]
       }
     }
