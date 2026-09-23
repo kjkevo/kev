@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useLiveActiveRoom } from "@/hooks/useLiveActiveRoom";
 import { useCountdownTo } from "@/hooks/useCountdownTo";
 import { LiveGameGlance } from "@/components/LiveGameGlance";
+import { supabase } from "@/lib/supabase";
 
 /**
  * The entry point for anyone who lands here without a specific room code
@@ -32,6 +33,19 @@ export default function TriviaLandingClient() {
       setDeclinedCode(null);
     }
   }, [room?.code, declinedCode, room]);
+
+  // TESTING MODE: waiting out a full round (10+ minutes) just to get back
+  // to a fresh lobby is too slow to iterate against while testing solo.
+  // REVERT BEFORE REAL BAR SERVICE: remove this along with
+  // restart_trivia_now() -- a random player shouldn't be able to cut a
+  // real game short for everyone else.
+  const [restarting, setRestarting] = useState(false);
+  async function restartNow() {
+    setRestarting(true);
+    await supabase.rpc("restart_trivia_now");
+    setDeclinedCode(null);
+    setRestarting(false);
+  }
 
   if (room === undefined) {
     return (
@@ -72,6 +86,7 @@ export default function TriviaLandingClient() {
               Actually, let me join this one
             </button>
           )}
+          <RestartButton onClick={restartNow} busy={restarting} />
         </div>
       </Shell>
     );
@@ -122,7 +137,24 @@ export default function TriviaLandingClient() {
           Jump in and wait in the lobby with everyone else. No need to time it perfectly.
         </p>
       )}
+
+      <RestartButton onClick={restartNow} busy={restarting} />
     </Shell>
+  );
+}
+
+function RestartButton({ onClick, busy }: { onClick: () => void; busy: boolean }) {
+  return (
+    <div className="mt-6 pt-6 border-t border-white/10 w-full max-w-sm flex flex-col items-center gap-1">
+      <button
+        onClick={onClick}
+        disabled={busy}
+        className="rounded-xl bg-white/10 border border-white/20 px-5 py-2.5 text-sm font-bold text-white hover:bg-white/20 active:scale-95 transition disabled:opacity-40"
+      >
+        {busy ? "Starting…" : "Start New Game"}
+      </button>
+      <p className="text-xs text-indigo-300/50">Testing only: retires the current game and boards a fresh one now.</p>
+    </div>
   );
 }
 

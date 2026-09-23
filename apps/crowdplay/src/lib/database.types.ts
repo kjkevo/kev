@@ -569,6 +569,10 @@ export type Database = {
         Args: { p_host_secret: string; p_room_id: string }
         Returns: undefined
       }
+      restart_trivia_now: {
+        Args: Record<PropertyKey, never>
+        Returns: { room_id: string; code: string }[]
+      }
     }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>
