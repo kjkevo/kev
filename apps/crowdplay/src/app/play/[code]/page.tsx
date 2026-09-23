@@ -118,6 +118,53 @@ export default function PlayPage() {
   const sortedTeams = useMemo(() => [...teams].sort((a, b) => b.score - a.score), [teams]);
   const myTeamRank = creds ? sortedTeams.findIndex((t) => t.id === creds.teamId) + 1 : 0;
 
+  // Kahoot-style podium reveal: 3rd, then 2nd, then a suspense beat, then
+  // 1st -- only after all of that plays out do the rest of the standings,
+  // the recap, and the way back to the menu show up.
+  const topThree = useMemo(() => sortedTeams.slice(0, Math.min(3, sortedTeams.length)), [sortedTeams]);
+  const restTeams = useMemo(() => sortedTeams.slice(topThree.length), [sortedTeams, topThree]);
+  const revealOrder = useMemo(() => [...topThree].reverse(), [topThree]);
+  const [revealCount, setRevealCount] = useState(0);
+  const [suspense, setSuspense] = useState(false);
+  const [showRest, setShowRest] = useState(false);
+
+  useEffect(() => {
+    if (room?.phase !== "final" || revealOrder.length === 0) return;
+    let cancelled = false;
+    const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+    async function run() {
+      await sleep(1000);
+      for (let i = 0; i < revealOrder.length; i++) {
+        if (cancelled) return;
+        const isWinner = i === revealOrder.length - 1;
+        if (isWinner && revealOrder.length > 1) {
+          setSuspense(true);
+          await sleep(2500);
+          if (cancelled) return;
+          setSuspense(false);
+        }
+        setRevealCount(i + 1);
+        await sleep(isWinner ? 900 : 1600);
+      }
+      if (!cancelled) setShowRest(true);
+    }
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [room?.phase, room?.id, revealOrder.length]);
+
+  const revealedPodium = useMemo(
+    () =>
+      revealOrder
+        .map((t, idx) => ({ team: t, rank: topThree.length - idx }))
+        .slice(0, revealCount)
+        .reverse(),
+    [revealOrder, topThree.length, revealCount]
+  );
+
   async function join(e: React.FormEvent) {
     e.preventDefault();
     if (!code || nickname.trim().length === 0) return;
@@ -483,45 +530,78 @@ export default function PlayPage() {
           <ExitButton onClick={() => leaveRoom("/trivia")} />
           <TeamBadge name={myTeam?.name ?? creds.teamName} />
         </div>
-        <h1 className="text-2xl font-bold mb-1">Final Results</h1>
-        <p className="text-slate-400 mb-6">
-          {myTeam?.name ?? creds.teamName} finished #{myTeamRank || "-"} with {myTeam?.score ?? 0} points
-        </p>
-        <div className="w-full max-w-xs flex flex-col gap-2 mb-6">
-          {sortedTeams.slice(0, 5).map((t, i) => (
-            <div
-              key={t.id}
-              className={`flex items-center justify-between rounded-xl px-4 py-2 ${
-                t.id === creds.teamId ? "bg-amber-400 text-black font-bold" : "bg-white/5"
-              }`}
-            >
-              <span>
-                #{i + 1} {t.name}
-              </span>
-              <span>{t.score}</span>
-            </div>
+        <h1 className="text-2xl font-bold mb-6">Final Results</h1>
+
+        <div className="w-full max-w-xs flex flex-col gap-2 mb-2">
+          {revealedPodium.map(({ team, rank }) => (
+            <PodiumRow key={team.id} rank={rank} name={team.name} score={team.score} mine={team.id === creds.teamId} />
           ))}
         </div>
-        {myRecap.length > 0 && (
-          <div className="w-full max-w-xs flex flex-col gap-2 max-h-64 overflow-y-auto">
-            <p className="text-xs uppercase tracking-widest text-slate-500 mb-1">Question recap</p>
-            {myRecap.map((r) => (
-              <div key={r.o_question_order} className="rounded-xl bg-white/5 px-4 py-3 text-left">
-                <p className="text-sm font-semibold mb-1">{r.o_prompt}</p>
-                <p className="text-xs text-slate-400">
-                  Correct: <span className="text-emerald-400">{r.o_correct_answer}</span>
-                </p>
-                <p className="text-xs text-slate-400">
-                  Your team said:{" "}
-                  <span className={r.o_team_correct ? "text-emerald-400" : "text-rose-400"}>
-                    {r.o_team_answer ?? "No vote cast"}
-                  </span>
-                </p>
-              </div>
-            ))}
+
+        {suspense && (
+          <div className="flex flex-col items-center gap-3 py-6 animate-pop-in">
+            <p className="text-sm uppercase tracking-widest text-slate-400">And in 1st place…</p>
+            <div className="flex gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-suspense-pulse" style={{ animationDelay: "0ms" }} />
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-suspense-pulse" style={{ animationDelay: "150ms" }} />
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-suspense-pulse" style={{ animationDelay: "300ms" }} />
+            </div>
           </div>
         )}
-        <p className="text-xs text-slate-500 mt-6 max-w-xs">Thanks for playing! Ask your host about the next round.</p>
+
+        {showRest && (
+          <div className="w-full max-w-xs flex flex-col gap-4 animate-pop-in">
+            <p className="text-slate-400">
+              {myTeam?.name ?? creds.teamName} finished #{myTeamRank || "-"} with {myTeam?.score ?? 0} points
+            </p>
+
+            {restTeams.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <p className="text-xs uppercase tracking-widest text-slate-500 mb-1">Also competing</p>
+                {restTeams.map((t, i) => (
+                  <div
+                    key={t.id}
+                    className={`flex items-center justify-between rounded-xl px-4 py-2 text-sm ${
+                      t.id === creds.teamId ? "bg-amber-400/20 text-amber-300 font-bold" : "bg-white/5 text-slate-300"
+                    }`}
+                  >
+                    <span>
+                      #{topThree.length + i + 1} {t.name}
+                    </span>
+                    <span>{t.score}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {myRecap.length > 0 && (
+              <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
+                <p className="text-xs uppercase tracking-widest text-slate-500 mb-1">Question recap</p>
+                {myRecap.map((r) => (
+                  <div key={r.o_question_order} className="rounded-xl bg-white/5 px-4 py-3 text-left">
+                    <p className="text-sm font-semibold mb-1">{r.o_prompt}</p>
+                    <p className="text-xs text-slate-400">
+                      Correct: <span className="text-emerald-400">{r.o_correct_answer}</span>
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      Your team said:{" "}
+                      <span className={r.o_team_correct ? "text-emerald-400" : "text-rose-400"}>
+                        {r.o_team_answer ?? "No vote cast"}
+                      </span>
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <button
+              onClick={() => leaveRoom("/")}
+              className="rounded-2xl bg-amber-400 text-black font-bold text-lg py-4 active:scale-95 transition"
+            >
+              Back to Games
+            </button>
+          </div>
+        )}
       </Center>
     );
   }
@@ -624,6 +704,28 @@ function CountdownRing({ fraction, seconds }: { fraction: number; seconds: numbe
           {seconds}
         </span>
       </div>
+    </div>
+  );
+}
+
+const RANK_MEDAL: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
+
+function PodiumRow({ rank, name, score, mine }: { rank: number; name: string; score: number; mine: boolean }) {
+  const isWinner = rank === 1;
+  return (
+    <div
+      className={`animate-pop-in flex items-center justify-between rounded-2xl px-4 transition ${
+        isWinner
+          ? "py-5 bg-amber-400 text-black shadow-lg shadow-amber-400/30 border-2 border-amber-300"
+          : mine
+            ? "py-3 bg-amber-400/20 text-amber-300 border border-amber-400/40"
+            : "py-3 bg-white/5 text-white border border-white/10"
+      }`}
+    >
+      <span className={`font-bold ${isWinner ? "text-xl" : "text-base"}`}>
+        {RANK_MEDAL[rank] ?? `#${rank}`} {name}
+      </span>
+      <span className={isWinner ? "text-xl font-black" : "font-semibold"}>{score}</span>
     </div>
   );
 }
