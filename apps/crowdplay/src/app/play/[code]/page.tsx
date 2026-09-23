@@ -456,6 +456,22 @@ export default function PlayPage() {
           {activePlayers.length} player{activePlayers.length === 1 ? "" : "s"} ready across {teams.length} team
           {teams.length === 1 ? "" : "s"}
         </p>
+        <div className="w-full max-w-xs mt-3 flex flex-col gap-2 text-left">
+          {teams.map((t) => {
+            const members = activePlayers.filter((p) => p.team_id === t.id);
+            return (
+              <div
+                key={t.id}
+                className={`rounded-xl px-3 py-2 ${t.id === creds.teamId ? "bg-amber-400/20" : "bg-white/5"}`}
+              >
+                <p className="text-sm font-bold">
+                  {t.name} <span className="font-normal text-slate-400">({members.length}/4)</span>
+                </p>
+                <p className="text-xs text-slate-300">{members.map((p) => p.nickname).join(", ")}</p>
+              </div>
+            );
+          })}
+        </div>
       </Center>
     );
   }

@@ -96,16 +96,26 @@ export default function ScreenClient() {
                 </div>
               </div>
             )}
-            <div className="flex flex-wrap gap-3 justify-center max-w-2xl">
-              {teams.map((t) => (
-                <span key={t.id} className="bg-white/10 rounded-full px-4 py-2 text-lg">
-                  {t.name}{" "}
-                  <span className="text-sm text-slate-400">
-                    ({activePlayers.filter((p) => p.team_id === t.id).length}/4)
-                  </span>
-                </span>
-              ))}
-            </div>
+            {teams.length > 0 && (
+              <div className="w-full max-w-4xl">
+                <p className="text-sm uppercase tracking-widest text-slate-400 mb-3">
+                  {teams.length} team{teams.length === 1 ? "" : "s"} playing
+                </p>
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 text-left">
+                  {teams.map((t) => {
+                    const members = activePlayers.filter((p) => p.team_id === t.id);
+                    return (
+                      <div key={t.id} className="rounded-2xl bg-white/5 border border-white/10 px-4 py-3">
+                        <p className="font-bold text-lg">
+                          {t.name} <span className="text-sm font-normal text-slate-400">({members.length}/4)</span>
+                        </p>
+                        <p className="text-sm text-slate-300">{members.map((p) => p.nickname).join(", ")}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </>
         )}
 
