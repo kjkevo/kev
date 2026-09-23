@@ -15,6 +15,7 @@ import { useQuestionVotes } from "@/hooks/useQuestionVotes";
 import { playerKey, type PlayerCredentials, type FinalRecapRow } from "@/lib/types";
 import { randomFunName } from "@/lib/funNames";
 import { haptics } from "@/lib/haptics";
+import { CategoryIcon } from "@/components/CategoryIcon";
 
 const JOIN_ERRORS: Record<string, string> = {
   ROOM_NOT_FOUND: "That room code doesn't exist. Double check with your host.",
@@ -417,6 +418,7 @@ export default function PlayPage() {
                 <VoteButton
                   key={packId}
                   name={packs[packId]?.name}
+                  icon={packs[packId]?.icon}
                   count={displayTally[packId] ?? 0}
                   selected={myVote === packId}
                   onClick={() => vote(packId)}
@@ -474,7 +476,10 @@ export default function PlayPage() {
         <h2 className="text-xl font-bold mb-6 text-center">{question.prompt}</h2>
         <div className="flex-1 flex flex-col items-center justify-center gap-6">
           <div className="flex flex-col items-center gap-3">
-            <CategoryBadge name={room.winning_category_id ? packs[room.winning_category_id]?.name : undefined} />
+            <CategoryBadge
+              name={room.winning_category_id ? packs[room.winning_category_id]?.name : undefined}
+              icon={room.winning_category_id ? packs[room.winning_category_id]?.icon : undefined}
+            />
             <CountdownRing fraction={countdown.fraction} seconds={countdown.remainingSeconds} />
           </div>
           <form onSubmit={submitAnswer} className="w-full max-w-sm flex flex-col gap-3">
@@ -611,11 +616,13 @@ export default function PlayPage() {
 
 function VoteButton({
   name,
+  icon,
   count,
   selected,
   onClick,
 }: {
   name: string | undefined;
+  icon: string | null | undefined;
   count: number;
   selected: boolean;
   onClick: () => void;
@@ -627,6 +634,7 @@ function VoteButton({
         selected ? "bg-amber-400 text-black border-amber-400" : "bg-white/5 border-white/10"
       }`}
     >
+      <CategoryIcon slug={icon} className={`w-5 h-5 mb-1 ${selected ? "text-black" : "text-amber-400"}`} />
       <div className="font-semibold text-sm">{name ?? "…"}</div>
       <div className={`font-bold text-lg ${selected ? "" : "text-amber-400"}`}>{count} vote{count === 1 ? "" : "s"}</div>
     </button>
@@ -661,10 +669,11 @@ function ExitButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-function CategoryBadge({ name }: { name?: string }) {
+function CategoryBadge({ name, icon }: { name?: string; icon?: string | null }) {
   if (!name) return null;
   return (
-    <span className="rounded-full bg-white/10 border border-white/20 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-slate-300">
+    <span className="flex items-center gap-2 rounded-full bg-white/10 border border-white/20 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-slate-300">
+      <CategoryIcon slug={icon} className="w-4 h-4 text-amber-400" />
       {name}
     </span>
   );

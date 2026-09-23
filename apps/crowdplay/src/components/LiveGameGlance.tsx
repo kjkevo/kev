@@ -7,6 +7,7 @@ import { useCountdownTo } from "@/hooks/useCountdownTo";
 import { useTotalQuestions } from "@/hooks/useTotalQuestions";
 import { useAllPacks } from "@/hooks/useAllPacks";
 import { useCategoryVoteTally } from "@/hooks/useCategoryVoteTally";
+import { CategoryIcon } from "@/components/CategoryIcon";
 import type { Player, Room, Team } from "@/lib/types";
 
 /** A compact, read-only live view of a room's progress — used wherever someone is watching without playing. */
@@ -37,7 +38,12 @@ export function LiveGameGlance({ room, players, teams }: { room: Room; players: 
           {room.category_options && room.category_options.length > 0 && (
             <div className="w-full grid grid-cols-2 gap-2 mt-1">
               {room.category_options.slice(0, 4).map((packId) => (
-                <VoteChip key={packId} name={packs[packId]?.name} count={voteTally[packId] ?? 0} />
+                <VoteChip
+                  key={packId}
+                  name={packs[packId]?.name}
+                  icon={packs[packId]?.icon}
+                  count={voteTally[packId] ?? 0}
+                />
               ))}
             </div>
           )}
@@ -71,9 +77,18 @@ export function LiveGameGlance({ room, players, teams }: { room: Room; players: 
   );
 }
 
-function VoteChip({ name, count }: { name: string | undefined; count: number }) {
+function VoteChip({
+  name,
+  icon,
+  count,
+}: {
+  name: string | undefined;
+  icon: string | null | undefined;
+  count: number;
+}) {
   return (
     <div className="rounded-lg bg-white/5 border border-white/10 px-2 py-1.5 text-center">
+      <CategoryIcon slug={icon} className="w-4 h-4 mx-auto mb-0.5 text-amber-400" />
       <div className="text-xs font-semibold truncate">{name ?? "…"}</div>
       <div className="text-amber-400 font-bold text-sm">{count}</div>
     </div>

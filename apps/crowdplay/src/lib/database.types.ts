@@ -366,18 +366,21 @@ export type Database = {
         Row: {
           category: string | null
           created_at: string
+          icon: string | null
           id: string
           name: string
         }
         Insert: {
           category?: string | null
           created_at?: string
+          icon?: string | null
           id?: string
           name: string
         }
         Update: {
           category?: string | null
           created_at?: string
+          icon?: string | null
           id?: string
           name?: string
         }
