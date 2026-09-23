@@ -11,6 +11,7 @@ import { useAnsweredCount } from "@/hooks/useAnsweredCount";
 import { useAllPacks } from "@/hooks/useAllPacks";
 import { useCategoryVoteTally } from "@/hooks/useCategoryVoteTally";
 import { JoinQRCode } from "@/components/JoinQRCode";
+import { CategoryIcon } from "@/components/CategoryIcon";
 import { supabase } from "@/lib/supabase";
 import type { Team, FinalRecapRow } from "@/lib/types";
 
@@ -85,7 +86,12 @@ export default function ScreenClient() {
                 <p className="text-sm text-slate-400 mb-2">Voting on the category:</p>
                 <div className="grid grid-cols-2 gap-2">
                   {room.category_options.map((packId) => (
-                    <VoteOption key={packId} name={packs[packId]?.name} count={voteTally[packId] ?? 0} />
+                    <VoteOption
+                      key={packId}
+                      name={packs[packId]?.name}
+                      icon={packs[packId]?.icon}
+                      count={voteTally[packId] ?? 0}
+                    />
                   ))}
                 </div>
               </div>
@@ -135,9 +141,18 @@ export default function ScreenClient() {
   );
 }
 
-function VoteOption({ name, count }: { name: string | undefined; count: number }) {
+function VoteOption({
+  name,
+  icon,
+  count,
+}: {
+  name: string | undefined;
+  icon: string | null | undefined;
+  count: number;
+}) {
   return (
     <div className="rounded-xl bg-white/5 border border-white/10 px-4 py-3">
+      <CategoryIcon slug={icon} className="w-5 h-5 mb-1 text-amber-400" />
       <div className="font-semibold">{name ?? "…"}</div>
       <div className="text-amber-400 font-bold text-lg">{count}</div>
     </div>
