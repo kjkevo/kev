@@ -8,10 +8,10 @@ import { useCurrentQuestion } from "@/hooks/useCurrentQuestion";
 import { useCountdown } from "@/hooks/useCountdown";
 import { useCountdownTo } from "@/hooks/useCountdownTo";
 import { useTotalQuestions } from "@/hooks/useTotalQuestions";
-import { useAnsweredCount } from "@/hooks/useAnsweredCount";
 import { useAllPacks } from "@/hooks/useAllPacks";
 import { useCategoryVoteTally } from "@/hooks/useCategoryVoteTally";
 import { useQuestionVotes } from "@/hooks/useQuestionVotes";
+import { useTeamProgress } from "@/hooks/useTeamProgress";
 import { playerKey, type PlayerCredentials, type FinalRecapRow } from "@/lib/types";
 import { randomFunName } from "@/lib/funNames";
 import { haptics } from "@/lib/haptics";
@@ -44,7 +44,6 @@ export default function PlayPage() {
   const countdown = useCountdown(room?.question_started_at ?? null, question?.time_limit_seconds ?? 15);
   const scheduledCountdown = useCountdownTo(room?.starts_at ?? null);
   const totalQuestions = useTotalQuestions(room?.id, room?.phase);
-  const votedCount = useAnsweredCount(room?.phase === "question" ? question?.id : undefined);
   const packs = useAllPacks();
   const voteTally = useCategoryVoteTally(room?.phase === "lobby" ? room?.id : undefined);
   // Realtime confirmation typically lands well under a second, but the tap
@@ -66,7 +65,8 @@ export default function PlayPage() {
   const [myVote, setMyVote] = useState<string | null>(null);
   const [confirmingQuit, setConfirmingQuit] = useState(false);
   const [recap, setRecap] = useState<FinalRecapRow[] | null>(null);
-  const { votes: questionVotes, refresh: refreshVotes } = useQuestionVotes(
+  const teamProgress = useTeamProgress(room?.phase === "question" ? room?.id : undefined, room?.phase === "question" ? question?.id : undefined);
+  const { votes: questionVotes, lock: teamLock, refresh: refreshVotes } = useQuestionVotes(
     room?.id,
     room?.phase === "question" ? question?.id : undefined,
     creds
@@ -232,6 +232,10 @@ export default function PlayPage() {
     });
     setSendingVote(false);
     if (error) {
+      if (/TEAM_LOCKED_IN/.test(error.message)) {
+        refreshVotes();
+        return;
+      }
       setVoteError(
         /TIME_EXPIRED|NOT_ACCEPTING_ANSWERS|STALE_QUESTION/.test(error.message)
           ? "Time ran out before that vote landed, so it didn't count."
@@ -504,7 +508,9 @@ export default function PlayPage() {
     const myVote = questionVotes[creds.playerId];
     const teamOptions = groupTeamVotes(teammates, questionVotes, creds.playerId);
     const waitingOn = teammates.filter((p) => questionVotes[p.id] === undefined).map((p) => (p.id === creds.playerId ? "You" : p.nickname));
+    const locked = teamLock !== null;
     const canVote =
+      !locked &&
       !countdown.expired &&
       !sendingVote &&
       answerText.trim().length > 0 &&
@@ -519,7 +525,7 @@ export default function PlayPage() {
           <div className="h-full bg-amber-400 transition-[width] duration-100 linear" style={{ width: `${countdown.fraction * 100}%` }} />
         </div>
         <p className="text-center text-xs text-slate-500 mb-4">
-          Question {room.current_question_index + 1} of {totalQuestions || "?"} · {votedCount} of {activePlayers.length} votes cast
+          Question {room.current_question_index + 1} of {totalQuestions || "?"}
         </p>
         <h2 className="text-xl font-bold mb-6 text-center">{question.prompt}</h2>
         <div className="flex-1 flex flex-col items-center justify-center gap-6">
@@ -530,6 +536,13 @@ export default function PlayPage() {
             />
             <CountdownRing fraction={countdown.fraction} seconds={countdown.remainingSeconds} />
           </div>
+          {locked ? (
+            <div className="w-full max-w-sm rounded-2xl bg-emerald-500/15 border border-emerald-400/50 px-5 py-4 text-center">
+              <p className="text-xs uppercase tracking-widest text-emerald-300 mb-1">Locked in</p>
+              <p className="text-2xl font-black break-words">{teamLock}</p>
+              <p className="text-sm text-slate-300 mt-1">Everyone agreed, so that&apos;s your team&apos;s answer.</p>
+            </div>
+          ) : (
           <form onSubmit={submitAnswer} className="w-full max-w-sm flex flex-col gap-3">
             <input
               value={answerText}
@@ -548,6 +561,7 @@ export default function PlayPage() {
             </button>
             {voteError && <p className="text-center text-sm text-rose-400">{voteError}</p>}
           </form>
+          )}
         </div>
         <div className="mt-4 w-full max-w-sm mx-auto">
           <p className="text-xs uppercase tracking-widest text-amber-400 mb-2 text-center">Your team&apos;s votes</p>
@@ -558,7 +572,7 @@ export default function PlayPage() {
                   key={o.text}
                   type="button"
                   onClick={() => !o.mine && castVote(o.text)}
-                  disabled={o.mine || countdown.expired || sendingVote}
+                  disabled={o.mine || locked || countdown.expired || sendingVote}
                   className={`flex items-center justify-between gap-3 rounded-xl px-4 py-3 text-left transition active:scale-[0.98] ${
                     o.mine ? "bg-amber-400/20 border border-amber-400/50" : "bg-white/5 border border-white/10 hover:border-white/30"
                   }`}
@@ -570,10 +584,10 @@ export default function PlayPage() {
                         <span className="ml-2 text-[10px] uppercase tracking-wider text-amber-300">Leading</span>
                       )}
                     </span>
-                    <span className="block text-xs text-slate-400 truncate">{o.voters.join(", ")}</span>
+                    <span className="block text-xs text-slate-400 truncate">Voted by {o.voters.join(", ")}</span>
                   </span>
                   <span className="shrink-0 text-xs text-slate-300">
-                    {o.mine ? "Your vote" : countdown.expired ? `${o.voters.length} vote${o.voters.length === 1 ? "" : "s"}` : "Go with this"}
+                    {o.mine ? "Your vote" : locked || countdown.expired ? `${o.voters.length} vote${o.voters.length === 1 ? "" : "s"}` : "Go with this"}
                   </span>
                 </button>
               ))}
@@ -581,14 +595,37 @@ export default function PlayPage() {
           ) : (
             <p className="text-center text-sm text-slate-500">No votes yet. Be the first.</p>
           )}
-          {waitingOn.length > 0 && !countdown.expired && (
+          {waitingOn.length > 0 && !countdown.expired && !locked && (
             <p className="text-center text-xs text-slate-500 mt-2">Still thinking: {waitingOn.join(", ")}</p>
           )}
           <p className="text-center text-xs text-slate-500 mt-3">
-            {countdown.expired
-              ? "Time's up. Your team's answer is whatever got the most votes. Results are revealed at the end of the game."
-              : "Tap a teammate's answer to go with it, or type your own. You can change your vote until time runs out."}
+            {locked
+              ? "Your team is done with this one. Results are revealed at the end of the game."
+              : countdown.expired
+                ? "Time's up. Your team's answer is whatever got the most votes. Results are revealed at the end of the game."
+                : teammates.length > 1
+                  ? "Tap a teammate's answer to go with it, or type your own. When everyone agrees, it locks in. Otherwise the most votes wins when time runs out."
+                  : "Type your answer. You can change it until time runs out."}
           </p>
+          {teamProgress.some((t) => t.id !== creds.teamId) && (
+            <div className="mt-4 border-t border-white/10 pt-3">
+              <p className="text-xs uppercase tracking-widest text-slate-500 mb-2 text-center">Other teams</p>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {teamProgress
+                  .filter((t) => t.id !== creds.teamId)
+                  .map((t) => (
+                    <span
+                      key={t.id}
+                      className={`rounded-full px-3 py-1 text-xs ${
+                        t.locked ? "bg-emerald-500/15 text-emerald-300" : "bg-white/5 text-slate-400"
+                      }`}
+                    >
+                      {t.name} · {t.locked ? "locked in" : `${t.voted}/${t.members} voted`}
+                    </span>
+                  ))}
+              </div>
+            </div>
+          )}
         </div>
         {confirmingQuit && <QuitConfirm onCancel={() => setConfirmingQuit(false)} onConfirm={() => leaveRoom("/trivia")} />}
       </main>

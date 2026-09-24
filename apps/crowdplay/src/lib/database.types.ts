@@ -594,6 +594,14 @@ export type Database = {
         Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_question_id: string; p_answer_text: string }
         Returns: { o_recorded: boolean }[]
       }
+      get_team_progress: {
+        Args: { p_room_id: string; p_question_id: string }
+        Returns: { o_team_id: string; o_team_name: string; o_locked: boolean; o_voted: number; o_members: number }[]
+      }
+      get_team_answer_lock: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_question_id: string }
+        Returns: { o_locked: boolean; o_answer_text: string | null }[]
+      }
       get_team_votes: {
         Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_question_id: string }
         Returns: { o_player_id: string; o_answer_text: string }[]
