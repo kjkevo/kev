@@ -2,6 +2,12 @@
 
 Things that still need doing before real customers (and real money).
 
+## Turn on the Automatic Roller Coaster  ← do this first
+While testing, games go to rest after 20 minutes with nobody playing (so the
+bots and the live feed stop), and wake when someone opens a game page.
+For launch, switch **Automatic Roller Coaster** on in the dashboard
+(Venues, links and test bots) so games run around the clock.
+
 ## Payments (Square)
 Purchases run in **test mode** until these are set. Test purchases show in the
 dashboard marked TEST.
@@ -26,8 +32,7 @@ dashboard marked TEST.
 (`app_secrets.purchase_secret`); they must match.
 
 ## Avatars
-- Send the avatar images, names and prices; they replace the sample
-  premium avatars (👑 Crown $1, 🐉 Dragon $3).
+- Done: 2 free characters (Jungle Scout, Crystal Titan) and 9 paid ones.
 
 ## Testing leftovers to switch off
 - Turn off test bots for each venue (dashboard → Venues, links and test bots).
