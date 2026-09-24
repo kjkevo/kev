@@ -218,12 +218,10 @@ export default function PlayPage() {
 
   function avatarBought() {
     if (!buying) return;
-    const id = buying.id;
+    const name = buying.name;
     setBuying(null);
     refreshAvatars();
-    setAvatarId(id);
-    rememberAvatar(id);
-    setAvatarNote("Unlocked! It's yours on this phone from now on.");
+    setAvatarNote(`${name} unlocked! Tap Equip to wear it. It's yours on this phone from now on.`);
   }
 
   const buySheet = buying && (
