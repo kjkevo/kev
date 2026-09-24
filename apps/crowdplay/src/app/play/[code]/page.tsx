@@ -62,11 +62,13 @@ export default function PlayPage() {
   const [answerText, setAnswerText] = useState("");
   const [sendingVote, setSendingVote] = useState(false);
   const [voteError, setVoteError] = useState<string | null>(null);
+  const [confirmingHint, setConfirmingHint] = useState(false);
+  const [gettingHint, setGettingHint] = useState(false);
   const [myVote, setMyVote] = useState<string | null>(null);
   const [confirmingQuit, setConfirmingQuit] = useState(false);
   const [recap, setRecap] = useState<FinalRecapRow[] | null>(null);
   const teamProgress = useTeamProgress(room?.phase === "question" ? room?.id : undefined, room?.phase === "question" ? question?.id : undefined);
-  const { votes: questionVotes, lock: teamLock, refresh: refreshVotes } = useQuestionVotes(
+  const { votes: questionVotes, lock: teamLock, hint: teamHint, refresh: refreshVotes } = useQuestionVotes(
     room?.id,
     room?.phase === "question" ? question?.id : undefined,
     creds
@@ -86,6 +88,7 @@ export default function PlayPage() {
   useEffect(() => {
     setAnswerText("");
     setVoteError(null);
+    setConfirmingHint(false);
   }, [room?.current_question_index]);
 
   // Reset category vote choice whenever a fresh room (new code) shows up.
@@ -244,6 +247,27 @@ export default function PlayPage() {
       return;
     }
     setAnswerText(t);
+    refreshVotes();
+  }
+
+  // A hint narrows the answer to two options for the whole team, and halves
+  // what a correct answer is worth on this question -- so it's confirmed first.
+  async function requestHint() {
+    if (!room || !creds || !question || gettingHint) return;
+    setGettingHint(true);
+    const { error } = await supabase.rpc("use_team_hint", {
+      p_room_id: room.id,
+      p_player_id: creds.playerId,
+      p_client_token: creds.clientToken,
+      p_question_id: question.id,
+    });
+    setGettingHint(false);
+    setConfirmingHint(false);
+    if (error && !/TEAM_LOCKED_IN/.test(error.message)) {
+      setVoteError(/TIME_EXPIRED|NOT_ACCEPTING_ANSWERS|STALE_QUESTION/.test(error.message)
+        ? "Time ran out before the hint came through."
+        : "Couldn't get a hint just now. Try again.");
+    }
     refreshVotes();
   }
 
@@ -562,6 +586,38 @@ export default function PlayPage() {
             {voteError && <p className="text-center text-sm text-rose-400">{voteError}</p>}
           </form>
           )}
+          {teamHint ? (
+            <div className="w-full max-w-sm rounded-2xl bg-sky-500/10 border border-sky-400/40 px-4 py-3 text-center">
+              <p className="text-xs uppercase tracking-widest text-sky-300 mb-1">Hint · worth 500 points now</p>
+              <p className="font-semibold">{teamHint}</p>
+            </div>
+          ) : !locked && !countdown.expired ? (
+            confirmingHint ? (
+              <div className="w-full max-w-sm rounded-2xl bg-white/5 border border-amber-400/40 px-4 py-3 text-center">
+                <p className="font-semibold mb-1">Use a hint?</p>
+                <p className="text-sm text-slate-300 mb-3">
+                  It narrows the answer down to two. If your team gets it right, you&apos;ll earn 500 points instead of 1,000 on this question. Your whole team will see it.
+                </p>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => setConfirmingHint(false)} className="flex-1 rounded-xl bg-white/10 py-2 font-semibold">
+                    Never mind
+                  </button>
+                  <button
+                    type="button"
+                    onClick={requestHint}
+                    disabled={gettingHint}
+                    className="flex-1 rounded-xl bg-amber-400 text-black py-2 font-bold disabled:opacity-50"
+                  >
+                    {gettingHint ? "Getting hint…" : "Show hint (−500)"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button type="button" onClick={() => setConfirmingHint(true)} className="text-sm text-sky-300 underline underline-offset-4">
+                Stuck? Get a hint (costs half the points)
+              </button>
+            )
+          ) : null}
         </div>
         <div className="mt-4 w-full max-w-sm mx-auto">
           <p className="text-xs uppercase tracking-widest text-amber-400 mb-2 text-center">Your team&apos;s votes</p>
