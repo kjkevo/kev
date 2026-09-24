@@ -577,6 +577,10 @@ export type Database = {
         Args: { p_room_id: string; p_player_id: string; p_client_token: string }
         Returns: { o_preset_id: string; o_text: string; o_left: number }[]
       }
+      touch_activity: {
+        Args: { p_venue: string }
+        Returns: undefined
+      }
       get_shoutouts: {
         Args: { p_room_id: string }
         Returns: { o_id: number; o_text: string; o_nickname: string; o_team_name: string | null; o_emoji: string | null; o_image_url: string | null; o_at: string }[]

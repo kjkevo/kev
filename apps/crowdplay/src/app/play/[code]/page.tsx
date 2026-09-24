@@ -23,6 +23,7 @@ import { AvatarPicker } from "@/components/AvatarPicker";
 import { Shoutouts } from "@/components/Shoutouts";
 import { deviceKey, rememberAvatar, rememberedAvatar } from "@/lib/device";
 import { BuySheet } from "@/components/BuySheet";
+import { SquadInvite } from "@/components/SquadInvite";
 import { usePlayerVenue } from "@/lib/venue";
 
 const JOIN_ERRORS: Record<string, string> = {
@@ -108,7 +109,15 @@ export default function PlayPage() {
 
   useEffect(() => {
     setNickname(randomFunName());
-    const mode = new URLSearchParams(window.location.search).get("mode");
+    const query = new URLSearchParams(window.location.search);
+    const mode = query.get("mode");
+    // Scanned a squad invite: go straight to joining that team.
+    const invitedTeam = query.get("team");
+    if (invitedTeam) {
+      setJoinMode("team");
+      setSelectedTeamId(invitedTeam);
+      return;
+    }
     if (mode === "solo") setJoinMode("solo");
     if (mode === "team") {
       setJoinMode("team");
@@ -459,7 +468,11 @@ export default function PlayPage() {
         ) : (
           <form onSubmit={join} className="flex flex-col gap-3 w-full max-w-xs mt-6">
             <p className="text-xs font-bold uppercase tracking-widest text-amber-400">
-              {joinMode === "team" ? "Playing with a Team" : "Playing Solo"}
+              {joinMode === "team"
+                ? selectedTeamId && teams.find((t) => t.id === selectedTeamId)
+                  ? `Joining ${teams.find((t) => t.id === selectedTeamId)!.name}`
+                  : "Playing with a Team"
+                : "Playing Solo"}
             </p>
             <label className="text-xs text-slate-400 text-left -mb-2">Your name</label>
             <input
@@ -635,11 +648,23 @@ export default function PlayPage() {
           {teammates.length < MIN_TEAM_SIZE && (
             <p className="text-xs text-amber-400/80 mt-2">
               {myTeam?.kind === "self"
-                ? "Get a friend to join your team from their phone, or you'll be moved onto a team with room when the game starts."
+                ? "Have a friend scan your squad QR below, or you'll be moved onto a team with room when the game starts."
                 : "Waiting for a teammate. If nobody joins, you'll be moved onto a team with room when the game starts."}
             </p>
           )}
         </div>
+
+        {myTeam?.kind === "self" && (
+          <div className="mt-4 w-full flex justify-center">
+            <SquadInvite
+              code={room.code}
+              teamId={myTeam.id}
+              teamName={myTeam.name}
+              venue={venueSlug ?? "main"}
+              spotsLeft={MAX_TEAM_SIZE - teammates.length}
+            />
+          </div>
+        )}
 
         <div className="mt-4 w-full flex justify-center">
           <LobbyRoster players={players} teams={teams} avatars={avatarsById} highlightTeamId={creds.teamId} title="Teams so far" />
