@@ -2,6 +2,8 @@
 
 import { useMemo } from "react";
 import type { Player, Team } from "@/lib/types";
+import { Avatar } from "@/components/Avatar";
+import type { AvatarOption } from "@/hooks/useAvatars";
 
 export const MAX_TEAMS = 8;
 export const MAX_TEAM_SIZE = 5;
@@ -26,11 +28,13 @@ export function LobbyRoster({
   players,
   teams,
   highlightTeamId,
+  avatars,
   title = "Who's in",
 }: {
   players: Player[];
   teams: Team[];
   highlightTeamId?: string | null;
+  avatars?: Record<string, AvatarOption>;
   title?: string;
 }) {
   const live = useLiveTeams(players, teams);
@@ -59,7 +63,21 @@ export function LobbyRoster({
                   {members.length}/{MAX_TEAM_SIZE}
                 </span>
               </p>
-              <p className="text-xs text-slate-300">{members.map((p) => p.nickname).join(", ")}</p>
+              {avatars ? (
+                <div className="flex flex-wrap gap-x-3 gap-y-1 mt-0.5">
+                  {members.map((p) => {
+                    const a = p.avatar_id ? avatars[p.avatar_id] : undefined;
+                    return (
+                      <span key={p.id} className="flex items-center gap-1 text-xs text-slate-300">
+                        <Avatar emoji={a?.emoji} imageUrl={a?.imageUrl} size={18} />
+                        {p.nickname}
+                      </span>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-300">{members.map((p) => p.nickname).join(", ")}</p>
+              )}
             </div>
           ))}
         </div>

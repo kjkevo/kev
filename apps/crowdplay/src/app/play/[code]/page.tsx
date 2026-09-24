@@ -18,6 +18,10 @@ import { haptics } from "@/lib/haptics";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { LobbyRoster, useLiveTeams, MAX_TEAMS, MAX_TEAM_SIZE, MIN_TEAM_SIZE } from "@/components/LobbyRoster";
 import { useTriviaQueue, roundsToWaitLabel, currentGameProgress } from "@/hooks/useTriviaQueue";
+import { useAvatars, type AvatarOption } from "@/hooks/useAvatars";
+import { AvatarPicker } from "@/components/AvatarPicker";
+import { Shoutouts } from "@/components/Shoutouts";
+import { deviceKey, rememberAvatar, rememberedAvatar } from "@/lib/device";
 
 const JOIN_ERRORS: Record<string, string> = {
   ROOM_NOT_FOUND: "That room code doesn't exist. Double check with your host.",
@@ -63,6 +67,9 @@ export default function PlayPage() {
   const queueProgress = currentGameProgress(myQueueSpot);
 
   const [creds, setCreds] = useState<PlayerCredentials | null>(null);
+  const { avatars, byId: avatarsById } = useAvatars();
+  const [avatarId, setAvatarId] = useState<string | null>(null);
+  const [avatarNote, setAvatarNote] = useState<string | null>(null);
   const [nickname, setNickname] = useState("");
   // How they want to play: pick on the join screen, or arrive with
   // ?mode=solo / ?mode=team from the "wait for the next game" screen.
@@ -85,6 +92,15 @@ export default function PlayPage() {
     room?.phase === "question" ? question?.id : undefined,
     creds
   );
+
+  // Start from the avatar this phone used last time, else a random free one.
+  useEffect(() => {
+    if (avatarId || avatars.length === 0) return;
+    const last = rememberedAvatar();
+    const usable = avatars.filter((a) => a.owned);
+    const pick = usable.find((a) => a.id === last) ?? usable[Math.floor(Math.random() * usable.length)];
+    if (pick) setAvatarId(pick.id);
+  }, [avatars, avatarId]);
 
   useEffect(() => {
     setNickname(randomFunName());
@@ -190,6 +206,26 @@ export default function PlayPage() {
     [revealOrder, topThree.length, revealCount]
   );
 
+  // Premium avatars: buying is wired in with payments; until then, say so.
+  function buyAvatar(a: AvatarOption) {
+    setAvatarNote(`${a.name} is a premium avatar. Buying isn't open yet.`);
+  }
+
+  async function changeAvatar(id: string) {
+    setAvatarId(id);
+    rememberAvatar(id);
+    setAvatarNote(null);
+    if (!creds) return;
+    const { error } = await supabase.rpc("set_player_avatar", {
+      p_room_id: creds.roomId,
+      p_player_id: creds.playerId,
+      p_client_token: creds.clientToken,
+      p_avatar_id: id,
+      p_device_key: deviceKey(),
+    });
+    if (error) setAvatarNote("Couldn't switch avatars. Try again.");
+  }
+
   async function join(e: React.FormEvent) {
     e.preventDefault();
     if (!code || nickname.trim().length === 0) return;
@@ -229,6 +265,16 @@ export default function PlayPage() {
     };
     localStorage.setItem(playerKey(code), JSON.stringify(c));
     setCreds(c);
+    if (avatarId) {
+      rememberAvatar(avatarId);
+      supabase.rpc("set_player_avatar", {
+        p_room_id: c.roomId,
+        p_player_id: c.playerId,
+        p_client_token: c.clientToken,
+        p_avatar_id: avatarId,
+        p_device_key: deviceKey(),
+      });
+    }
   }
 
   async function vote(packId: string) {
@@ -353,7 +399,7 @@ export default function PlayPage() {
             "Ready to play?"
           )}
         </p>
-        <LobbyRoster players={players} teams={teams} title="Who's in so far" />
+        <LobbyRoster players={players} teams={teams} avatars={avatarsById} title="Who's in so far" />
         {joinMode === "choose" ? (
           <div className="flex flex-col gap-3 w-full max-w-xs mt-6">
             <p className="text-sm text-slate-300 mb-1">How do you want to play?</p>
@@ -376,6 +422,10 @@ export default function PlayPage() {
               Play with a Team
               <span className="block text-xs font-medium text-amber-300/70">Start a team or join a friend&apos;s</span>
             </button>
+            <div className="mt-3">
+              <AvatarPicker avatars={avatars} selectedId={avatarId} onSelect={changeAvatar} onBuy={buyAvatar} />
+              {avatarNote && <p className="text-xs text-amber-300/80 mt-2">{avatarNote}</p>}
+            </div>
           </div>
         ) : (
           <form onSubmit={join} className="flex flex-col gap-3 w-full max-w-xs mt-6">
@@ -451,6 +501,8 @@ export default function PlayPage() {
               </div>
             )}
 
+            <AvatarPicker avatars={avatars} selectedId={avatarId} onSelect={changeAvatar} onBuy={buyAvatar} />
+            {avatarNote && <p className="text-xs text-amber-300/80">{avatarNote}</p>}
             {joinError && <p className="text-red-400 text-sm">{joinError}</p>}
             <button
               disabled={
@@ -560,7 +612,14 @@ export default function PlayPage() {
         </div>
 
         <div className="mt-4 w-full flex justify-center">
-          <LobbyRoster players={players} teams={teams} highlightTeamId={creds.teamId} title="Teams so far" />
+          <LobbyRoster players={players} teams={teams} avatars={avatarsById} highlightTeamId={creds.teamId} title="Teams so far" />
+        </div>
+        <div className="mt-4 w-full flex justify-center">
+          <Shoutouts roomId={room.id} creds={creds} />
+        </div>
+        <div className="mt-4 w-full flex flex-col items-center">
+          <AvatarPicker avatars={avatars} selectedId={me?.avatar_id ?? avatarId} onSelect={changeAvatar} onBuy={buyAvatar} />
+          {avatarNote && <p className="text-xs text-amber-300/80 mt-2">{avatarNote}</p>}
         </div>
       </Center>
     );
@@ -720,6 +779,9 @@ export default function PlayPage() {
               </div>
             </div>
           )}
+          <div className="mt-4 flex justify-center">
+            <Shoutouts roomId={room.id} creds={creds} compact />
+          </div>
         </div>
         {confirmingQuit && <QuitConfirm onCancel={() => setConfirmingQuit(false)} onConfirm={() => leaveRoom("/trivia")} />}
       </main>
