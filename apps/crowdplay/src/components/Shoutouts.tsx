@@ -5,19 +5,20 @@ import { supabase } from "@/lib/supabase";
 import { Avatar } from "@/components/Avatar";
 import type { PlayerCredentials } from "@/lib/types";
 
-type Preset = { id: string; text: string; price_cents: number };
+type Preset = { o_preset_id: string; o_text: string; o_left: number };
 type Shoutout = { o_id: number; o_text: string; o_nickname: string; o_team_name: string | null; o_emoji: string | null; o_image_url: string | null };
 
 const ERRORS: Record<string, string> = {
-  SHOUTOUT_TOO_SOON: "One shoutout every 20 seconds. Hang on a moment.",
+  SHOUTOUT_TOO_SOON: "Give it 10 seconds between shoutouts.",
   SHOUTOUTS_OFF: "Shoutouts are switched off here right now.",
-  SHOUTOUT_LOCKED: "That one isn't free.",
+  SHOUTOUT_USED_UP: "You've used that one 3 times this game.",
 };
 
 /**
  * The shoutout strip on a player's phone: the latest shoutouts from the
- * room, and a row of free presets to send. Sent shoutouts appear for
- * everyone after a 10-second delay (and on the venue's /qr carousel).
+ * room, and the same 5 presets for everyone (encouraging to teasing), each
+ * usable 3 times per game. Sent shoutouts appear for everyone after a
+ * 10-second delay (and on the venue's /qr carousel).
  */
 export function Shoutouts({ roomId, creds, compact = false }: { roomId: string; creds: PlayerCredentials; compact?: boolean }) {
   const [presets, setPresets] = useState<Preset[]>([]);
@@ -26,13 +27,13 @@ export function Shoutouts({ roomId, creds, compact = false }: { roomId: string; 
   const [note, setNote] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
 
-  useEffect(() => {
+  const loadPresets = useCallback(() => {
     supabase
-      .from("shoutout_presets")
-      .select("id, text, price_cents")
-      .order("sort")
+      .rpc("my_shoutouts_left", { p_room_id: roomId, p_player_id: creds.playerId, p_client_token: creds.clientToken })
       .then(({ data }) => data && setPresets(data));
-  }, []);
+  }, [roomId, creds.playerId, creds.clientToken]);
+
+  useEffect(loadPresets, [loadPresets]);
 
   const refresh = useCallback(() => {
     supabase.rpc("get_shoutouts", { p_room_id: roomId }).then(({ data }) => data && setFeed(data));
@@ -54,6 +55,7 @@ export function Shoutouts({ roomId, creds, compact = false }: { roomId: string; 
       p_preset_id: presetId,
     });
     setSending(false);
+    loadPresets();
     if (error) {
       const key = Object.keys(ERRORS).find((k) => error.message.includes(k));
       setNote(key ? ERRORS[key] : "Couldn't send that. Try again.");
@@ -75,25 +77,24 @@ export function Shoutouts({ roomId, creds, compact = false }: { roomId: string; 
           onClick={() => setOpen((o) => !o)}
           className="text-xs font-bold rounded-full bg-amber-400/15 text-amber-300 px-3 py-1 active:scale-95"
         >
-          {open ? "Close" : "📣 Send one"}
+          {open ? "Close" : "Send a shoutout"}
         </button>
       </div>
 
       {open && (
         <div className="flex flex-wrap gap-2 mt-2">
-          {presets
-            .filter((p) => p.price_cents === 0)
-            .map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                disabled={sending}
-                onClick={() => send(p.id)}
-                className="rounded-full bg-white/10 px-3 py-1.5 text-sm active:scale-95 disabled:opacity-40"
-              >
-                {p.text}
-              </button>
-            ))}
+          {presets.map((p) => (
+            <button
+              key={p.o_preset_id}
+              type="button"
+              disabled={sending || p.o_left <= 0}
+              onClick={() => send(p.o_preset_id)}
+              className="rounded-full bg-white/10 px-3 py-1.5 text-sm active:scale-95 disabled:opacity-40"
+            >
+              {p.o_text}
+              <span className="ml-1.5 text-[11px] text-slate-400">{p.o_left > 0 ? `${p.o_left} left` : "used up"}</span>
+            </button>
+          ))}
         </div>
       )}
       {note && <p className="text-xs text-amber-300/90 mt-2">{note}</p>}
