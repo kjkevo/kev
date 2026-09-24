@@ -459,6 +459,8 @@ export type Database = {
           phase_started_at: string
           question_started_at: string | null
           retired: boolean
+          queued: boolean
+          queued_at: string | null
           venue_id: string
           revealed_correct_index: number | null
           starts_at: string | null
@@ -476,6 +478,8 @@ export type Database = {
           phase_started_at?: string
           question_started_at?: string | null
           retired?: boolean
+          queued?: boolean
+          queued_at?: string | null
           venue_id?: string
           revealed_correct_index?: number | null
           starts_at?: string | null
@@ -493,6 +497,8 @@ export type Database = {
           phase_started_at?: string
           question_started_at?: string | null
           retired?: boolean
+          queued?: boolean
+          queued_at?: string | null
           venue_id?: string
           revealed_correct_index?: number | null
           starts_at?: string | null
@@ -530,6 +536,20 @@ export type Database = {
       checkin_submit: {
         Args: { p_venue: string; p_name: string; p_contact: string }
         Returns: { o_checkin_id: string; o_returning: boolean; o_already: boolean }[]
+      }
+      trivia_queue: {
+        Args: { p_venue_id: string }
+        Returns: {
+          o_room_id: string
+          o_code: string
+          o_rounds_to_wait: number
+          o_players: number
+          o_teams: number
+          o_full: boolean
+          o_current_phase: string | null
+          o_current_question: number | null
+          o_current_total: number | null
+        }[]
       }
       log_qr_scan: {
         Args: { p_venue: string; p_session_key: string }

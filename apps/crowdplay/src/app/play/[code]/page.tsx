@@ -17,6 +17,7 @@ import { randomFunName } from "@/lib/funNames";
 import { haptics } from "@/lib/haptics";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { LobbyRoster, useLiveTeams, MAX_TEAMS, MAX_TEAM_SIZE, MIN_TEAM_SIZE } from "@/components/LobbyRoster";
+import { useTriviaQueue, roundsToWaitLabel, currentGameProgress } from "@/hooks/useTriviaQueue";
 
 const JOIN_ERRORS: Record<string, string> = {
   ROOM_NOT_FOUND: "That room code doesn't exist. Double check with your host.",
@@ -30,7 +31,7 @@ const JOIN_ERRORS: Record<string, string> = {
   TEAM_LOCKED: "That team's round already started. Join a different one.",
   TEAM_FULL: "That team is already full (5 max). Join a different one.",
   TOO_MANY_TEAMS: "All 8 team spots are taken. Join a team with room, or play solo and we'll place you.",
-  ROOM_FULL: "This game is full (8 teams of 5). Catch the next one.",
+  ROOM_FULL: "This game is full (8 teams of 5). Sending you to the next one…",
 };
 
 function friendlyError(raw: string) {
@@ -54,6 +55,12 @@ export default function PlayPage() {
   // let the next real tally (which will already agree) replace it.
   const [displayTally, setDisplayTally] = useState<Record<string, number>>(voteTally);
   useEffect(() => setDisplayTally(voteTally), [voteTally]);
+
+  // Lobbies lined up behind the game on now: where this room sits in line
+  // (if it's queued), and where to send someone when this one is full.
+  const queue = useTriviaQueue(room?.phase === "lobby" ? room.venue_id : null);
+  const myQueueSpot = room?.queued ? queue.find((q) => q.o_room_id === room.id) : undefined;
+  const queueProgress = currentGameProgress(myQueueSpot);
 
   const [creds, setCreds] = useState<PlayerCredentials | null>(null);
   const [nickname, setNickname] = useState("");
@@ -206,6 +213,11 @@ export default function PlayPage() {
     setJoining(false);
     if (error || !data?.[0]) {
       setJoinError(friendlyError(error?.message ?? ""));
+      // Full: go straight to the next game in line, keeping their choice.
+      const next = queue.find((q) => !q.o_full && q.o_code !== code);
+      if (error?.message.includes("ROOM_FULL") && next) {
+        setTimeout(() => router.push(`/play/${next.o_code}?mode=${joinMode === "team" ? "team" : "solo"}`), 1500);
+      }
       return;
     }
     const c: PlayerCredentials = {
@@ -328,7 +340,12 @@ export default function PlayPage() {
         <BackButton onClick={() => leaveRoom("/")} />
         <h1 className="text-2xl font-bold mb-1">Room {room.code}</h1>
         <p className="text-slate-400 mb-6">
-          {room.phase === "lobby" && room.starts_at && !scheduledCountdown.reached ? (
+          {room.queued ? (
+            <>
+              <span className="text-amber-400 font-bold">Next game. {roundsToWaitLabel(myQueueSpot?.o_rounds_to_wait ?? 1)}</span>
+              {queueProgress && <span className="block text-xs mt-1">{queueProgress}</span>}
+            </>
+          ) : room.phase === "lobby" && room.starts_at && !scheduledCountdown.reached ? (
             <>
               Game starts in <span className="text-amber-400 font-bold tabular-nums">{scheduledCountdown.label}</span>
             </>
@@ -475,6 +492,16 @@ export default function PlayPage() {
         <BackButton onClick={() => leaveRoom("/")} />
         <h1 className="text-2xl font-bold mb-1">You&apos;re on {myTeam?.name ?? creds.teamName}!</h1>
         <p className="text-slate-400 mb-4">{me?.nickname}</p>
+        {room.queued && (
+          <div className="w-full max-w-xs mb-4 rounded-2xl bg-sky-500/10 border border-sky-400/40 px-4 py-3">
+            <p className="font-bold text-sky-200">You&apos;re in the next game</p>
+            <p className="text-sm text-slate-300">{roundsToWaitLabel(myQueueSpot?.o_rounds_to_wait ?? 1)}.</p>
+            {queueProgress && <p className="text-xs text-slate-400 mt-1">{queueProgress}.</p>}
+            <p className="text-xs text-slate-400 mt-1">
+              Keep this page open. The countdown starts here the moment the game before yours ends.
+            </p>
+          </div>
+        )}
 
         {room.category_options && room.category_options.length > 0 ? (
           <div className="w-full max-w-xs rounded-2xl bg-amber-400/10 border border-amber-400/30 p-4">
@@ -486,7 +513,9 @@ export default function PlayPage() {
               </p>
             ) : (
               <p className="text-xs text-slate-400 mb-3">
-                This game runs itself. It starts automatically, whether people are here yet or not.
+                {room.queued
+                  ? "Voting stays open until your game starts."
+                  : "This game runs itself. It starts automatically, whether people are here yet or not."}
               </p>
             )}
             <div className="grid grid-cols-2 gap-2">

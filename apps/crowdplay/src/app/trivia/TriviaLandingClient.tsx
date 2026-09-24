@@ -8,6 +8,9 @@ import { usePlayerVenue, useVenueId } from "@/lib/venue";
 import { useCountdownTo } from "@/hooks/useCountdownTo";
 import { LiveGameGlance } from "@/components/LiveGameGlance";
 import { LobbyRoster } from "@/components/LobbyRoster";
+import { useRoomRealtime } from "@/hooks/useRoomRealtime";
+import { useTriviaQueue, roundsToWaitLabel, currentGameProgress } from "@/hooks/useTriviaQueue";
+import type { Player, Team } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
 
 /**
@@ -27,6 +30,11 @@ export default function TriviaLandingClient() {
   const { room, players, teams } = useLiveActiveRoom(venueId);
   const router = useRouter();
   const countdown = useCountdownTo(room?.phase === "lobby" ? room.starts_at : null);
+  // Busy nights: games lined up behind this one that people can sign up
+  // for now. The first one with room is where "the next game" goes.
+  const queue = useTriviaQueue(venueId);
+  const nextGame = queue.find((q) => !q.o_full);
+  const nextLive = useRoomRealtime(nextGame?.o_code ?? null);
 
   // "Waiting" is a decision tied to a specific room's code, not a global
   // flag — the moment the active room changes (this one finished, a new
@@ -66,46 +74,57 @@ export default function TriviaLandingClient() {
 
   // Mid-round joins are blocked so everyone starts on equal footing --
   // once question 1 is up, Join goes grey and Wait becomes the one to tap.
-  const canJoinNow = room !== null && room.phase === "lobby";
+  const lobbyFull = room !== null && room.phase === "lobby" && players.filter((p) => !p.left_at).length >= 40;
+  const canJoinNow = room !== null && room.phase === "lobby" && !lobbyFull;
   const isWaiting = room !== null && declinedCode === room.code;
 
   const statusLine =
     room === null
       ? { text: "No game running right now" }
       : room.phase === "lobby"
-        ? { text: "A game is boarding now" }
+        ? { text: lobbyFull ? "This game is full" : "A game is boarding now" }
         : { text: "A round is happening right now" };
 
   if (waitedForNext && canJoinNow && room) {
     return (
       <Shell>
-        <div className="flex flex-col items-center gap-3">
-          <h2 className="text-xl font-bold">A new game is boarding</h2>
-          {room.starts_at && !countdown.reached && (
-            <p className="text-4xl font-black text-amber-400 tabular-nums">{countdown.label}</p>
-          )}
-          <p className="text-indigo-200 max-w-xs text-sm">How do you want to play?</p>
-        </div>
-        <div className="flex flex-col gap-3 w-full max-w-sm">
-          <button
-            onClick={() => router.push(`/play/${room.code}?mode=solo`)}
-            className="rounded-2xl bg-amber-400 text-black font-bold text-lg py-5 shadow-lg shadow-amber-400/20 active:scale-95 transition"
-          >
-            Play Solo
-            <span className="block text-xs font-medium text-black/70">We&apos;ll put you on a team (2 to 5 people)</span>
-          </button>
-          <button
-            onClick={() => router.push(`/play/${room.code}?mode=team`)}
-            className="rounded-2xl border-2 border-amber-400 bg-amber-400/10 text-amber-300 font-bold text-lg py-5 active:scale-95 transition"
-          >
-            Create a Team
-            <span className="block text-xs font-medium text-amber-300/70">Get a team name, bring 1 to 4 friends</span>
-          </button>
-        </div>
-        <LobbyRoster players={players} teams={teams} />
-        <button onClick={() => setWaitedForNext(false)} className="text-xs text-indigo-300/70 underline">
-          Not yet
-        </button>
+        <ChoiceScreen
+          title="A new game is boarding"
+          code={room.code}
+          players={players}
+          teams={teams}
+          onBack={() => setWaitedForNext(false)}
+          timing={
+            room.starts_at && !countdown.reached ? (
+              <p className="text-4xl font-black text-amber-400 tabular-nums">{countdown.label}</p>
+            ) : null
+          }
+        />
+      </Shell>
+    );
+  }
+
+  // Waiting for the next game, and it's already open for sign-ups.
+  if (isWaiting && nextGame) {
+    const progress = currentGameProgress(nextGame);
+    return (
+      <Shell>
+        <ChoiceScreen
+          title="Get in the next game"
+          code={nextGame.o_code}
+          players={nextLive.players}
+          teams={nextLive.teams}
+          onBack={() => setDeclinedCode(null)}
+          timing={
+            <div className="flex flex-col items-center gap-1">
+              <p className="text-2xl font-black text-amber-400">{roundsToWaitLabel(nextGame.o_rounds_to_wait)}</p>
+              {progress && <p className="text-xs text-indigo-300/70">{progress}</p>}
+              <p className="text-xs text-indigo-300/70 max-w-xs">
+                Sign up now and you&apos;ll be in its lobby. Its countdown starts when the game before it ends.
+              </p>
+            </div>
+          }
+        />
       </Shell>
     );
   }
@@ -163,7 +182,10 @@ export default function TriviaLandingClient() {
               : "bg-white/15 border-2 border-amber-400 shadow-lg shadow-amber-400/40"
           }`}
         >
-          Wait for the Next Game
+          {!canJoinNow && nextGame ? "Join the Next Game" : "Wait for the Next Game"}
+          {!canJoinNow && nextGame && (
+            <span className="block text-xs font-medium text-indigo-200/80">{roundsToWaitLabel(nextGame.o_rounds_to_wait)}</span>
+          )}
         </button>
       </div>
 
@@ -171,7 +193,11 @@ export default function TriviaLandingClient() {
         <p className="text-xs text-indigo-300/60 max-w-xs">
           {room === null
             ? "Ask your bartender when trivia kicks off, or just wait. A new game boards automatically."
-            : "Mid-round joins aren't allowed so everyone starts on equal footing. A new game boards right after this one wraps up."}
+            : lobbyFull
+              ? "All 8 teams are full for this one. Sign up for the next game and you'll play right after."
+              : nextGame
+                ? "Mid-round joins aren't allowed so everyone starts on equal footing. Sign up for the next game now and you'll be in its lobby when this one ends."
+                : "Mid-round joins aren't allowed so everyone starts on equal footing. A new game boards right after this one wraps up."}
         </p>
       )}
 
@@ -193,6 +219,53 @@ export default function TriviaLandingClient() {
 
       <RestartButton onClick={restartNow} busy={restarting} />
     </Shell>
+  );
+}
+
+function ChoiceScreen({
+  title,
+  code,
+  players,
+  teams,
+  timing,
+  onBack,
+}: {
+  title: string;
+  code: string;
+  players: Player[];
+  teams: Team[];
+  timing: React.ReactNode;
+  onBack: () => void;
+}) {
+  const router = useRouter();
+  return (
+    <>
+      <div className="flex flex-col items-center gap-3">
+        <h2 className="text-xl font-bold">{title}</h2>
+        {timing}
+        <p className="text-indigo-200 max-w-xs text-sm">How do you want to play?</p>
+      </div>
+      <div className="flex flex-col gap-3 w-full max-w-sm">
+        <button
+          onClick={() => router.push(`/play/${code}?mode=solo`)}
+          className="rounded-2xl bg-amber-400 text-black font-bold text-lg py-5 shadow-lg shadow-amber-400/20 active:scale-95 transition"
+        >
+          Play Solo
+          <span className="block text-xs font-medium text-black/70">We&apos;ll put you on a team (2 to 5 people)</span>
+        </button>
+        <button
+          onClick={() => router.push(`/play/${code}?mode=team`)}
+          className="rounded-2xl border-2 border-amber-400 bg-amber-400/10 text-amber-300 font-bold text-lg py-5 active:scale-95 transition"
+        >
+          Create a Team
+          <span className="block text-xs font-medium text-amber-300/70">Get a team name, bring 1 to 4 friends</span>
+        </button>
+      </div>
+      <LobbyRoster players={players} teams={teams} />
+      <button onClick={onBack} className="text-xs text-indigo-300/70 underline">
+        Not yet
+      </button>
+    </>
   );
 }
 
