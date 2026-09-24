@@ -22,6 +22,8 @@ import { useAvatars, type AvatarOption } from "@/hooks/useAvatars";
 import { AvatarPicker } from "@/components/AvatarPicker";
 import { Shoutouts } from "@/components/Shoutouts";
 import { deviceKey, rememberAvatar, rememberedAvatar } from "@/lib/device";
+import { BuySheet } from "@/components/BuySheet";
+import { usePlayerVenue } from "@/lib/venue";
 
 const JOIN_ERRORS: Record<string, string> = {
   ROOM_NOT_FOUND: "That room code doesn't exist. Double check with your host.",
@@ -67,7 +69,9 @@ export default function PlayPage() {
   const queueProgress = currentGameProgress(myQueueSpot);
 
   const [creds, setCreds] = useState<PlayerCredentials | null>(null);
-  const { avatars, byId: avatarsById } = useAvatars();
+  const { avatars, byId: avatarsById, refresh: refreshAvatars } = useAvatars();
+  const [buying, setBuying] = useState<AvatarOption | null>(null);
+  const venueSlug = usePlayerVenue();
   const [avatarId, setAvatarId] = useState<string | null>(null);
   const [avatarNote, setAvatarNote] = useState<string | null>(null);
   const [nickname, setNickname] = useState("");
@@ -208,8 +212,34 @@ export default function PlayPage() {
 
   // Premium avatars: buying is wired in with payments; until then, say so.
   function buyAvatar(a: AvatarOption) {
-    setAvatarNote(`${a.name} is a premium avatar. Buying isn't open yet.`);
+    setAvatarNote(null);
+    setBuying(a);
   }
+
+  function avatarBought() {
+    if (!buying) return;
+    const id = buying.id;
+    setBuying(null);
+    refreshAvatars();
+    setAvatarId(id);
+    rememberAvatar(id);
+    setAvatarNote("Unlocked! It's yours on this phone from now on.");
+  }
+
+  const buySheet = buying && (
+    <BuySheet
+      item={{ itemType: "avatar", itemId: buying.id, name: buying.name, priceCents: buying.priceCents, emoji: buying.emoji, imageUrl: buying.imageUrl }}
+      context={{
+        venue: venueSlug ?? "main",
+        nickname: creds ? undefined : nickname.trim() || undefined,
+        roomId: creds?.roomId,
+        playerId: creds?.playerId,
+        clientToken: creds?.clientToken,
+      }}
+      onClose={() => setBuying(null)}
+      onPaid={avatarBought}
+    />
+  );
 
   async function changeAvatar(id: string) {
     setAvatarId(id);
@@ -384,6 +414,7 @@ export default function PlayPage() {
     return (
       <Center>
         <BackButton onClick={() => leaveRoom("/")} />
+        {buySheet}
         <h1 className="text-2xl font-bold mb-1">Room {room.code}</h1>
         <p className="text-slate-400 mb-6">
           {room.queued ? (
@@ -542,6 +573,7 @@ export default function PlayPage() {
     return (
       <Center>
         <BackButton onClick={() => leaveRoom("/")} />
+        {buySheet}
         <h1 className="text-2xl font-bold mb-1">You&apos;re on {myTeam?.name ?? creds.teamName}!</h1>
         <p className="text-slate-400 mb-4">{me?.nickname}</p>
         {room.queued && (
