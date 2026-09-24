@@ -9,8 +9,9 @@ export function formatPrice(cents: number) {
 
 /**
  * Free avatars first, then premium ones with a lock (no price in the grid).
- * Tapping a locked one opens the "Unlock Character" screen, which shows the
- * price (onBuy); everything else just selects.
+ * Every avatar this phone can use (free or bought) has an Equip button;
+ * the one in use says Equipped. Locked ones say Unlock and open the
+ * "Unlock Character" screen with the price (onBuy).
  */
 export function AvatarPicker({
   avatars,
@@ -36,14 +37,26 @@ export function AvatarPicker({
               key={a.id}
               type="button"
               onClick={() => (locked ? onBuy?.(a) : onSelect(a.id))}
-              aria-label={locked ? `${a.name}, locked. Tap to unlock` : a.name}
+              aria-label={locked ? `Unlock ${a.name}` : selected ? `${a.name}, equipped` : `Equip ${a.name}`}
               aria-pressed={selected}
-              className={`relative flex flex-col items-center gap-1 rounded-xl py-2 transition active:scale-95 ${
+              className={`relative flex flex-col items-center gap-1 rounded-xl pt-2 pb-1.5 transition active:scale-95 ${
                 selected ? "bg-amber-400/25 ring-2 ring-amber-400" : "bg-white/5"
               }`}
             >
               <Avatar emoji={a.emoji} imageUrl={a.imageUrl} size={40} className={locked ? "opacity-60" : ""} />
               <span className="text-[11px] text-slate-300 truncate max-w-full px-1">{a.name}</span>
+              <span
+                aria-hidden="true"
+                className={`rounded-full px-2 text-[10px] font-bold leading-5 ${
+                  selected
+                    ? "bg-amber-400 text-black"
+                    : locked
+                      ? "bg-white/10 text-amber-300"
+                      : "bg-white/15 text-white"
+                }`}
+              >
+                {selected ? "Equipped ✓" : locked ? "Unlock" : "Equip"}
+              </span>
               {locked && (
                 <span aria-hidden="true" className="absolute top-1 right-1 rounded-full bg-black/60 text-[10px] px-1 leading-4">
                   🔒
