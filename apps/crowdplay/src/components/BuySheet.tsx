@@ -160,7 +160,7 @@ export function BuySheet({
           {item.itemType === "avatar" && (
             <p className="text-xs font-bold uppercase tracking-widest text-amber-400">Unlock Character</p>
           )}
-          <Avatar emoji={item.emoji} imageUrl={item.imageUrl} size={item.itemType === "avatar" ? 120 : 72} />
+          <Avatar emoji={item.emoji} imageUrl={item.imageUrl} size={item.itemType === "avatar" ? 180 : 72} variant="full" />
           <p className="text-lg font-bold">{item.name}</p>
           <p className="text-3xl font-black text-amber-400">{formatPrice(item.priceCents)}</p>
           <p className="text-xs text-slate-400">

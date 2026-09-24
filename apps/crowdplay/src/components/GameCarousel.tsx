@@ -112,7 +112,7 @@ export function GameCarousel({ venue }: { venue: string }) {
       <span className="text-white/30" aria-hidden="true">
         ·
       </span>
-      {hasAvatar && <Avatar emoji={slide.emoji} imageUrl={slide.imageUrl} size={22} />}
+      {hasAvatar && <Avatar emoji={slide.emoji} imageUrl={slide.imageUrl} size={30} />}
       <span key={slide.key} className="truncate animate-[fadeIn_400ms_ease-out]">
         {text}
       </span>
