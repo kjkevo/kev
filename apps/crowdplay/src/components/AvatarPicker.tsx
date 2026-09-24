@@ -8,8 +8,9 @@ export function formatPrice(cents: number) {
 }
 
 /**
- * Free avatars first, then premium ones with their price. Tapping a locked
- * premium avatar asks to buy it (onBuy); everything else just selects.
+ * Free avatars first, then premium ones with a lock (no price in the grid).
+ * Tapping a locked one opens the "Unlock Character" screen, which shows the
+ * price (onBuy); everything else just selects.
  */
 export function AvatarPicker({
   avatars,
@@ -35,7 +36,7 @@ export function AvatarPicker({
               key={a.id}
               type="button"
               onClick={() => (locked ? onBuy?.(a) : onSelect(a.id))}
-              aria-label={locked ? `${a.name}, ${formatPrice(a.priceCents)} to unlock` : a.name}
+              aria-label={locked ? `${a.name}, locked. Tap to unlock` : a.name}
               aria-pressed={selected}
               className={`relative flex flex-col items-center gap-1 rounded-xl py-2 transition active:scale-95 ${
                 selected ? "bg-amber-400/25 ring-2 ring-amber-400" : "bg-white/5"
@@ -44,8 +45,8 @@ export function AvatarPicker({
               <Avatar emoji={a.emoji} imageUrl={a.imageUrl} size={40} className={locked ? "opacity-60" : ""} />
               <span className="text-[11px] text-slate-300 truncate max-w-full px-1">{a.name}</span>
               {locked && (
-                <span className="absolute top-1 right-1 rounded-full bg-amber-400 text-black text-[10px] font-bold px-1.5">
-                  {formatPrice(a.priceCents)}
+                <span aria-hidden="true" className="absolute top-1 right-1 rounded-full bg-black/60 text-[10px] px-1 leading-4">
+                  🔒
                 </span>
               )}
             </button>
