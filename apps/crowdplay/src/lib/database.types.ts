@@ -629,7 +629,7 @@ export type Database = {
         }[]
       }
       log_qr_scan: {
-        Args: { p_venue: string; p_session_key: string }
+        Args: { p_venue: string; p_session_key: string; p_source?: string }
         Returns: undefined
       }
       log_client_error: {
