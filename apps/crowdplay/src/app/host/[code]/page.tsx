@@ -232,7 +232,7 @@ function TeamChip({ team, memberCount }: { team: Team; memberCount: number }) {
     <span className="bg-white/10 rounded-full px-4 py-2 text-lg">
       {team.name}
       <span className="text-xs text-slate-400 ml-2">
-        ({memberCount}/4{team.kind === "self" && memberCount < 3 ? ", needs more" : ""})
+        ({memberCount}/5{memberCount < 2 ? ", needs more" : ""})
       </span>
     </span>
   );

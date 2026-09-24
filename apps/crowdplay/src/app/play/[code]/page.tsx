@@ -16,6 +16,7 @@ import { playerKey, type PlayerCredentials, type FinalRecapRow } from "@/lib/typ
 import { randomFunName } from "@/lib/funNames";
 import { haptics } from "@/lib/haptics";
 import { CategoryIcon } from "@/components/CategoryIcon";
+import { LobbyRoster, useLiveTeams, MAX_TEAMS, MAX_TEAM_SIZE, MIN_TEAM_SIZE } from "@/components/LobbyRoster";
 
 const JOIN_ERRORS: Record<string, string> = {
   ROOM_NOT_FOUND: "That room code doesn't exist. Double check with your host.",
@@ -27,7 +28,9 @@ const JOIN_ERRORS: Record<string, string> = {
   TEAM_NAME_TAKEN: "Another team already has that name. Try another.",
   TEAM_NOT_FOUND: "That team isn't around anymore. Pick another.",
   TEAM_LOCKED: "That team's round already started. Join a different one.",
-  TEAM_FULL: "That team is already full (4 max). Join a different one.",
+  TEAM_FULL: "That team is already full (5 max). Join a different one.",
+  TOO_MANY_TEAMS: "All 8 team spots are taken. Join a team with room, or play solo and we'll place you.",
+  ROOM_FULL: "This game is full (8 teams of 5). Catch the next one.",
 };
 
 function friendlyError(raw: string) {
@@ -54,7 +57,9 @@ export default function PlayPage() {
 
   const [creds, setCreds] = useState<PlayerCredentials | null>(null);
   const [nickname, setNickname] = useState("");
-  const [withTeam, setWithTeam] = useState(false);
+  // How they want to play: pick on the join screen, or arrive with
+  // ?mode=solo / ?mode=team from the "wait for the next game" screen.
+  const [joinMode, setJoinMode] = useState<"choose" | "solo" | "team">("choose");
   const [newTeamName, setNewTeamName] = useState("");
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [joinError, setJoinError] = useState<string | null>(null);
@@ -76,6 +81,12 @@ export default function PlayPage() {
 
   useEffect(() => {
     setNickname(randomFunName());
+    const mode = new URLSearchParams(window.location.search).get("mode");
+    if (mode === "solo") setJoinMode("solo");
+    if (mode === "team") {
+      setJoinMode("team");
+      setNewTeamName(`Team ${randomFunName()}`);
+    }
   }, []);
 
   useEffect(() => {
@@ -104,19 +115,17 @@ export default function PlayPage() {
   }, [room?.phase, room?.id, recap]);
 
   const activePlayers = useMemo(() => players.filter((p) => !p.left_at), [players]);
-  const recentJoiners = useMemo(
-    () =>
-      [...activePlayers].sort((a, b) => new Date(b.joined_at).getTime() - new Date(a.joined_at).getTime()).slice(0, 5),
-    [activePlayers]
-  );
+
   const joinableTeams = useMemo(
     () =>
       teams
         .filter((t) => t.kind === "self" && !t.locked)
         .map((t) => ({ ...t, memberCount: activePlayers.filter((p) => p.team_id === t.id).length }))
-        .filter((t) => t.memberCount < 4),
+        .filter((t) => t.memberCount > 0 && t.memberCount < MAX_TEAM_SIZE),
     [teams, activePlayers]
   );
+  const liveTeams = useLiveTeams(players, teams);
+  const teamSpotsLeft = MAX_TEAMS - liveTeams.length;
 
   const me = useMemo(() => players.find((p) => p.id === creds?.playerId), [players, creds]);
   const myTeam = useMemo(() => teams.find((t) => t.id === creds?.teamId), [teams, creds]);
@@ -179,12 +188,21 @@ export default function PlayPage() {
     if (!code || nickname.trim().length === 0) return;
     setJoining(true);
     setJoinError(null);
-    const { data, error } = await supabase.rpc("join_room", {
+    const creating = joinMode === "team" && !selectedTeamId;
+    let teamName = newTeamName.trim();
+    let result = await supabase.rpc("join_room", {
       p_code: code,
       p_nickname: nickname.trim(),
-      p_team_id: newTeamName.trim().length === 0 ? selectedTeamId ?? undefined : undefined,
-      p_new_team_name: newTeamName.trim().length > 0 ? newTeamName.trim() : undefined,
+      p_team_id: joinMode === "team" && selectedTeamId ? selectedTeamId : undefined,
+      p_new_team_name: creating ? teamName : undefined,
     });
+    // Team names are random, so a clash is just bad luck: roll another.
+    for (let tries = 0; creating && tries < 3 && result.error?.message.includes("TEAM_NAME_TAKEN"); tries++) {
+      teamName = `Team ${randomFunName()}`;
+      setNewTeamName(teamName);
+      result = await supabase.rpc("join_room", { p_code: code, p_nickname: nickname.trim(), p_new_team_name: teamName });
+    }
+    const { data, error } = result;
     setJoining(false);
     if (error || !data?.[0]) {
       setJoinError(friendlyError(error?.message ?? ""));
@@ -309,137 +327,143 @@ export default function PlayPage() {
       <Center>
         <BackButton onClick={() => leaveRoom("/")} />
         <h1 className="text-2xl font-bold mb-1">Room {room.code}</h1>
-        <p className="text-slate-400 mb-6">Ready to play?</p>
-        {activePlayers.length > 0 && (
-          <div className="w-full max-w-xs mb-6 rounded-2xl bg-white/5 border border-white/10 p-4">
-            <p className="text-xs uppercase tracking-widest text-slate-500 mb-2">
-              {activePlayers.length} already here
-            </p>
-            <div className="flex flex-wrap gap-2 justify-center">
-              {recentJoiners.map((p) => (
-                <span key={p.id} className="bg-white/10 rounded-full px-3 py-1 text-sm">
-                  {p.nickname}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-        <form onSubmit={join} className="flex flex-col gap-3 w-full max-w-xs">
-          <p className="text-xs font-bold uppercase tracking-widest text-amber-400">
-            {withTeam ? "Playing with a Team" : "Playing Solo"}
-          </p>
-          <input
-            value={nickname}
-            onChange={(e) => setNickname(e.target.value)}
-            maxLength={30}
-            placeholder="Your name"
-            className="w-full text-center text-xl font-bold bg-white/10 border border-white/20 rounded-2xl py-4 outline-none focus:border-amber-400"
-          />
-
-          {!withTeam && (
+        <p className="text-slate-400 mb-6">
+          {room.phase === "lobby" && room.starts_at && !scheduledCountdown.reached ? (
             <>
-              <p className="text-xs text-slate-500">
-                You&apos;ll be grouped into an open team (up to 4 people) automatically.
-              </p>
-              <button
-                type="button"
-                onClick={() => setWithTeam(true)}
-                className="mt-2 rounded-2xl border-2 border-amber-400 bg-amber-400/10 text-amber-300 font-bold text-lg py-5 active:scale-95 transition"
-              >
-                Playing with a Team?
-              </button>
+              Game starts in <span className="text-amber-400 font-bold tabular-nums">{scheduledCountdown.label}</span>
             </>
+          ) : (
+            "Ready to play?"
           )}
+        </p>
+        <LobbyRoster players={players} teams={teams} title="Who's in so far" />
+        {joinMode === "choose" ? (
+          <div className="flex flex-col gap-3 w-full max-w-xs mt-6">
+            <p className="text-sm text-slate-300 mb-1">How do you want to play?</p>
+            <button
+              type="button"
+              onClick={() => setJoinMode("solo")}
+              className="rounded-2xl bg-amber-400 text-black font-bold text-lg py-5 active:scale-95 transition"
+            >
+              Play Solo
+              <span className="block text-xs font-medium text-black/70">We&apos;ll put you on a team ({MIN_TEAM_SIZE} to {MAX_TEAM_SIZE} people)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setJoinMode("team");
+                if (!newTeamName) setNewTeamName(`Team ${randomFunName()}`);
+              }}
+              className="rounded-2xl border-2 border-amber-400 bg-amber-400/10 text-amber-300 font-bold text-lg py-5 active:scale-95 transition"
+            >
+              Play with a Team
+              <span className="block text-xs font-medium text-amber-300/70">Start a team or join a friend&apos;s</span>
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={join} className="flex flex-col gap-3 w-full max-w-xs mt-6">
+            <p className="text-xs font-bold uppercase tracking-widest text-amber-400">
+              {joinMode === "team" ? "Playing with a Team" : "Playing Solo"}
+            </p>
+            <label className="text-xs text-slate-400 text-left -mb-2">Your name</label>
+            <input
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              maxLength={30}
+              placeholder="Your name"
+              className="w-full text-center text-xl font-bold bg-white/10 border border-white/20 rounded-2xl py-4 outline-none focus:border-amber-400"
+            />
 
-          {withTeam && (
-            <div className="flex flex-col gap-3">
-              {joinableTeams.length > 0 && !newTeamName && (
-                <div className="flex flex-col gap-2 bg-white/5 rounded-2xl p-3">
-                  <p className="text-xs text-slate-400 text-left">Join a team someone already started:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {joinableTeams.map((t) => (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => setSelectedTeamId(selectedTeamId === t.id ? null : t.id)}
-                        className={`rounded-full px-3 py-1.5 text-sm font-semibold transition ${
-                          selectedTeamId === t.id ? "bg-amber-400 text-black" : "bg-white/10 text-slate-200"
-                        }`}
-                      >
-                        {t.name} ({t.memberCount}/4)
-                      </button>
-                    ))}
+            {joinMode === "solo" && (
+              <p className="text-xs text-slate-500">
+                You&apos;ll be placed on a random team with room ({MIN_TEAM_SIZE} to {MAX_TEAM_SIZE} people per team).
+              </p>
+            )}
+
+            {joinMode === "team" && (
+              <div className="flex flex-col gap-3">
+                {!selectedTeamId && (
+                  <div className="flex flex-col gap-2 bg-white/5 rounded-2xl p-3">
+                    {teamSpotsLeft > 0 ? (
+                      <>
+                        <p className="text-xs text-slate-400 text-left">Your new team</p>
+                        <div className="flex items-center gap-2">
+                          <p className="flex-1 font-bold text-lg text-amber-300">{newTeamName}</p>
+                          <button
+                            type="button"
+                            onClick={() => setNewTeamName(`Team ${randomFunName()}`)}
+                            aria-label="Pick another team name"
+                            className="text-xs font-bold px-3 h-8 rounded-lg bg-white/10 hover:bg-white/20 active:scale-90 transition"
+                          >
+                            Reroll
+                          </button>
+                        </div>
+                        <p className="text-xs text-slate-500 text-left">
+                          Team names are picked for you. Your friends join from this screen by tapping your team.
+                          Teams need {MIN_TEAM_SIZE} to {MAX_TEAM_SIZE} people, or you&apos;ll be moved onto a team with room
+                          when the game starts.
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-xs text-amber-300/80 text-left">
+                        All {MAX_TEAMS} team spots are taken, so no new teams this game. Join one below, or play solo.
+                      </p>
+                    )}
                   </div>
-                </div>
-              )}
+                )}
 
-              {!newTeamName && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setNewTeamName(`Team ${randomFunName()}`);
-                    setSelectedTeamId(null);
-                  }}
-                  className="text-xs text-amber-400 self-center"
-                >
-                  Or start your own team
-                </button>
-              )}
-
-              {newTeamName && (
-                <div className="flex flex-col gap-2 bg-white/5 rounded-2xl p-3">
-                  <p className="text-xs text-slate-400 text-left">
-                    Your team&apos;s name (needs 3 people total by round start, or you&apos;ll be folded into an open
-                    team)
-                  </p>
-                  <div className="relative">
-                    <input
-                      value={newTeamName}
-                      onChange={(e) => setNewTeamName(e.target.value)}
-                      maxLength={30}
-                      placeholder="Team name"
-                      className="w-full text-center font-bold bg-white/10 border border-white/10 rounded-xl py-3 pr-16 pl-3 outline-none focus:border-amber-400"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setNewTeamName(`Team ${randomFunName()}`)}
-                      aria-label="Shuffle team name"
-                      className="absolute right-1.5 top-1/2 -translate-y-1/2 text-xs font-bold px-2.5 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 active:scale-90 transition"
-                    >
-                      Shuffle
-                    </button>
+                {joinableTeams.length > 0 && (
+                  <div className="flex flex-col gap-2 bg-white/5 rounded-2xl p-3">
+                    <p className="text-xs text-slate-400 text-left">Or join a friend&apos;s team:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {joinableTeams.map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => setSelectedTeamId(selectedTeamId === t.id ? null : t.id)}
+                          className={`rounded-full px-3 py-1.5 text-sm font-semibold transition ${
+                            selectedTeamId === t.id ? "bg-amber-400 text-black" : "bg-white/10 text-slate-200"
+                          }`}
+                        >
+                          {t.name} ({t.memberCount}/{MAX_TEAM_SIZE})
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <p className="text-xs text-slate-500 text-left">
-                    Tap Shuffle for another name, or type your own to display it however you like.
-                  </p>
-                  <button type="button" onClick={() => setNewTeamName("")} className="text-xs text-slate-400 self-start">
-                    Never mind, join a team instead
-                  </button>
-                </div>
-              )}
+                )}
+              </div>
+            )}
 
-              <button
-                type="button"
-                onClick={() => {
-                  setWithTeam(false);
-                  setNewTeamName("");
-                  setSelectedTeamId(null);
-                }}
-                className="text-xs text-slate-400 self-center"
-              >
-                Never mind, play solo
-              </button>
-            </div>
-          )}
-
-          {joinError && <p className="text-red-400 text-sm">{joinError}</p>}
-          <button
-            disabled={joining || nickname.trim().length === 0}
-            className="rounded-2xl bg-amber-400 text-black font-bold text-lg py-4 disabled:opacity-40 active:scale-95 transition"
-          >
-            {joining ? "Joining…" : newTeamName ? "Create & Join" : selectedTeamId ? "Join Team" : "Join Game"}
-          </button>
-        </form>
+            {joinError && <p className="text-red-400 text-sm">{joinError}</p>}
+            <button
+              disabled={
+                joining ||
+                nickname.trim().length === 0 ||
+                (joinMode === "team" && !selectedTeamId && teamSpotsLeft <= 0)
+              }
+              className="rounded-2xl bg-amber-400 text-black font-bold text-lg py-4 disabled:opacity-40 active:scale-95 transition"
+            >
+              {joining
+                ? "Joining…"
+                : joinMode === "team"
+                  ? selectedTeamId
+                    ? "Join Team"
+                    : "Create Team & Join"
+                  : "Join Game"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setJoinMode("choose");
+                setSelectedTeamId(null);
+                setJoinError(null);
+              }}
+              className="text-xs text-slate-400 self-center"
+            >
+              Back
+            </button>
+          </form>
+        )}
       </Center>
     );
   }
@@ -497,32 +521,17 @@ export default function PlayPage() {
               </span>
             ))}
           </div>
-          {myTeam?.kind === "self" && teammates.length < 3 && (
+          {teammates.length < MIN_TEAM_SIZE && (
             <p className="text-xs text-amber-400/80 mt-2">
-              Needs {3 - teammates.length} more to stay its own team, or you&apos;ll join an open team when the round starts.
+              {myTeam?.kind === "self"
+                ? "Get a friend to join your team from their phone, or you'll be moved onto a team with room when the game starts."
+                : "Waiting for a teammate. If nobody joins, you'll be moved onto a team with room when the game starts."}
             </p>
           )}
         </div>
 
-        <p className="text-amber-400 font-semibold mt-4">
-          {activePlayers.length} player{activePlayers.length === 1 ? "" : "s"} ready across {teams.length} team
-          {teams.length === 1 ? "" : "s"}
-        </p>
-        <div className="w-full max-w-xs mt-3 flex flex-col gap-2 text-left">
-          {teams.map((t) => {
-            const members = activePlayers.filter((p) => p.team_id === t.id);
-            return (
-              <div
-                key={t.id}
-                className={`rounded-xl px-3 py-2 ${t.id === creds.teamId ? "bg-amber-400/20" : "bg-white/5"}`}
-              >
-                <p className="text-sm font-bold">
-                  {t.name} <span className="font-normal text-slate-400">({members.length}/4)</span>
-                </p>
-                <p className="text-xs text-slate-300">{members.map((p) => p.nickname).join(", ")}</p>
-              </div>
-            );
-          })}
+        <div className="mt-4 w-full flex justify-center">
+          <LobbyRoster players={players} teams={teams} highlightTeamId={creds.teamId} title="Teams so far" />
         </div>
       </Center>
     );

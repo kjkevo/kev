@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
+import { DEFAULT_VENUE } from "@/lib/venue";
 
 /**
  * A standalone QR code pointing at the site root -- not tied to any game or
@@ -14,7 +15,9 @@ export default function QrPage() {
   const [url, setUrl] = useState("");
 
   useEffect(() => {
-    setUrl(`${window.location.origin}/`);
+    // src=qr lets the dashboard count arrivals; venue sends them to that bar's games.
+    const venue = new URLSearchParams(window.location.search).get("venue") || DEFAULT_VENUE;
+    setUrl(`${window.location.origin}/?src=qr&venue=${encodeURIComponent(venue)}`);
   }, []);
 
   return (

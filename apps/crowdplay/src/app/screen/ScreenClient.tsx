@@ -117,7 +117,7 @@ export default function ScreenClient() {
                     return (
                       <div key={t.id} className="rounded-2xl bg-white/5 border border-white/10 px-4 py-3">
                         <p className="font-bold text-lg">
-                          {t.name} <span className="text-sm font-normal text-slate-400">({members.length}/4)</span>
+                          {t.name} <span className="text-sm font-normal text-slate-400">({members.length}/5)</span>
                         </p>
                         <p className="text-sm text-slate-300">{members.map((p) => p.nickname).join(", ")}</p>
                       </div>

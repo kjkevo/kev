@@ -7,6 +7,7 @@ import { useLiveActiveRoom } from "@/hooks/useLiveActiveRoom";
 import { usePlayerVenue, useVenueId } from "@/lib/venue";
 import { useCountdownTo } from "@/hooks/useCountdownTo";
 import { LiveGameGlance } from "@/components/LiveGameGlance";
+import { LobbyRoster } from "@/components/LobbyRoster";
 import { supabase } from "@/lib/supabase";
 
 /**
@@ -31,9 +32,13 @@ export default function TriviaLandingClient() {
   // flag — the moment the active room changes (this one finished, a new
   // one boarded), the choice should reset so they see a fresh invitation.
   const [declinedCode, setDeclinedCode] = useState<string | null>(null);
+  // Someone who waited gets asked straight away how they want to play the
+  // new game (solo or their own team) instead of the generic join screen.
+  const [waitedForNext, setWaitedForNext] = useState(false);
   useEffect(() => {
     if (room && declinedCode && room.code !== declinedCode) {
       setDeclinedCode(null);
+      setWaitedForNext(true);
     }
   }, [room?.code, declinedCode, room]);
 
@@ -47,6 +52,7 @@ export default function TriviaLandingClient() {
     setRestarting(true);
     await supabase.rpc("restart_trivia_now", { p_venue: venue ?? "main" });
     setDeclinedCode(null);
+    setWaitedForNext(false);
     setRestarting(false);
   }
 
@@ -70,6 +76,40 @@ export default function TriviaLandingClient() {
         ? { text: "A game is boarding now" }
         : { text: "A round is happening right now" };
 
+  if (waitedForNext && canJoinNow && room) {
+    return (
+      <Shell>
+        <div className="flex flex-col items-center gap-3">
+          <h2 className="text-xl font-bold">A new game is boarding</h2>
+          {room.starts_at && !countdown.reached && (
+            <p className="text-4xl font-black text-amber-400 tabular-nums">{countdown.label}</p>
+          )}
+          <p className="text-indigo-200 max-w-xs text-sm">How do you want to play?</p>
+        </div>
+        <div className="flex flex-col gap-3 w-full max-w-sm">
+          <button
+            onClick={() => router.push(`/play/${room.code}?mode=solo`)}
+            className="rounded-2xl bg-amber-400 text-black font-bold text-lg py-5 shadow-lg shadow-amber-400/20 active:scale-95 transition"
+          >
+            Play Solo
+            <span className="block text-xs font-medium text-black/70">We&apos;ll put you on a team (2 to 5 people)</span>
+          </button>
+          <button
+            onClick={() => router.push(`/play/${room.code}?mode=team`)}
+            className="rounded-2xl border-2 border-amber-400 bg-amber-400/10 text-amber-300 font-bold text-lg py-5 active:scale-95 transition"
+          >
+            Create a Team
+            <span className="block text-xs font-medium text-amber-300/70">Get a team name, bring 1 to 4 friends</span>
+          </button>
+        </div>
+        <LobbyRoster players={players} teams={teams} />
+        <button onClick={() => setWaitedForNext(false)} className="text-xs text-indigo-300/70 underline">
+          Not yet
+        </button>
+      </Shell>
+    );
+  }
+
   if (isWaiting && room) {
     return (
       <Shell>
@@ -79,6 +119,7 @@ export default function TriviaLandingClient() {
             Here&apos;s what&apos;s happening right now. This updates itself the moment a new game boards.
           </p>
           <LiveGameGlance room={room} players={players} teams={teams} />
+          {canJoinNow && <LobbyRoster players={players} teams={teams} />}
           {canJoinNow && (
             <button
               onClick={() => setDeclinedCode(null)}
@@ -142,9 +183,12 @@ export default function TriviaLandingClient() {
       {!canJoinNow && room && <LiveGameGlance room={room} players={players} teams={teams} />}
 
       {canJoinNow && (
-        <p className="text-xs text-indigo-300/60 max-w-xs">
-          Jump in and wait in the lobby with everyone else. No need to time it perfectly.
-        </p>
+        <>
+          <p className="text-xs text-indigo-300/60 max-w-xs">
+            Jump in and wait in the lobby with everyone else. No need to time it perfectly.
+          </p>
+          <LobbyRoster players={players} teams={teams} />
+        </>
       )}
 
       <RestartButton onClick={restartNow} busy={restarting} />
