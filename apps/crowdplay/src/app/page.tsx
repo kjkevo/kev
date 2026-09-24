@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 const GAMES = [
@@ -72,6 +73,18 @@ export default function Home() {
             </div>
           )
         )}
+      </div>
+
+      <div className="flex flex-col items-center -mt-2">
+        <Image
+          src="/avatars/alien-buddy.png"
+          alt="CrowdPlay's alien mascot, waving you in"
+          width={200}
+          height={200}
+          priority
+          className="w-40 h-40 sm:w-48 sm:h-48 object-contain drop-shadow-[0_12px_32px_rgba(74,222,128,0.25)] animate-[float_4s_ease-in-out_infinite]"
+        />
+        <p className="text-xs text-indigo-300/70 -mt-1">Pick him as your avatar in any game</p>
       </div>
 
       <p className="text-xs text-indigo-300/60 max-w-xs">
