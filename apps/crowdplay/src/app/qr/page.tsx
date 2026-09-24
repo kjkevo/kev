@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import { DEFAULT_VENUE } from "@/lib/venue";
+import { GameCarousel } from "@/components/GameCarousel";
 
 /**
  * A standalone QR code pointing at the site root -- not tied to any game or
@@ -13,11 +14,13 @@ import { DEFAULT_VENUE } from "@/lib/venue";
  */
 export default function QrPage() {
   const [url, setUrl] = useState("");
+  const [venue, setVenue] = useState<string | null>(null);
 
   useEffect(() => {
     // src=qr lets the dashboard count arrivals; venue sends them to that bar's games.
-    const venue = new URLSearchParams(window.location.search).get("venue") || DEFAULT_VENUE;
-    setUrl(`${window.location.origin}/?src=qr&venue=${encodeURIComponent(venue)}`);
+    const v = new URLSearchParams(window.location.search).get("venue") || DEFAULT_VENUE;
+    setVenue(v);
+    setUrl(`${window.location.origin}/?src=qr&venue=${encodeURIComponent(v)}`);
   }, []);
 
   return (
@@ -28,6 +31,8 @@ export default function QrPage() {
         </h1>
         <p className="mt-3 text-indigo-200">Point your phone&apos;s camera at this code to open CrowdPlay.</p>
       </div>
+
+      {venue && <GameCarousel venue={venue} />}
 
       <div className="bg-white p-6 rounded-3xl shadow-2xl">
         {url ? <QRCodeSVG value={url} size={280} /> : <div style={{ width: 280, height: 280 }} />}

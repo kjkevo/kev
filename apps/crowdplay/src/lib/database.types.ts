@@ -12,6 +12,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      avatars: {
+        Row: {
+          id: string
+          name: string
+          emoji: string | null
+          image_url: string | null
+          price_cents: number
+          active: boolean
+          sort: number
+          created_at: string
+        }
+        Insert: { id: string; name: string; emoji?: string | null; image_url?: string | null; price_cents?: number; active?: boolean; sort?: number }
+        Update: { name?: string; emoji?: string | null; image_url?: string | null; price_cents?: number; active?: boolean; sort?: number }
+        Relationships: []
+      }
+      shoutout_presets: {
+        Row: { id: string; text: string; price_cents: number; active: boolean; sort: number }
+        Insert: { id: string; text: string; price_cents?: number; active?: boolean; sort?: number }
+        Update: { text?: string; price_cents?: number; active?: boolean; sort?: number }
+        Relationships: []
+      }
       answers: {
         Row: {
           answer_text: string | null
@@ -312,6 +333,7 @@ export type Database = {
           room_id: string
           score: number
           team_id: string | null
+          avatar_id: string | null
           team_members: string[] | null
         }
         Insert: {
@@ -323,6 +345,7 @@ export type Database = {
           room_id: string
           score?: number
           team_id?: string | null
+          avatar_id?: string | null
           team_members?: string[] | null
         }
         Update: {
@@ -334,6 +357,7 @@ export type Database = {
           room_id?: string
           score?: number
           team_id?: string | null
+          avatar_id?: string | null
           team_members?: string[] | null
         }
         Relationships: []
@@ -536,6 +560,26 @@ export type Database = {
       checkin_submit: {
         Args: { p_venue: string; p_name: string; p_contact: string }
         Returns: { o_checkin_id: string; o_returning: boolean; o_already: boolean }[]
+      }
+      list_avatars: {
+        Args: { p_device_key: string }
+        Returns: { o_id: string; o_name: string; o_emoji: string | null; o_image_url: string | null; o_price_cents: number; o_owned: boolean }[]
+      }
+      set_player_avatar: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_avatar_id: string; p_device_key: string }
+        Returns: undefined
+      }
+      send_shoutout: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_preset_id: string }
+        Returns: { o_show_at: string }[]
+      }
+      get_shoutouts: {
+        Args: { p_room_id: string }
+        Returns: { o_id: number; o_text: string; o_nickname: string; o_team_name: string | null; o_emoji: string | null; o_image_url: string | null; o_at: string }[]
+      }
+      get_carousel: {
+        Args: { p_venue: string }
+        Returns: Json
       }
       trivia_queue: {
         Args: { p_venue_id: string }
