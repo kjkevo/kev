@@ -157,7 +157,10 @@ export function BuySheet({
     <div className="fixed inset-0 z-50 bg-black/70 flex items-end sm:items-center justify-center p-4" role="dialog" aria-modal="true">
       <div className="w-full max-w-sm rounded-3xl bg-slate-900 border border-white/10 p-5 text-center flex flex-col gap-4">
         <div className="flex flex-col items-center gap-2">
-          <Avatar emoji={item.emoji} imageUrl={item.imageUrl} size={72} />
+          {item.itemType === "avatar" && (
+            <p className="text-xs font-bold uppercase tracking-widest text-amber-400">Unlock Character</p>
+          )}
+          <Avatar emoji={item.emoji} imageUrl={item.imageUrl} size={item.itemType === "avatar" ? 120 : 72} />
           <p className="text-lg font-bold">{item.name}</p>
           <p className="text-3xl font-black text-amber-400">{formatPrice(item.priceCents)}</p>
           <p className="text-xs text-slate-400">
