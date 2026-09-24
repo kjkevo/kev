@@ -27,6 +27,7 @@ export function useActiveRoom(venueId: string | null | undefined) {
         .from("rooms")
         .select("*")
         .eq("venue_id", venueId)
+        .eq("queued", false) // lobbies waiting their turn aren't "the game" yet
         .neq("phase", "final")
         .order("created_at", { ascending: false })
         .limit(1)

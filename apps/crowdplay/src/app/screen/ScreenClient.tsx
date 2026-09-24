@@ -11,6 +11,7 @@ import { useAnsweredCount } from "@/hooks/useAnsweredCount";
 import { useAllPacks } from "@/hooks/useAllPacks";
 import { useCategoryVoteTally } from "@/hooks/useCategoryVoteTally";
 import { JoinQRCode } from "@/components/JoinQRCode";
+import { useTriviaQueue, roundsToWaitLabel } from "@/hooks/useTriviaQueue";
 import { ScreenAgent } from "@/components/ScreenAgent";
 import { useScreenVenue, useVenueId } from "@/lib/venue";
 import { CategoryIcon } from "@/components/CategoryIcon";
@@ -41,6 +42,10 @@ export default function ScreenClient() {
   const packs = useAllPacks();
   const voteTally = useCategoryVoteTally(room?.phase === "lobby" ? room?.id : undefined);
   const [recap, setRecap] = useState<FinalRecapRow[] | null>(null);
+  // Busy nights: while this game runs (or its lobby is full), the next
+  // game is already open for sign-ups. Show its code in the corner.
+  const queue = useTriviaQueue(venueId);
+  const nextGame = queue.find((q) => !q.o_full);
 
   // "Active" excludes anyone who's left -- the standings keep every team
   // (including ones whose members left), since a score already earned
@@ -70,6 +75,19 @@ export default function ScreenClient() {
   return (
     <main className="min-h-screen bg-slate-950 text-white flex flex-col">
       <ScreenAgent venue={venue} page="/screen" />
+      {nextGame && (room.phase !== "lobby" || activePlayers.length >= 40) && (
+        <div className="fixed bottom-6 right-6 z-10 flex items-center gap-4 rounded-2xl bg-slate-900/95 border border-amber-400/40 p-3 pr-5 shadow-2xl">
+          <JoinQRCode code={nextGame.o_code} venue={venue} size={110} />
+          <div className="text-left">
+            <p className="text-xs uppercase tracking-widest text-amber-400">Next game</p>
+            <p className="text-2xl font-black tracking-widest">{nextGame.o_code}</p>
+            <p className="text-sm text-slate-300">Scan to sign up</p>
+            <p className="text-xs text-slate-500">
+              {roundsToWaitLabel(nextGame.o_rounds_to_wait)} · {nextGame.o_players} signed up
+            </p>
+          </div>
+        </div>
+      )}
       <header className="flex items-center justify-between px-8 py-4 border-b border-white/10">
         <span className="font-black text-xl">
           Crowd<span className="text-amber-400">Play</span>
