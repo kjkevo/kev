@@ -581,6 +581,31 @@ export type Database = {
         Args: { p_venue: string }
         Returns: Json
       }
+      start_purchase: {
+        Args: {
+          p_item_type: string
+          p_item_id: string
+          p_device_key: string
+          p_venue: string
+          p_nickname?: string
+          p_room_id?: string
+          p_player_id?: string
+          p_client_token?: string
+        }
+        Returns: { o_purchase_id: string; o_amount_cents: number; o_item_name: string }[]
+      }
+      complete_purchase: {
+        Args: {
+          p_purchase_id: string
+          p_secret: string
+          p_ok: boolean
+          p_provider: string
+          p_payment_id?: string
+          p_is_test: boolean
+          p_error?: string
+        }
+        Returns: undefined
+      }
       trivia_queue: {
         Args: { p_venue_id: string }
         Returns: {
