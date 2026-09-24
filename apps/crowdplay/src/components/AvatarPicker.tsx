@@ -26,9 +26,9 @@ export function AvatarPicker({
 }) {
   if (avatars.length === 0) return null;
   return (
-    <div className="w-full max-w-xs">
+    <div className="w-full max-w-sm">
       <p className="text-xs uppercase tracking-widest text-slate-400 mb-2">Pick your avatar</p>
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         {avatars.map((a) => {
           const locked = !a.owned;
           const selected = a.id === selectedId;
@@ -43,11 +43,11 @@ export function AvatarPicker({
                 selected ? "bg-amber-400/25 ring-2 ring-amber-400" : "bg-white/5"
               }`}
             >
-              <Avatar emoji={a.emoji} imageUrl={a.imageUrl} size={40} className={locked ? "opacity-60" : ""} />
-              <span className="text-[11px] text-slate-300 truncate max-w-full px-1">{a.name}</span>
+              <Avatar emoji={a.emoji} imageUrl={a.imageUrl} size={96} variant="full" className={locked ? "opacity-60" : ""} />
+              <span className="text-xs font-semibold text-slate-200 truncate max-w-full px-1">{a.name}</span>
               <span
                 aria-hidden="true"
-                className={`rounded-full px-2 text-[10px] font-bold leading-5 ${
+                className={`rounded-full px-2.5 text-xs font-bold leading-6 ${
                   selected
                     ? "bg-amber-400 text-black"
                     : locked
@@ -58,7 +58,7 @@ export function AvatarPicker({
                 {selected ? "Equipped ✓" : locked ? "Unlock" : "Equip"}
               </span>
               {locked && (
-                <span aria-hidden="true" className="absolute top-1 right-1 rounded-full bg-black/60 text-[10px] px-1 leading-4">
+                <span aria-hidden="true" className="absolute top-1.5 right-1.5 rounded-full bg-black/60 text-xs px-1 leading-5">
                   🔒
                 </span>
               )}

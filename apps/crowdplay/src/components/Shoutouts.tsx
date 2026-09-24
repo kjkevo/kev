@@ -103,7 +103,7 @@ export function Shoutouts({ roomId, creds, compact = false }: { roomId: string; 
         <ul className="mt-2 flex flex-col gap-1.5">
           {shown.map((s) => (
             <li key={s.o_id} className="flex items-center gap-2 text-sm">
-              <Avatar emoji={s.o_emoji} imageUrl={s.o_image_url} size={22} />
+              <Avatar emoji={s.o_emoji} imageUrl={s.o_image_url} size={30} />
               <span className="min-w-0">
                 <span className="font-semibold">{s.o_nickname}</span>
                 {s.o_team_name && <span className="text-slate-500"> ({s.o_team_name})</span>}{" "}

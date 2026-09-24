@@ -64,12 +64,12 @@ export function LobbyRoster({
                 </span>
               </p>
               {avatars ? (
-                <div className="flex flex-wrap gap-x-3 gap-y-1 mt-0.5">
+                <div className="flex flex-wrap gap-x-3 gap-y-1.5 mt-1">
                   {members.map((p) => {
                     const a = p.avatar_id ? avatars[p.avatar_id] : undefined;
                     return (
-                      <span key={p.id} className="flex items-center gap-1 text-xs text-slate-300">
-                        <Avatar emoji={a?.emoji} imageUrl={a?.imageUrl} size={18} />
+                      <span key={p.id} className="flex items-center gap-1.5 text-sm text-slate-200">
+                        <Avatar emoji={a?.emoji} imageUrl={a?.imageUrl} size={30} />
                         {p.nickname}
                       </span>
                     );
