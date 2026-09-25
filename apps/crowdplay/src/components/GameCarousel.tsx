@@ -39,7 +39,9 @@ function statusSlides(c: Carousel): Slide[] {
       text: `Next game open · ${c.next_trivia.players} signed up`,
     });
   }
-  for (const g of ["feud", "bingo"] as const) {
+  // Feud and Bingo are "coming soon" on the menu, so the strip only covers
+  // trivia for now; add them back here when they launch.
+  for (const g of [] as ("feud" | "bingo")[]) {
     const r = c[g];
     if (!r) continue;
     if (r.phase === "lobby" && r.starts_at) out.push({ key: `${g}-lobby`, game: g, text: "starts in", startsAt: r.starts_at });
