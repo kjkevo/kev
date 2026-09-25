@@ -65,7 +65,7 @@ export function GameCarousel({ venue }: { venue: string }) {
     let cancelled = false;
     const load = () =>
       supabase.rpc("get_carousel", { p_venue: venue }).then(({ data }) => {
-        if (cancelled || !data) return;
+        if (cancelled || !data || typeof data !== "object" || Array.isArray(data)) return;
         const c = data as unknown as Carousel;
         setSkew(Date.parse(c.now) - Date.now());
         setData(c);
@@ -80,7 +80,7 @@ export function GameCarousel({ venue }: { venue: string }) {
 
   const slides = useMemo<Slide[]>(() => {
     if (!data) return [];
-    const events = data.items.slice(0, 8).map((i) => ({
+    const events = (data.items ?? []).slice(0, 8).map((i) => ({
       key: i.id,
       game: i.game,
       text: i.text,
