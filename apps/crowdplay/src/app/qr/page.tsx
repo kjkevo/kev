@@ -40,7 +40,7 @@ export default function QrPage() {
         <h1 className="text-3xl sm:text-5xl font-black tracking-tight">
           Become the best in the <span className="text-amber-400">Midwest</span>
         </h1>
-        <p className="mt-2 text-lg sm:text-2xl font-semibold text-indigo-200">Free to play</p>
+        <p className="mt-3 text-3xl sm:text-5xl font-black tracking-tight text-indigo-100">Free to play</p>
       </div>
 
       <div className="relative bg-white p-6 rounded-3xl shadow-2xl">
