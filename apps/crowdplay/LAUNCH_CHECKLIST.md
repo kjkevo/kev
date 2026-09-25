@@ -8,7 +8,29 @@ bots and the live feed stop), and wake when someone opens a game page.
 For launch, switch **Automatic Roller Coaster** on in the dashboard
 (Venues, links and test bots) so games run around the clock.
 
-## Payments (Square)
+## Connect your domain (Hostinger)
+Do this before printing any QR codes: the QR codes contain the site address,
+so codes printed while it's still crowdplay-psi.vercel.app would stop working
+if that address ever changes.
+
+1. Buy/choose the domain in Hostinger (e.g. hivian.com, or play.hivian.com).
+2. In Vercel → crowdplay project → Settings → Domains, add the domain.
+   Vercel shows the DNS records to create.
+3. In Hostinger → Domains → DNS / Nameservers, add those records
+   (usually an A record `@ → 76.76.21.21` and a CNAME `www → cname.vercel-dns.com`,
+   but copy exactly what Vercel shows). HTTPS is set up automatically.
+4. Make the new domain the primary one in Vercel so old links redirect.
+5. Open /qr on the new domain and check the QR codes point there, then
+   print them. Redo the Apple Pay domain verification (Payments below) for
+   the new domain.
+
+Note: the game itself keeps running on Vercel. Hostinger's regular web
+hosting can't run this app (it needs Node.js servers and the always-on
+game clock), so Hostinger is used for the domain name, pointed at Vercel.
+If you want to move the hosting itself to Hostinger, that needs their VPS
+plan, and I'd set that up with you.
+
+
 Purchases run in **test mode** until these are set. Test purchases show in the
 dashboard marked TEST.
 
