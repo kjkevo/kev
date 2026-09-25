@@ -25,6 +25,8 @@ import { deviceKey, rememberAvatar, rememberedAvatar } from "@/lib/device";
 import { BuySheet } from "@/components/BuySheet";
 import { SquadInvite } from "@/components/SquadInvite";
 import { usePlayerVenue } from "@/lib/venue";
+import { useSeason } from "@/hooks/useSeason";
+import { SeasonNotice } from "@/components/SeasonNotice";
 
 const JOIN_ERRORS: Record<string, string> = {
   ROOM_NOT_FOUND: "That room code doesn't exist. Double check with your host.",
@@ -37,6 +39,8 @@ const JOIN_ERRORS: Record<string, string> = {
   TEAM_NOT_FOUND: "That team isn't around anymore. Pick another.",
   TEAM_LOCKED: "That team's round already started. Join a different one.",
   TEAM_FULL: "That team is already full (5 max). Join a different one.",
+  USERNAME_TAKEN: "Someone already has that username this month. Try another.",
+  INVALID_USERNAME: "Usernames need 2 to 20 characters.",
   TOO_MANY_TEAMS: "All 8 team spots are taken. Join a team with room, or play solo and we'll place you.",
   ROOM_FULL: "This game is full (8 teams of 5). Sending you to the next one…",
 };
@@ -73,6 +77,9 @@ export default function PlayPage() {
   const { avatars, byId: avatarsById, refresh: refreshAvatars } = useAvatars();
   const [buying, setBuying] = useState<AvatarOption | null>(null);
   const venueSlug = usePlayerVenue();
+  // Monthly season: one username per phone per month, reset on the 1st.
+  const { season, refresh: refreshSeason } = useSeason(venueSlug);
+  const seasonName = season?.username ?? null;
   const [avatarId, setAvatarId] = useState<string | null>(null);
   const [avatarNote, setAvatarNote] = useState<string | null>(null);
   const [nickname, setNickname] = useState("");
@@ -265,14 +272,31 @@ export default function PlayPage() {
 
   async function join(e: React.FormEvent) {
     e.preventDefault();
-    if (!code || nickname.trim().length === 0) return;
+    const typedName = seasonName ?? nickname.trim();
+    if (!code || typedName.length === 0) return;
     setJoining(true);
     setJoinError(null);
+    // First game of the month: lock in this season's username.
+    let playName = typedName;
+    if (!seasonName) {
+      const claim = await supabase.rpc("claim_season_username", {
+        p_device_key: deviceKey(),
+        p_venue: venueSlug ?? "main",
+        p_username: typedName,
+      });
+      if (claim.error || !claim.data?.[0]) {
+        setJoining(false);
+        setJoinError(friendlyError(claim.error?.message ?? ""));
+        return;
+      }
+      playName = claim.data[0].o_username;
+      refreshSeason();
+    }
     const creating = joinMode === "team" && !selectedTeamId;
     let teamName = newTeamName.trim();
     let result = await supabase.rpc("join_room", {
       p_code: code,
-      p_nickname: nickname.trim(),
+      p_nickname: playName,
       p_team_id: joinMode === "team" && selectedTeamId ? selectedTeamId : undefined,
       p_new_team_name: creating ? teamName : undefined,
     });
@@ -280,7 +304,7 @@ export default function PlayPage() {
     for (let tries = 0; creating && tries < 3 && result.error?.message.includes("TEAM_NAME_TAKEN"); tries++) {
       teamName = `Team ${randomFunName()}`;
       setNewTeamName(teamName);
-      result = await supabase.rpc("join_room", { p_code: code, p_nickname: nickname.trim(), p_new_team_name: teamName });
+      result = await supabase.rpc("join_room", { p_code: code, p_nickname: playName, p_new_team_name: teamName });
     }
     const { data, error } = result;
     setJoining(false);
@@ -445,6 +469,9 @@ export default function PlayPage() {
             "Ready to play?"
           )}
         </p>
+        <div className="w-full flex justify-center mb-4">
+          <SeasonNotice season={season} compact />
+        </div>
         <LobbyRoster players={players} teams={teams} avatars={avatarsById} title="Who's in so far" />
         {joinMode === "choose" ? (
           <div className="flex flex-col gap-3 w-full max-w-xs mt-6">
@@ -482,14 +509,31 @@ export default function PlayPage() {
                   : "Playing with a Team"
                 : "Playing Solo"}
             </p>
-            <label className="text-xs text-slate-400 text-left -mb-2">Your name</label>
-            <input
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              maxLength={30}
-              placeholder="Your name"
-              className="w-full text-center text-xl font-bold bg-white/10 border border-white/20 rounded-2xl py-4 outline-none focus:border-amber-400"
-            />
+            {seasonName ? (
+              <div className="rounded-2xl bg-white/5 border border-white/10 py-3">
+                <p className="text-xs text-slate-400">Playing as</p>
+                <p className="text-xl font-bold">{seasonName}</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Your {season?.month} username. Pick a new one on {season?.resetsOn}.
+                </p>
+              </div>
+            ) : (
+              <>
+                <label className="text-xs text-slate-400 text-left -mb-2">
+                  Pick your {season?.month ?? "monthly"} username
+                </label>
+                <input
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  maxLength={20}
+                  placeholder="Username"
+                  className="w-full text-center text-xl font-bold bg-white/10 border border-white/20 rounded-2xl py-4 outline-none focus:border-amber-400"
+                />
+                <p className="text-[11px] text-slate-500 -mt-1">
+                  You keep it for every trivia game this month{season ? ` until ${season.resetsOn}` : ""}.
+                </p>
+              </>
+            )}
 
             {joinMode === "solo" && (
               <p className="text-xs text-slate-500">
@@ -557,7 +601,7 @@ export default function PlayPage() {
             <button
               disabled={
                 joining ||
-                nickname.trim().length === 0 ||
+                (!seasonName && nickname.trim().length === 0) ||
                 (joinMode === "team" && !selectedTeamId && teamSpotsLeft <= 0)
               }
               className="rounded-2xl bg-amber-400 text-black font-bold text-lg py-4 disabled:opacity-40 active:scale-95 transition"

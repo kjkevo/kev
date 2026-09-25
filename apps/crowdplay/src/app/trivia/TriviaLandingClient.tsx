@@ -11,6 +11,8 @@ import { LobbyRoster } from "@/components/LobbyRoster";
 import { useRoomRealtime } from "@/hooks/useRoomRealtime";
 import { useTriviaQueue, roundsToWaitLabel, currentGameProgress } from "@/hooks/useTriviaQueue";
 import type { Player, Team } from "@/lib/types";
+import { useSeason } from "@/hooks/useSeason";
+import { SeasonNotice } from "@/components/SeasonNotice";
 import { supabase } from "@/lib/supabase";
 
 /**
@@ -285,6 +287,8 @@ function RestartButton({ onClick, busy }: { onClick: () => void; busy: boolean }
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
+  // Every trivia visitor sees the monthly season and when it resets.
+  const { season } = useSeason(usePlayerVenue());
   return (
     <main className="min-h-screen flex flex-col items-center justify-center gap-8 bg-gradient-to-b from-indigo-950 via-purple-950 to-black text-white px-6 text-center">
       <div>
@@ -292,7 +296,9 @@ function Shell({ children }: { children: React.ReactNode }) {
           ← All games
         </Link>
         <h1 className="text-5xl sm:text-6xl font-black tracking-tight">Trivia</h1>
+        {season?.username && <p className="mt-2 text-sm text-indigo-200">Playing as {season.username}</p>}
       </div>
+      <SeasonNotice season={season} />
       {children}
       <Link href="/host" className="text-xs text-indigo-300/50 hover:text-indigo-200 mt-4">
         Running the show? Host a game →

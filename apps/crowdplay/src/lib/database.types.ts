@@ -599,6 +599,14 @@ export type Database = {
           o_last_win: string
         }[]
       }
+      get_season_profile: {
+        Args: { p_device_key: string; p_venue: string }
+        Returns: { o_username: string | null; o_season_month: string; o_resets_at: string }[]
+      }
+      claim_season_username: {
+        Args: { p_device_key: string; p_venue: string; p_username: string }
+        Returns: { o_username: string }[]
+      }
       get_shoutouts: {
         Args: { p_room_id: string }
         Returns: { o_id: number; o_text: string; o_nickname: string; o_team_name: string | null; o_emoji: string | null; o_image_url: string | null; o_at: string }[]
