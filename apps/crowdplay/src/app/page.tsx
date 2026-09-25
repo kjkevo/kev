@@ -14,14 +14,14 @@ const GAMES = [
     initial: "F",
     tagline: "Top answers, buzzer battles",
     href: "/feud",
-    live: true,
+    live: false,
   },
   {
     name: "Social Bingo",
     initial: "B",
     tagline: "Meet people, mark your card",
     href: "/bingo",
-    live: true,
+    live: false,
   },
   {
     name: "Sports Predictions",
