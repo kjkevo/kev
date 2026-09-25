@@ -302,6 +302,14 @@ export default function PlayPage() {
     };
     localStorage.setItem(playerKey(code), JSON.stringify(c));
     setCreds(c);
+    // Ties this player to the phone, so wins can be counted across games
+    // (the "won 3 in a row" champion on the venue's QR display).
+    supabase.rpc("link_player_device", {
+      p_room_id: c.roomId,
+      p_player_id: c.playerId,
+      p_client_token: c.clientToken,
+      p_device_key: deviceKey(),
+    });
     if (avatarId) {
       rememberAvatar(avatarId);
       supabase.rpc("set_player_avatar", {

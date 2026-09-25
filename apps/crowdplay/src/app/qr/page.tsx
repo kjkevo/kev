@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { DEFAULT_VENUE } from "@/lib/venue";
 import { GameCarousel } from "@/components/GameCarousel";
+import { Avatar } from "@/components/Avatar";
+import { useTriviaChampion } from "@/hooks/useTriviaChampion";
 
 /**
  * The venue's "scan to play" display: headline, "free to play" and the QR
@@ -14,6 +16,7 @@ import { GameCarousel } from "@/components/GameCarousel";
 export default function QrPage() {
   const [url, setUrl] = useState("");
   const [venue, setVenue] = useState<string | null>(null);
+  const champion = useTriviaChampion(venue);
 
   useEffect(() => {
     // src=qr lets the dashboard count arrivals; venue sends them to that bar's games.
@@ -43,8 +46,34 @@ export default function QrPage() {
         <p className="mt-3 text-3xl sm:text-5xl font-black tracking-tight text-indigo-100">Free to play</p>
       </div>
 
-      <div className="relative bg-white p-6 rounded-3xl shadow-2xl">
-        {url ? <QRCodeSVG value={url} size={280} /> : <div style={{ width: 280, height: 280 }} />}
+      {/* Wide (horizontal) screens: QR on the left, this month's champion on
+          the right. Phones and portrait screens show the QR alone. */}
+      <div className="relative flex flex-col items-center gap-10 lg:landscape:flex-row lg:landscape:gap-16">
+        <div className="bg-white p-6 rounded-3xl shadow-2xl">
+          {url ? <QRCodeSVG value={url} size={280} /> : <div style={{ width: 280, height: 280 }} />}
+        </div>
+
+        <div className="hidden lg:landscape:flex flex-col items-center text-center w-80">
+          {champion ? (
+            <>
+              <p className="text-sm font-bold uppercase tracking-[0.25em] text-amber-400">Champion of the month</p>
+              <Avatar emoji={champion.emoji} imageUrl={champion.imageUrl} size={220} variant="full" className="mt-3" />
+              <p className="mt-2 text-4xl font-black tracking-tight break-words max-w-full">{champion.nickname}</p>
+              <p className="mt-2 text-xl font-semibold text-indigo-100">
+                Won {champion.streak} trivia games in a row
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm font-bold uppercase tracking-[0.25em] text-amber-400">Champion of the month</p>
+              <div className="mt-3 w-[220px] h-[220px] rounded-full border-4 border-dashed border-white/20 flex items-center justify-center text-7xl font-black text-white/25">
+                ?
+              </div>
+              <p className="mt-4 text-2xl font-black">Could be you</p>
+              <p className="mt-1 text-lg text-indigo-100">Win 3 trivia games in a row to take this spot</p>
+            </>
+          )}
+        </div>
       </div>
 
       {venue && (

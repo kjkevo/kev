@@ -334,6 +334,7 @@ export type Database = {
           score: number
           team_id: string | null
           avatar_id: string | null
+          device_key: string | null
           team_members: string[] | null
         }
         Insert: {
@@ -346,6 +347,7 @@ export type Database = {
           score?: number
           team_id?: string | null
           avatar_id?: string | null
+          device_key?: string | null
           team_members?: string[] | null
         }
         Update: {
@@ -358,6 +360,7 @@ export type Database = {
           score?: number
           team_id?: string | null
           avatar_id?: string | null
+          device_key?: string | null
           team_members?: string[] | null
         }
         Relationships: []
@@ -580,6 +583,21 @@ export type Database = {
       touch_activity: {
         Args: { p_venue: string }
         Returns: undefined
+      }
+      link_player_device: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_device_key: string }
+        Returns: undefined
+      }
+      get_trivia_champion: {
+        Args: { p_venue: string }
+        Returns: {
+          o_nickname: string
+          o_avatar_id: string | null
+          o_emoji: string | null
+          o_image_url: string | null
+          o_streak: number
+          o_last_win: string
+        }[]
       }
       get_shoutouts: {
         Args: { p_room_id: string }
