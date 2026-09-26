@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { Player, Team } from "@/lib/types";
 import { Avatar } from "@/components/Avatar";
 import type { AvatarOption } from "@/hooks/useAvatars";
@@ -30,15 +30,34 @@ export function LobbyRoster({
   highlightTeamId,
   avatars,
   title = "Who's in",
+  collapsible = false,
 }: {
   players: Player[];
   teams: Team[];
   highlightTeamId?: string | null;
   avatars?: Record<string, AvatarOption>;
   title?: string;
+  /** Start folded to a one-line "N teams · M players" summary. */
+  collapsible?: boolean;
 }) {
   const live = useLiveTeams(players, teams);
   const playerCount = live.reduce((n, t) => n + t.members.length, 0);
+  const [open, setOpen] = useState(!collapsible);
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="w-full max-w-sm rounded-2xl bg-white/5 border border-white/10 px-4 py-3 text-sm text-slate-300 flex items-center justify-between active:scale-[0.98] transition"
+      >
+        <span>
+          {live.length} team{live.length === 1 ? "" : "s"} · {playerCount} player{playerCount === 1 ? "" : "s"}
+        </span>
+        <span className="text-indigo-300 text-xs font-bold">Show ▾</span>
+      </button>
+    );
+  }
 
   return (
     <div className="w-full max-w-sm rounded-2xl bg-white/5 border border-white/10 p-4 text-left">
@@ -46,6 +65,11 @@ export function LobbyRoster({
         <p className="text-xs uppercase tracking-widest text-indigo-300">{title}</p>
         <p className="text-xs text-slate-400">
           {playerCount} player{playerCount === 1 ? "" : "s"} · {live.length}/{MAX_TEAMS} teams
+          {collapsible && (
+            <button type="button" onClick={() => setOpen(false)} className="ml-2 text-indigo-300 font-bold">
+              Hide ▴
+            </button>
+          )}
         </p>
       </div>
       {live.length === 0 ? (

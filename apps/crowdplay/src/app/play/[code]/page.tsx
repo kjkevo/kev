@@ -27,6 +27,7 @@ import { SquadInvite } from "@/components/SquadInvite";
 import { usePlayerVenue } from "@/lib/venue";
 import { useSeason } from "@/hooks/useSeason";
 import { SeasonNotice } from "@/components/SeasonNotice";
+import { Avatar } from "@/components/Avatar";
 
 const JOIN_ERRORS: Record<string, string> = {
   ROOM_NOT_FOUND: "That room code doesn't exist. Double check with your host.",
@@ -44,6 +45,8 @@ const JOIN_ERRORS: Record<string, string> = {
   TOO_MANY_TEAMS: "All 8 team spots are taken. Join a team with room, or play solo and we'll place you.",
   ROOM_FULL: "This game is full (8 teams of 5). Sending you to the next one…",
 };
+
+const LAST_MODE_KEY = "crowdplay_last_mode";
 
 function friendlyError(raw: string) {
   const key = Object.keys(JOIN_ERRORS).find((k) => raw.includes(k));
@@ -85,7 +88,13 @@ export default function PlayPage() {
   const [nickname, setNickname] = useState("");
   // How they want to play: pick on the join screen, or arrive with
   // ?mode=solo / ?mode=team from the "wait for the next game" screen.
-  const [joinMode, setJoinMode] = useState<"choose" | "solo" | "team">("choose");
+  const [joinMode, setJoinMode] = useState<"solo" | "team">("solo");
+  // null = default (open for a first-timer, closed for a returning player).
+  const [avatarOpen, setAvatarOpen] = useState<boolean | null>(null);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [lobbyAvatarOpen, setLobbyAvatarOpen] = useState(false);
+  const [rejoining, setRejoining] = useState(false);
+  const [rejoinError, setRejoinError] = useState<string | null>(null);
   const [newTeamName, setNewTeamName] = useState("");
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [joinError, setJoinError] = useState<string | null>(null);
@@ -116,6 +125,7 @@ export default function PlayPage() {
 
   useEffect(() => {
     setNickname(randomFunName());
+    setNewTeamName(`Team ${randomFunName()}`);
     const query = new URLSearchParams(window.location.search);
     const mode = query.get("mode");
     // Scanned a squad invite: go straight to joining that team.
@@ -125,11 +135,13 @@ export default function PlayPage() {
       setSelectedTeamId(invitedTeam);
       return;
     }
-    if (mode === "solo") setJoinMode("solo");
-    if (mode === "team") {
-      setJoinMode("team");
-      setNewTeamName(`Team ${randomFunName()}`);
-    }
+    // ?mode= from the trivia landing wins; otherwise however they played last.
+    let last: string | null = null;
+    try {
+      last = localStorage.getItem(LAST_MODE_KEY);
+    } catch {}
+    const pick = mode ?? last;
+    if (pick === "solo" || pick === "team") setJoinMode(pick);
   }, []);
 
   useEffect(() => {
@@ -145,9 +157,14 @@ export default function PlayPage() {
     setConfirmingHint(false);
   }, [room?.current_question_index]);
 
-  // Reset category vote choice whenever a fresh room (new code) shows up.
+  // Reset per-room state whenever a fresh room (new code) shows up, e.g.
+  // after "Play the next game" moves this phone into the next lobby.
   useEffect(() => {
     setMyVote(null);
+    setRecap(null);
+    setRejoining(false);
+    setRejoinError(null);
+    setInviteOpen(false);
   }, [room?.id]);
 
   useEffect(() => {
@@ -325,6 +342,9 @@ export default function PlayPage() {
       teamName: data[0].team_name,
     };
     localStorage.setItem(playerKey(code), JSON.stringify(c));
+    try {
+      localStorage.setItem(LAST_MODE_KEY, joinMode);
+    } catch {}
     setCreds(c);
     // Ties this player to the phone, so wins can be counted across games
     // (the "won 3 in a row" champion on the venue's QR display).
@@ -438,6 +458,43 @@ export default function PlayPage() {
     router.push(destination);
   }
 
+  // From the results screen: straight into the venue's next lobby, on the
+  // same team (teammates who tap land together), same name and avatar.
+  async function playNextSameTeam() {
+    if (!creds || !code || rejoining) return;
+    setRejoining(true);
+    setRejoinError(null);
+    const { data, error } = await supabase.rpc("rejoin_next_game", {
+      p_room_id: creds.roomId,
+      p_player_id: creds.playerId,
+      p_client_token: creds.clientToken,
+    });
+    const row = data?.[0];
+    if (error || !row) {
+      setRejoining(false);
+      setRejoinError(
+        error?.message.includes("NO_NEXT_GAME")
+          ? "The next game isn't open yet. Give it a few seconds and try again."
+          : error?.message.includes("TEAM_FULL")
+            ? "Your team is already full in the next game."
+            : error?.message.includes("TOO_MANY_TEAMS")
+              ? "All 8 team spots in the next game are taken. Head back to Trivia to join as a solo player."
+              : friendlyError(error?.message ?? "")
+      );
+      return;
+    }
+    const next: PlayerCredentials = {
+      playerId: row.o_player_id,
+      clientToken: row.o_client_token,
+      roomId: row.o_room_id,
+      teamId: row.o_team_id,
+      teamName: row.o_team_name,
+    };
+    localStorage.setItem(playerKey(row.o_code), JSON.stringify(next));
+    localStorage.removeItem(playerKey(code));
+    router.push(`/play/${row.o_code}`);
+  }
+
   if (loading) return <Center text="Loading room…" />;
   if (notFound)
     return (
@@ -450,132 +507,136 @@ export default function PlayPage() {
   if (!room) return null;
 
   if (!creds) {
+    const myAvatar = avatarId ? avatarsById[avatarId] : undefined;
+    const invitedTeam = selectedTeamId ? teams.find((t) => t.id === selectedTeamId) : undefined;
+    const playName = seasonName ?? nickname.trim();
+    const cantCreateTeam = joinMode === "team" && !selectedTeamId && teamSpotsLeft <= 0;
+    // First game of the month: the avatar picker is open so they choose one.
+    // Returning players keep theirs and can open it with "Change avatar".
+    const pickerOpen = avatarOpen ?? !seasonName;
     return (
       <Center>
         <BackButton onClick={() => leaveRoom("/")} />
         {buySheet}
-        <h1 className="text-2xl font-bold mb-1">Room {room.code}</h1>
-        <p className="text-slate-400 mb-6">
-          {room.queued ? (
-            <>
-              <span className="text-amber-400 font-bold">Next game. {roundsToWaitLabel(myQueueSpot?.o_rounds_to_wait ?? 1)}</span>
-              {queueProgress && <span className="block text-xs mt-1">{queueProgress}</span>}
-            </>
-          ) : room.phase === "lobby" && room.starts_at && !scheduledCountdown.reached ? (
-            <>
-              Game starts in <span className="text-amber-400 font-bold tabular-nums">{scheduledCountdown.label}</span>
-            </>
-          ) : (
-            "Ready to play?"
-          )}
-        </p>
-        <div className="w-full flex justify-center mb-4">
-          <SeasonNotice season={season} compact />
-        </div>
-        <LobbyRoster players={players} teams={teams} avatars={avatarsById} title="Who's in so far" />
-        {joinMode === "choose" ? (
-          <div className="flex flex-col gap-3 w-full max-w-xs mt-6">
-            <p className="text-sm text-slate-300 mb-1">How do you want to play?</p>
-            <button
-              type="button"
-              onClick={() => setJoinMode("solo")}
-              className="rounded-2xl bg-amber-400 text-black font-bold text-lg py-5 active:scale-95 transition"
-            >
-              Play Solo
-              <span className="block text-xs font-medium text-black/70">We&apos;ll put you on a team ({MIN_TEAM_SIZE} to {MAX_TEAM_SIZE} people)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setJoinMode("team");
-                if (!newTeamName) setNewTeamName(`Team ${randomFunName()}`);
-              }}
-              className="rounded-2xl border-2 border-amber-400 bg-amber-400/10 text-amber-300 font-bold text-lg py-5 active:scale-95 transition"
-            >
-              Play with a Team
-              <span className="block text-xs font-medium text-amber-300/70">Start a team or join a friend&apos;s</span>
-            </button>
-            <div className="mt-3">
-              <AvatarPicker avatars={avatars} selectedId={avatarId} onSelect={changeAvatar} onBuy={buyAvatar} />
-              {avatarNote && <p className="text-xs text-amber-300/80 mt-2">{avatarNote}</p>}
-            </div>
-          </div>
-        ) : (
-          <form onSubmit={join} className="flex flex-col gap-3 w-full max-w-xs mt-6">
-            <p className="text-xs font-bold uppercase tracking-widest text-amber-400">
-              {joinMode === "team"
-                ? selectedTeamId && teams.find((t) => t.id === selectedTeamId)
-                  ? `Joining ${teams.find((t) => t.id === selectedTeamId)!.name}`
-                  : "Playing with a Team"
-                : "Playing Solo"}
-            </p>
-            {seasonName ? (
-              <div className="rounded-2xl bg-white/5 border border-white/10 py-3">
-                <p className="text-xs text-slate-400">Playing as</p>
-                <p className="text-xl font-bold">{seasonName}</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  Your {season?.month} username. Pick a new one on {season?.resetsOn}.
-                </p>
-              </div>
-            ) : (
-              <>
-                <label className="text-xs text-slate-400 text-left -mb-2">
-                  Pick your {season?.month ?? "monthly"} username
-                </label>
-                <input
-                  value={nickname}
-                  onChange={(e) => setNickname(e.target.value)}
-                  maxLength={20}
-                  placeholder="Username"
-                  className="w-full text-center text-xl font-bold bg-white/10 border border-white/20 rounded-2xl py-4 outline-none focus:border-amber-400"
-                />
-                <p className="text-[11px] text-slate-500 -mt-1">
-                  You keep it for every trivia game this month{season ? ` until ${season.resetsOn}` : ""}.
-                </p>
-              </>
-            )}
-
-            {joinMode === "solo" && (
-              <p className="text-xs text-slate-500">
-                You&apos;ll be placed on a random team with room ({MIN_TEAM_SIZE} to {MAX_TEAM_SIZE} people per team).
+        <div className="w-full max-w-xs flex flex-col gap-4 py-16">
+          <div>
+            <h1 className="text-2xl font-black">
+              Trivia
+              {!room.queued && room.phase === "lobby" && room.starts_at && !scheduledCountdown.reached && (
+                <>
+                  {" "}· starts in <span className="text-amber-400 tabular-nums">{scheduledCountdown.label}</span>
+                </>
+              )}
+            </h1>
+            {room.queued && (
+              <p className="text-sm mt-1">
+                <span className="text-amber-400 font-bold">Next game. {roundsToWaitLabel(myQueueSpot?.o_rounds_to_wait ?? 1)}</span>
+                {queueProgress && <span className="block text-xs text-slate-400 mt-0.5">{queueProgress}</span>}
               </p>
             )}
+          </div>
 
-            {joinMode === "team" && (
-              <div className="flex flex-col gap-3">
-                {!selectedTeamId && (
-                  <div className="flex flex-col gap-2 bg-white/5 rounded-2xl p-3">
-                    {teamSpotsLeft > 0 ? (
-                      <>
-                        <p className="text-xs text-slate-400 text-left">Your new team</p>
-                        <div className="flex items-center gap-2">
-                          <p className="flex-1 font-bold text-lg text-amber-300">{newTeamName}</p>
-                          <button
-                            type="button"
-                            onClick={() => setNewTeamName(`Team ${randomFunName()}`)}
-                            aria-label="Pick another team name"
-                            className="text-xs font-bold px-3 h-8 rounded-lg bg-white/10 hover:bg-white/20 active:scale-90 transition"
-                          >
-                            Reroll
-                          </button>
-                        </div>
-                        <p className="text-xs text-slate-500 text-left">
-                          Team names are picked for you. Your friends join from this screen by tapping your team.
-                          Teams need {MIN_TEAM_SIZE} to {MAX_TEAM_SIZE} people, or you&apos;ll be moved onto a team with room
-                          when the game starts.
-                        </p>
-                      </>
-                    ) : (
-                      <p className="text-xs text-amber-300/80 text-left">
-                        All {MAX_TEAMS} team spots are taken, so no new teams this game. Join one below, or play solo.
-                      </p>
-                    )}
-                  </div>
+          {!seasonName && <SeasonNotice season={season} compact />}
+
+          <form onSubmit={join} className="flex flex-col gap-4">
+            {/* Player card: this month's username and avatar. */}
+            <div className="rounded-2xl bg-white/5 border border-white/10 p-3 flex items-center gap-3 text-left">
+              <Avatar emoji={myAvatar?.emoji} imageUrl={myAvatar?.imageUrl} size={56} />
+              <div className="flex-1 min-w-0">
+                {seasonName ? (
+                  <>
+                    <p className="text-[11px] text-slate-400">Playing as</p>
+                    <p className="text-lg font-bold truncate">{seasonName}</p>
+                  </>
+                ) : (
+                  <>
+                    <label htmlFor="username" className="text-[11px] text-slate-400">
+                      Your {season?.month ?? "monthly"} username
+                    </label>
+                    <input
+                      id="username"
+                      value={nickname}
+                      onChange={(e) => setNickname(e.target.value)}
+                      maxLength={20}
+                      placeholder="Username"
+                      className="w-full text-lg font-bold bg-white/10 border border-white/20 rounded-xl px-3 py-1.5 outline-none focus:border-amber-400"
+                    />
+                  </>
                 )}
+                <button
+                  type="button"
+                  onClick={() => setAvatarOpen(!pickerOpen)}
+                  className="text-xs font-bold text-amber-300 mt-1"
+                >
+                  {pickerOpen ? "Done choosing avatar" : "Change avatar"}
+                </button>
+              </div>
+            </div>
+            {!seasonName && (
+              <p className="text-[11px] text-slate-500 -mt-2">
+                You keep this name for every trivia game this month{season ? ` until ${season.resetsOn}` : ""}.
+              </p>
+            )}
+            {pickerOpen && (
+              <div>
+                <AvatarPicker avatars={avatars} selectedId={avatarId} onSelect={changeAvatar} onBuy={buyAvatar} />
+              </div>
+            )}
+            {avatarNote && <p className="text-xs text-amber-300/80 -mt-2">{avatarNote}</p>}
 
+            {/* Solo or team, remembered from last time. */}
+            <div className="grid grid-cols-2 gap-1 rounded-2xl bg-white/5 border border-white/10 p-1">
+              {(["solo", "team"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => {
+                    setJoinMode(m);
+                    if (m === "solo") setSelectedTeamId(null);
+                    setJoinError(null);
+                  }}
+                  className={`rounded-xl py-2.5 text-sm font-bold transition ${
+                    joinMode === m ? "bg-white text-black" : "text-slate-300"
+                  }`}
+                >
+                  {m === "solo" ? "Solo" : "With friends"}
+                </button>
+              ))}
+            </div>
+
+            {joinMode === "solo" ? (
+              <p className="text-xs text-slate-400 -mt-2">
+                We&apos;ll put you on a team with room ({MIN_TEAM_SIZE} to {MAX_TEAM_SIZE} people).
+              </p>
+            ) : (
+              <div className="flex flex-col gap-2 rounded-2xl bg-white/5 border border-white/10 p-3 text-left">
+                {invitedTeam ? (
+                  <p className="text-sm">
+                    Joining <span className="font-bold text-amber-300">{invitedTeam.name}</span>
+                  </p>
+                ) : teamSpotsLeft > 0 ? (
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] text-slate-400">Your new team</p>
+                      <p className="font-bold text-amber-300 truncate">{newTeamName}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setNewTeamName(`Team ${randomFunName()}`)}
+                      aria-label="Pick another team name"
+                      className="text-xs font-bold px-3 h-8 rounded-lg bg-white/10 hover:bg-white/20 active:scale-90 transition"
+                    >
+                      Reroll
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-xs text-amber-300/80">
+                    All {MAX_TEAMS} team spots are taken, so no new teams this game. Join one below, or play solo.
+                  </p>
+                )}
                 {joinableTeams.length > 0 && (
-                  <div className="flex flex-col gap-2 bg-white/5 rounded-2xl p-3">
-                    <p className="text-xs text-slate-400 text-left">Or join a friend&apos;s team:</p>
+                  <>
+                    <p className="text-[11px] text-slate-400 mt-1">Or join a friend&apos;s team</p>
                     <div className="flex flex-wrap gap-2">
                       {joinableTeams.map((t) => (
                         <button
@@ -590,143 +651,171 @@ export default function PlayPage() {
                         </button>
                       ))}
                     </div>
-                  </div>
+                  </>
                 )}
+                <p className="text-[11px] text-slate-500">
+                  After you join you&apos;ll get a QR code your friends can scan to land on your team.
+                </p>
               </div>
             )}
 
-            <AvatarPicker avatars={avatars} selectedId={avatarId} onSelect={changeAvatar} onBuy={buyAvatar} />
-            {avatarNote && <p className="text-xs text-amber-300/80">{avatarNote}</p>}
             {joinError && <p className="text-red-400 text-sm">{joinError}</p>}
             <button
-              disabled={
-                joining ||
-                (!seasonName && nickname.trim().length === 0) ||
-                (joinMode === "team" && !selectedTeamId && teamSpotsLeft <= 0)
-              }
-              className="rounded-2xl bg-amber-400 text-black font-bold text-lg py-4 disabled:opacity-40 active:scale-95 transition"
+              disabled={joining || playName.length === 0 || cantCreateTeam}
+              className="rounded-2xl bg-amber-400 text-black font-black text-lg py-4 shadow-lg shadow-amber-400/20 disabled:opacity-40 active:scale-95 transition"
             >
               {joining
                 ? "Joining…"
-                : joinMode === "team"
-                  ? selectedTeamId
-                    ? "Join Team"
-                    : "Create Team & Join"
-                  : "Join Game"}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setJoinMode("choose");
-                setSelectedTeamId(null);
-                setJoinError(null);
-              }}
-              className="text-xs text-slate-400 self-center"
-            >
-              Back
+                : `Join${playName ? ` as ${playName}` : ""} · ${
+                    joinMode === "solo" ? "Solo" : invitedTeam ? invitedTeam.name : "New team"
+                  }`}
             </button>
           </form>
-        )}
+
+          <LobbyRoster players={players} teams={teams} avatars={avatarsById} title="Who's in so far" collapsible />
+        </div>
       </Center>
     );
   }
 
   if (room.phase === "lobby") {
     const showCountdown = room.starts_at && !scheduledCountdown.reached;
+    const teamName = myTeam?.name ?? creds.teamName;
     return (
       <Center>
         <BackButton onClick={() => leaveRoom("/")} />
         {buySheet}
-        <h1 className="text-2xl font-bold mb-1">You&apos;re on {myTeam?.name ?? creds.teamName}!</h1>
-        <p className="text-slate-400 mb-4">{me?.nickname}</p>
-        {room.queued && (
-          <div className="w-full max-w-xs mb-4 rounded-2xl bg-sky-500/10 border border-sky-400/40 px-4 py-3">
-            <p className="font-bold text-sky-200">You&apos;re in the next game</p>
-            <p className="text-sm text-slate-300">{roundsToWaitLabel(myQueueSpot?.o_rounds_to_wait ?? 1)}.</p>
-            {queueProgress && <p className="text-xs text-slate-400 mt-1">{queueProgress}.</p>}
-            <p className="text-xs text-slate-400 mt-1">
-              Keep this page open. The countdown starts here the moment the game before yours ends.
-            </p>
+        <div className="w-full max-w-xs flex flex-col gap-4 py-16">
+          {/* Pinned: which team you're on and when it starts. */}
+          <div className="sticky top-3 z-20 rounded-2xl bg-indigo-950/90 backdrop-blur border border-white/15 px-4 py-2.5 flex items-center justify-between gap-3 shadow-lg">
+            <div className="min-w-0 text-left">
+              <p className="text-[11px] text-slate-400 truncate">{me?.nickname} · you&apos;re on</p>
+              <p className="font-bold truncate">{teamName}</p>
+            </div>
+            <div className="text-right shrink-0">
+              {room.queued ? (
+                <p className="text-sm font-bold text-sky-300">Next game</p>
+              ) : showCountdown ? (
+                <>
+                  <p className="text-[11px] text-slate-400">Starts in</p>
+                  <p className="text-xl font-black text-amber-400 tabular-nums leading-none">{scheduledCountdown.label}</p>
+                </>
+              ) : (
+                <p className="text-sm font-bold text-amber-400">Starting…</p>
+              )}
+            </div>
           </div>
-        )}
 
-        {room.category_options && room.category_options.length > 0 ? (
-          <div className="w-full max-w-xs rounded-2xl bg-amber-400/10 border border-amber-400/30 p-4">
-            <p className="text-base font-bold text-white mb-1">Vote for tonight&apos;s category</p>
-            {showCountdown ? (
-              <p className="text-xs text-slate-300 mb-3">
-                Voting closes in{" "}
-                <span className="text-amber-400 font-bold tabular-nums">{scheduledCountdown.label}</span>
+          {room.queued && (
+            <div className="rounded-2xl bg-sky-500/10 border border-sky-400/40 px-4 py-3">
+              <p className="font-bold text-sky-200">You&apos;re in the next game</p>
+              <p className="text-sm text-slate-300">{roundsToWaitLabel(myQueueSpot?.o_rounds_to_wait ?? 1)}.</p>
+              {queueProgress && <p className="text-xs text-slate-400 mt-1">{queueProgress}.</p>}
+              <p className="text-xs text-slate-400 mt-1">
+                Keep this page open. The countdown starts here the moment the game before yours ends.
               </p>
-            ) : (
+            </div>
+          )}
+
+          {room.category_options && room.category_options.length > 0 ? (
+            <div className="rounded-2xl bg-amber-400/10 border border-amber-400/30 p-4">
+              <p className="text-base font-bold text-white mb-1">Vote for tonight&apos;s category</p>
               <p className="text-xs text-slate-400 mb-3">
                 {room.queued
                   ? "Voting stays open until your game starts."
-                  : "This game runs itself. It starts automatically, whether people are here yet or not."}
+                  : showCountdown
+                    ? "Voting closes when the countdown ends."
+                    : "This game runs itself. It starts automatically, whether people are here yet or not."}
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {room.category_options.map((packId) => (
+                  <VoteButton
+                    key={packId}
+                    name={packs[packId]?.name}
+                    icon={packs[packId]?.icon}
+                    count={displayTally[packId] ?? 0}
+                    selected={myVote === packId}
+                    onClick={() => vote(packId)}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : (
+            !showCountdown && (
+              <p className="text-slate-400 text-sm">
+                This game runs itself. It starts automatically, whether people are here yet or not.
+              </p>
+            )
+          )}
+
+          <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
+            <p className="text-xs uppercase tracking-widest text-amber-400 mb-2">Your team</p>
+            <div className="flex flex-wrap gap-x-3 gap-y-2 justify-center">
+              {teammates.map((p) => {
+                const a = p.avatar_id ? avatarsById[p.avatar_id] : undefined;
+                return (
+                  <span key={p.id} className="flex items-center gap-1.5 text-sm">
+                    <Avatar emoji={a?.emoji} imageUrl={a?.imageUrl} size={30} />
+                    {p.nickname}
+                  </span>
+                );
+              })}
+            </div>
+            {teammates.length < MIN_TEAM_SIZE && (
+              <p className="text-xs text-amber-400/80 mt-2">
+                {myTeam?.kind === "self"
+                  ? "Invite a friend, or you'll be moved onto a team with room when the game starts."
+                  : "Waiting for a teammate. If nobody joins, you'll be moved onto a team with room when the game starts."}
               </p>
             )}
-            <div className="grid grid-cols-2 gap-2">
-              {room.category_options.map((packId) => (
-                <VoteButton
-                  key={packId}
-                  name={packs[packId]?.name}
-                  icon={packs[packId]?.icon}
-                  count={displayTally[packId] ?? 0}
-                  selected={myVote === packId}
-                  onClick={() => vote(packId)}
+            {myTeam?.kind === "self" && teammates.length < MAX_TEAM_SIZE && (
+              <button
+                type="button"
+                onClick={() => setInviteOpen(!inviteOpen)}
+                className="mt-3 w-full rounded-xl bg-amber-400 text-black font-bold py-2.5 active:scale-95 transition"
+              >
+                {inviteOpen ? "Hide invite" : "Invite friends"}
+              </button>
+            )}
+            {myTeam?.kind === "self" && inviteOpen && (
+              <div className="mt-3 flex justify-center">
+                <SquadInvite
+                  code={room.code}
+                  teamId={myTeam.id}
+                  teamName={myTeam.name}
+                  venue={venueSlug ?? "main"}
+                  spotsLeft={MAX_TEAM_SIZE - teammates.length}
                 />
-              ))}
-            </div>
+              </div>
+            )}
           </div>
-        ) : showCountdown ? (
-          <p className="text-slate-300 mb-1">
-            Starting in <span className="text-amber-400 font-bold tabular-nums">{scheduledCountdown.label}</span>
-          </p>
-        ) : (
-          <p className="text-slate-400 mb-1">
-            This game runs itself. It starts automatically, whether people are here yet or not.
-          </p>
-        )}
 
-        <div className="w-full max-w-xs mt-4 rounded-2xl bg-amber-400/10 border border-amber-400/30 p-4">
-          <p className="text-xs uppercase tracking-widest text-amber-400 mb-2">Your team</p>
-          <div className="flex flex-wrap gap-2 justify-center">
-            {teammates.map((p) => (
-              <span key={p.id} className="bg-white/10 rounded-full px-3 py-1 text-sm">
-                {p.nickname}
-              </span>
-            ))}
-          </div>
-          {teammates.length < MIN_TEAM_SIZE && (
-            <p className="text-xs text-amber-400/80 mt-2">
-              {myTeam?.kind === "self"
-                ? "Have a friend scan your squad QR below, or you'll be moved onto a team with room when the game starts."
-                : "Waiting for a teammate. If nobody joins, you'll be moved onto a team with room when the game starts."}
-            </p>
-          )}
-        </div>
-
-        {myTeam?.kind === "self" && (
-          <div className="mt-4 w-full flex justify-center">
-            <SquadInvite
-              code={room.code}
-              teamId={myTeam.id}
-              teamName={myTeam.name}
-              venue={venueSlug ?? "main"}
-              spotsLeft={MAX_TEAM_SIZE - teammates.length}
-            />
-          </div>
-        )}
-
-        <div className="mt-4 w-full flex justify-center">
-          <LobbyRoster players={players} teams={teams} avatars={avatarsById} highlightTeamId={creds.teamId} title="Teams so far" />
-        </div>
-        <div className="mt-4 w-full flex justify-center">
           <Shoutouts roomId={room.id} creds={creds} />
-        </div>
-        <div className="mt-4 w-full flex flex-col items-center">
-          <AvatarPicker avatars={avatars} selectedId={me?.avatar_id ?? avatarId} onSelect={changeAvatar} onBuy={buyAvatar} />
-          {avatarNote && <p className="text-xs text-amber-300/80 mt-2">{avatarNote}</p>}
+
+          <div className="flex flex-col items-center">
+            <button
+              type="button"
+              onClick={() => setLobbyAvatarOpen(!lobbyAvatarOpen)}
+              className="rounded-full bg-white/10 border border-white/20 px-4 py-2 text-sm font-bold active:scale-95 transition"
+            >
+              {lobbyAvatarOpen ? "Done" : "Change avatar"}
+            </button>
+            {lobbyAvatarOpen && (
+              <div className="mt-3">
+                <AvatarPicker avatars={avatars} selectedId={me?.avatar_id ?? avatarId} onSelect={changeAvatar} onBuy={buyAvatar} />
+              </div>
+            )}
+            {avatarNote && <p className="text-xs text-amber-300/80 mt-2">{avatarNote}</p>}
+          </div>
+
+          <LobbyRoster
+            players={players}
+            teams={teams}
+            avatars={avatarsById}
+            highlightTeamId={creds.teamId}
+            title="Teams so far"
+            collapsible
+          />
         </div>
       </Center>
     );
@@ -968,9 +1057,15 @@ export default function PlayPage() {
             )}
 
             <button
-              onClick={() => leaveRoom("/")}
-              className="rounded-2xl bg-amber-400 text-black font-bold text-lg py-4 active:scale-95 transition"
+              onClick={playNextSameTeam}
+              disabled={rejoining}
+              className="rounded-2xl bg-amber-400 text-black font-black text-lg py-4 shadow-lg shadow-amber-400/20 disabled:opacity-50 active:scale-95 transition"
             >
+              {rejoining ? "Getting you in…" : "Play the next game"}
+              <span className="block text-xs font-semibold text-black/70">Same team: {myTeam?.name ?? creds.teamName}</span>
+            </button>
+            {rejoinError && <p className="text-sm text-amber-300/90">{rejoinError}</p>}
+            <button onClick={() => leaveRoom("/")} className="text-sm text-slate-400 underline">
               Back to Games
             </button>
           </div>
