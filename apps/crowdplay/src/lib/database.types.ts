@@ -588,6 +588,17 @@ export type Database = {
         Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_device_key: string }
         Returns: undefined
       }
+      rejoin_next_game: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string }
+        Returns: {
+          o_player_id: string
+          o_client_token: string
+          o_room_id: string
+          o_code: string
+          o_team_id: string
+          o_team_name: string
+        }[]
+      }
       get_trivia_champion: {
         Args: { p_venue: string }
         Returns: {

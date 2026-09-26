@@ -13,7 +13,6 @@ import { useTriviaQueue, roundsToWaitLabel, currentGameProgress } from "@/hooks/
 import type { Player, Team } from "@/lib/types";
 import { useSeason } from "@/hooks/useSeason";
 import { SeasonNotice } from "@/components/SeasonNotice";
-import { supabase } from "@/lib/supabase";
 
 /**
  * The entry point for anyone who lands here without a specific room code
@@ -51,20 +50,6 @@ export default function TriviaLandingClient() {
       setWaitedForNext(true);
     }
   }, [room?.code, declinedCode, room]);
-
-  // TESTING MODE: waiting out a full round (10+ minutes) just to get back
-  // to a fresh lobby is too slow to iterate against while testing solo.
-  // REVERT BEFORE REAL BAR SERVICE: remove this along with
-  // restart_trivia_now() -- a random player shouldn't be able to cut a
-  // real game short for everyone else.
-  const [restarting, setRestarting] = useState(false);
-  async function restartNow() {
-    setRestarting(true);
-    await supabase.rpc("restart_trivia_now", { p_venue: venue ?? "main" });
-    setDeclinedCode(null);
-    setWaitedForNext(false);
-    setRestarting(false);
-  }
 
   if (room === undefined) {
     return (
@@ -149,7 +134,6 @@ export default function TriviaLandingClient() {
               Actually, let me join this one
             </button>
           )}
-          <RestartButton onClick={restartNow} busy={restarting} />
         </div>
       </Shell>
     );
@@ -164,31 +148,36 @@ export default function TriviaLandingClient() {
         )}
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm mt-2">
-        <button
-          onClick={() => canJoinNow && router.push(`/play/${room.code}`)}
-          disabled={!canJoinNow}
-          className={`flex-1 rounded-2xl font-bold text-lg py-5 transition active:scale-95 disabled:active:scale-100 ${
-            canJoinNow
-              ? "bg-amber-400 text-black shadow-lg shadow-amber-400/20"
-              : "bg-white/5 text-slate-500 cursor-not-allowed"
-          }`}
-        >
-          Join the Game
-        </button>
-        <button
-          onClick={() => room && setDeclinedCode(room.code)}
-          className={`flex-1 rounded-2xl font-bold text-lg py-5 backdrop-blur transition active:scale-95 ${
-            canJoinNow
-              ? "bg-white/10 border border-white/20"
-              : "bg-white/15 border-2 border-amber-400 shadow-lg shadow-amber-400/40"
-          }`}
-        >
-          {!canJoinNow && nextGame ? "Join the Next Game" : "Wait for the Next Game"}
-          {!canJoinNow && nextGame && (
-            <span className="block text-xs font-medium text-indigo-200/80">{roundsToWaitLabel(nextGame.o_rounds_to_wait)}</span>
-          )}
-        </button>
+      {/* One clear main action: join this game when it's boarding, otherwise
+          sign up for (or wait for) the next one. */}
+      <div className="flex flex-col gap-3 w-full max-w-sm mt-2">
+        {canJoinNow ? (
+          <>
+            <button
+              onClick={() => router.push(`/play/${room.code}`)}
+              className="rounded-2xl bg-amber-400 text-black font-black text-xl py-5 shadow-lg shadow-amber-400/30 active:scale-95 transition"
+            >
+              Join the Game
+            </button>
+            <button
+              onClick={() => setDeclinedCode(room.code)}
+              className="text-sm text-indigo-200/80 underline underline-offset-4"
+            >
+              Wait for the next game instead
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={() => room && setDeclinedCode(room.code)}
+            disabled={!room}
+            className="rounded-2xl bg-amber-400 text-black font-black text-xl py-5 shadow-lg shadow-amber-400/30 disabled:opacity-40 active:scale-95 transition"
+          >
+            {nextGame ? "Join the Next Game" : "Wait for the Next Game"}
+            {nextGame && (
+              <span className="block text-xs font-semibold text-black/70">{roundsToWaitLabel(nextGame.o_rounds_to_wait)}</span>
+            )}
+          </button>
+        )}
       </div>
 
       {!canJoinNow && (
@@ -218,8 +207,6 @@ export default function TriviaLandingClient() {
           <LobbyRoster players={players} teams={teams} />
         </>
       )}
-
-      <RestartButton onClick={restartNow} busy={restarting} />
     </Shell>
   );
 }
@@ -245,44 +232,19 @@ function ChoiceScreen({
       <div className="flex flex-col items-center gap-3">
         <h2 className="text-xl font-bold">{title}</h2>
         {timing}
-        <p className="text-indigo-200 max-w-xs text-sm">How do you want to play?</p>
       </div>
-      <div className="flex flex-col gap-3 w-full max-w-sm">
-        <button
-          onClick={() => router.push(`/play/${code}?mode=solo`)}
-          className="rounded-2xl bg-amber-400 text-black font-bold text-lg py-5 shadow-lg shadow-amber-400/20 active:scale-95 transition"
-        >
-          Play Solo
-          <span className="block text-xs font-medium text-black/70">We&apos;ll put you on a team (2 to 5 people)</span>
-        </button>
-        <button
-          onClick={() => router.push(`/play/${code}?mode=team`)}
-          className="rounded-2xl border-2 border-amber-400 bg-amber-400/10 text-amber-300 font-bold text-lg py-5 active:scale-95 transition"
-        >
-          Create a Team
-          <span className="block text-xs font-medium text-amber-300/70">Get a team name, bring 1 to 4 friends</span>
-        </button>
-      </div>
+      <button
+        onClick={() => router.push(`/play/${code}`)}
+        className="w-full max-w-sm rounded-2xl bg-amber-400 text-black font-black text-xl py-5 shadow-lg shadow-amber-400/30 active:scale-95 transition"
+      >
+        Join the Game
+        <span className="block text-xs font-semibold text-black/70">Solo or with friends, you pick next</span>
+      </button>
       <LobbyRoster players={players} teams={teams} />
       <button onClick={onBack} className="text-xs text-indigo-300/70 underline">
         Not yet
       </button>
     </>
-  );
-}
-
-function RestartButton({ onClick, busy }: { onClick: () => void; busy: boolean }) {
-  return (
-    <div className="mt-6 pt-6 border-t border-white/10 w-full max-w-sm flex flex-col items-center gap-1">
-      <button
-        onClick={onClick}
-        disabled={busy}
-        className="rounded-xl bg-white/10 border border-white/20 px-5 py-2.5 text-sm font-bold text-white hover:bg-white/20 active:scale-95 transition disabled:opacity-40"
-      >
-        {busy ? "Starting…" : "Start New Game"}
-      </button>
-      <p className="text-xs text-indigo-300/50">Testing only: retires the current game and boards a fresh one now.</p>
-    </div>
   );
 }
 
