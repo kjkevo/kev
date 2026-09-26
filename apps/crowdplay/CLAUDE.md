@@ -1,14 +1,21 @@
 # CrowdPlay: working rules
 
-Read RELEASING.md first. Two separate copies exist: live and test.
+Read RELEASING.md for the two copies (live and test) and their links.
 
-- Build every change for the **test** copy first:
-  - code → push/merge to the `staging` branch (never `main`),
-  - database changes → Supabase project `xtvwtcphmecgvqtnfoak` (crowdplay-staging) only,
-  - dashboard changes → the Test Room artifact only.
-- Only when the owner says **"ship it"**:
-  - apply the same database migrations to `cgkstbqwzsvmvgsffswy` (live),
-  - merge `staging` into `main`,
-  - copy the dashboard changes into the Control Room (keep its PROJECT id pointing at live).
-- Keep migrations in `supabase/migrations/` numbered in order; each one must be
-  applied to both databases (test first, live on ship).
+**Default: changes go straight to LIVE** (no venue is using it yet):
+code → `main`, database → `cgkstbqwzsvmvgsffswy`, dashboard → Control Room.
+
+**Test area only when the owner asks** ("in the test area", "test this first",
+"on staging", or similar). Then:
+1. First bring the test copy up to date with live (it is not kept in sync
+   between uses, to save effort):
+   - merge `main` into `staging`,
+   - apply any migrations in `supabase/migrations/` that the test database
+     (`xtvwtcphmecgvqtnfoak`) is missing (compare with `list_migrations`),
+   - refresh the Test Room from the Control Room (same file, PROJECT id =
+     `xtvwtcphmecgvqtnfoak`, pink Test badge).
+2. Make the change on the test copy only: `staging` branch, test database, Test Room.
+3. On **"ship it"**: apply the same migrations to live, merge `staging` into
+   `main`, copy dashboard changes into the Control Room (PROJECT id stays live).
+
+Keep migrations in `supabase/migrations/` numbered in order.

@@ -16,16 +16,16 @@ from a phone lands in the test game, never the live one.
 
 ## How a change flows
 
-1. Ask for a change in Claude as usual. It is built and pushed to the
-   `staging` branch, database changes go to the test database only, and
-   dashboard changes go to the Test Room only.
-2. Try it on crowdplay-staging.vercel.app and the Test Room.
-3. Say **"ship it"**. Only then:
-   - database changes are applied to the live database,
-   - `staging` is merged into `main` (the live site rebuilds in ~1 minute),
-   - the Control Room gets the same dashboard changes.
+**Normally, changes go straight to live** (game, QR screen, Control Room).
 
-Nothing reaches the bar until step 3.
+**To try something in the test area first**, say so ("do this in the test
+area", "test this first"). Then:
+
+1. The test copy is first brought up to date with live (it isn't kept in
+   sync between uses).
+2. The change goes to the test copy only: crowdplay-staging.vercel.app,
+   the test database and the Test Room.
+3. Say **"ship it"** to copy it to live. Until then nothing reaches the bar.
 
 ## Notes
 
