@@ -33,6 +33,13 @@ export default function RootLayout({
         <ArrivalTracker />
         <ActivityPing />
         {children}
+        {/* Only the staging (test) site sets this, so it can never be
+            mistaken for the live one players use at the bar. */}
+        {process.env.NEXT_PUBLIC_STAGING === "1" && (
+          <div className="fixed bottom-2 right-2 z-[100] pointer-events-none rounded-full bg-fuchsia-600 px-3 py-1 text-xs font-black uppercase tracking-widest text-white shadow-lg">
+            Test site
+          </div>
+        )}
       </body>
     </html>
   );
