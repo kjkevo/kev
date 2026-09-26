@@ -58,5 +58,5 @@ dashboard marked TEST.
 
 ## Testing leftovers to switch off
 - Turn off test bots for each venue (dashboard → Venues, links and test bots).
-- Remove the "Start New Game" testing button on /trivia (restart_trivia_now).
+- Remove the "Start new trivia game" testing button from the dashboard (restart_trivia_now). It is no longer on the player-facing /trivia page.
 - Delete bot test check-ins/scans (@crowdplay-bots.test, bot-scan-*).
