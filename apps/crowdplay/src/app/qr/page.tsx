@@ -9,7 +9,7 @@ import { useTriviaChampion } from "@/hooks/useTriviaChampion";
 
 /**
  * The venue's "scan to play" display: headline, "free to play" and the QR
- * code, over a faded Hivian wordmark. The code opens the all-games menu,
+ * code, over a faded Slimpse wordmark. The code opens the all-games menu,
  * tagged so the dashboard counts the arrival. The live game strip sits
  * underneath.
  */
@@ -34,7 +34,7 @@ export default function QrPage() {
             key={row}
             className={`whitespace-nowrap font-black tracking-tight text-white/[0.05] text-7xl sm:text-9xl leading-none ${row % 2 ? "pl-24" : ""}`}
           >
-            {"Hivian   ".repeat(8)}
+            {"Slimpse   ".repeat(8)}
           </div>
         ))}
       </div>
