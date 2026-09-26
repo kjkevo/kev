@@ -76,7 +76,7 @@ export default function Home() {
       <div className="flex flex-col items-center">
         <Image
           src="/avatars/alien-buddy.png"
-          alt="CrowdPlay's alien mascot, waving you in"
+          alt="Slimpse's alien mascot, waving you in"
           width={200}
           height={200}
           priority

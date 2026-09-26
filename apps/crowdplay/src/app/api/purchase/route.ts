@@ -82,7 +82,7 @@ export async function POST(req: Request) {
             idempotency_key: purchase.o_purchase_id,
             amount_money: { amount: purchase.o_amount_cents, currency: "USD" },
             location_id: process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID,
-            note: `CrowdPlay: ${purchase.o_item_name}`,
+            note: `Slimpse: ${purchase.o_item_name}`,
             reference_id: purchase.o_purchase_id,
           }),
         });

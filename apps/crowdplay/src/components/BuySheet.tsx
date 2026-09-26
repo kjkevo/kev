@@ -116,7 +116,7 @@ export function BuySheet({
         const request = payments.paymentRequest({
           countryCode: "US",
           currencyCode: "USD",
-          total: { amount: (item.priceCents / 100).toFixed(2), label: `CrowdPlay: ${item.name}` },
+          total: { amount: (item.priceCents / 100).toFixed(2), label: `Slimpse: ${item.name}` },
         });
         try {
           found.apple = await payments.applePay(request);
