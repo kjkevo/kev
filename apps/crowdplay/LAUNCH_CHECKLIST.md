@@ -2,6 +2,29 @@
 
 Things that still need doing before real customers (and real money).
 
+## Things to buy / sign up for
+Prices are approximate; check when you sign up.
+
+- [ ] **Domain for the main menu and QR codes** (Hostinger, about $10–20/year).
+  One domain covers both: the main menu is the home page (e.g. `play.hivian.com`)
+  and the QR codes point to that same address, so players never see "vercel".
+  Buy the domain only, not a Hostinger hosting plan. Setup steps are below
+  under "Connect your domain".
+- [ ] **Vercel Pro** (about $20/month). The free plan is for non-commercial use
+  only, so a business with paid avatars needs Pro. Upgrade the team that owns
+  the crowdplay project.
+- [ ] **Supabase Pro** (about $25/month, plus about $10/month to keep the test
+  database running). Free projects can be paused when idle and have no daily
+  backups; Pro keeps the live game always on, backed up, and allows more phones
+  connected at once.
+- [ ] **Outdoor ad board** (A-frame/sandwich board, about $60–150, plus printing).
+  Put the venue's game QR code and "Free to play trivia inside" on it to pull in
+  people walking by. Print it only after the domain is connected, so the QR code
+  shows your domain. I can make the printable QR artwork.
+- [ ] Square account (no monthly fee, about 2.9% + 30¢ per sale). Setup is under Payments below.
+- [ ] Per bar: a TV device (Fire TV Stick/Chromecast about $30–50, or a mini-PC
+  about $150) for the QR screen, and printed table QR codes (about $20–50).
+
 ## Turn on the Automatic Roller Coaster  ← do this first
 While testing, games go to rest after 20 minutes with nobody playing (so the
 bots and the live feed stop), and wake when someone opens a game page.
@@ -30,7 +53,7 @@ game clock), so Hostinger is used for the domain name, pointed at Vercel.
 If you want to move the hosting itself to Hostinger, that needs their VPS
 plan, and I'd set that up with you.
 
-
+## Payments (Square)
 Purchases run in **test mode** until these are set. Test purchases show in the
 dashboard marked TEST.
 
