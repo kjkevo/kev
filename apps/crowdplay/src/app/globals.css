@@ -76,3 +76,41 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .animate-\[float_4s_ease-in-out_infinite\] { animation: none; }
 }
+
+/* Character reactions (CharacterBuddy). */
+@keyframes char-idle {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  50% { transform: translateY(-6px) rotate(-1.5deg); }
+}
+@keyframes char-hop {
+  0% { transform: translateY(0) scale(1); }
+  30% { transform: translateY(-22px) scale(1.06, 0.96); }
+  55% { transform: translateY(0) scale(1.04, 0.94); }
+  75% { transform: translateY(-6px) scale(1); }
+  100% { transform: translateY(0) scale(1); }
+}
+@keyframes char-cheer {
+  0%, 100% { transform: translateY(0) rotate(0) scale(1); }
+  20% { transform: translateY(-26px) rotate(-6deg) scale(1.08); }
+  40% { transform: translateY(0) rotate(0) scale(1); }
+  60% { transform: translateY(-18px) rotate(6deg) scale(1.06); }
+  80% { transform: translateY(0) rotate(0) scale(1); }
+}
+@keyframes char-slump {
+  0% { transform: translateY(0) rotate(0); filter: none; }
+  100% { transform: translateY(8px) rotate(-8deg) scale(0.94); filter: grayscale(0.7) brightness(0.8); }
+}
+@keyframes char-sparkle {
+  0% { transform: translate(0, 0) scale(0.2); opacity: 0; }
+  30% { opacity: 1; }
+  100% { transform: translate(var(--sx), var(--sy)) scale(1); opacity: 0; }
+}
+.char-idle { animation: char-idle 3.2s ease-in-out infinite; }
+.char-hop { animation: char-hop 0.7s ease-out 1, char-idle 3.2s ease-in-out 0.7s infinite; }
+.char-cheer { animation: char-cheer 1.4s ease-in-out infinite; }
+.char-slump { animation: char-slump 0.9s ease-out forwards; }
+.char-sparkle { animation: char-sparkle 1.4s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .char-idle, .char-hop, .char-cheer, .char-sparkle { animation: none; }
+  .char-slump { animation: none; filter: grayscale(0.7) brightness(0.8); }
+}
