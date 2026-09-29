@@ -10,12 +10,18 @@ import { CircularTimer } from "@/components/CircularTimer";
 import { bingoPlayerKey, type BingoPlayerCredentials, type BingoSquare } from "@/lib/types";
 import { randomFunName } from "@/lib/funNames";
 import { haptics } from "@/lib/haptics";
+import { deviceKey } from "@/lib/device";
+import { useAvatars, useEquippedAvatar } from "@/hooks/useAvatars";
+import { CharacterGate } from "@/components/CharacterGate";
 
 const JOIN_ERRORS: Record<string, string> = {
   ROOM_NOT_FOUND: "That room code doesn't exist. Double check with your host.",
   INVALID_NICKNAME: "Enter a name between 1 and 30 characters.",
   NICKNAME_TAKEN: "Someone in this room already picked that name. Try another.",
   ROOM_FULL: "We've hit our 50 player limit for this beta round. Wait for the next game.",
+  AVATAR_REQUIRED: "Pick a character first. Every player needs one to play.",
+  AVATAR_LOCKED: "That character isn't unlocked on this phone. Pick another one.",
+  AVATAR_NOT_FOUND: "That character isn't available anymore. Pick another one.",
 };
 
 function friendlyError(raw: string) {
@@ -47,6 +53,8 @@ export default function BingoPlayPage() {
   const [joining, setJoining] = useState(false);
   const [confirmingQuit, setConfirmingQuit] = useState(false);
   const autoJoinedRef = useRef(false);
+  const { avatars } = useAvatars();
+  const { avatarId, equip: equipAvatar, loaded: avatarsLoaded } = useEquippedAvatar(avatars);
 
   // TESTING MODE: solo/small-scale testing means re-typing a nickname and
   // tapping Join every single time the page loads (including after every
@@ -57,22 +65,28 @@ export default function BingoPlayPage() {
   // nickname input + Join button form (and reading any stored creds back
   // from localStorage on mount) removed below.
   useEffect(() => {
-    if (!code || !room || autoJoinedRef.current) return;
+    // Every player needs a character: wait until this phone has one.
+    if (!code || !room || !avatarId || autoJoinedRef.current) return;
     autoJoinedRef.current = true;
     join();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code, room]);
+  }, [code, room, avatarId]);
 
   const me = useMemo(() => players.find((p) => p.id === creds?.playerId), [players, creds]);
   const sorted = useMemo(() => [...players].sort((a, b) => b.score - a.score), [players]);
   const myRank = creds ? sorted.findIndex((p) => p.id === creds.playerId) + 1 : 0;
 
   async function join() {
-    if (!code) return;
+    if (!code || !avatarId) return;
     setJoining(true);
     setJoinError(null);
     const generatedName = `${randomFunName()} ${Math.floor(1000 + Math.random() * 9000)}`;
-    const { data, error } = await supabase.rpc("join_bingo_room", { p_code: code, p_nickname: generatedName });
+    const { data, error } = await supabase.rpc("join_bingo_room", {
+      p_code: code,
+      p_nickname: generatedName,
+      p_avatar_id: avatarId,
+      p_device_key: deviceKey(),
+    });
     setJoining(false);
     if (error || !data?.[0]) {
       setJoinError(friendlyError(error?.message ?? ""));
@@ -137,6 +151,10 @@ export default function BingoPlayPage() {
               {joining ? "Joining…" : "Try again"}
             </button>
           </>
+        ) : avatarsLoaded && !avatarId ? (
+          <div className="w-full max-w-xs mt-3">
+            <CharacterGate avatars={avatars} onPick={equipAvatar} />
+          </div>
         ) : (
           <p className="text-slate-400">Joining automatically…</p>
         )}

@@ -713,15 +713,15 @@ export type Database = {
         Returns: { code: string; host_secret: string; room_id: string }[]
       }
       join_bingo_room: {
-        Args: { p_code: string; p_nickname: string }
+        Args: { p_code: string; p_nickname: string; p_avatar_id?: string; p_device_key?: string }
         Returns: { client_token: string; player_id: string; room_id: string }[]
       }
       join_feud_room: {
-        Args: { p_code: string; p_nickname: string; p_team?: string }
+        Args: { p_code: string; p_nickname: string; p_team?: string; p_avatar_id?: string; p_device_key?: string }
         Returns: { client_token: string; player_id: string; room_id: string; team: string }[]
       }
       join_room: {
-        Args: { p_code: string; p_nickname: string; p_team_id?: string; p_new_team_name?: string }
+        Args: { p_code: string; p_nickname: string; p_team_id?: string; p_new_team_name?: string; p_avatar_id?: string; p_device_key?: string }
         Returns: { client_token: string; player_id: string; room_id: string; team_id: string; team_name: string }[]
       }
       cast_team_vote: {

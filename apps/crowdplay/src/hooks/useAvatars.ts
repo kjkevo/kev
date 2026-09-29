@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { deviceKey } from "@/lib/device";
+import { deviceKey, rememberAvatar, rememberedAvatar } from "@/lib/device";
 
 export type AvatarOption = {
   id: string;
@@ -37,4 +37,26 @@ export function useAvatars() {
 
   const byId = useMemo(() => Object.fromEntries(avatars.map((a) => [a.id, a])), [avatars]);
   return { avatars, byId, refresh };
+}
+
+/**
+ * The character this phone has equipped: the one it picked last time if it
+ * can still wear it, otherwise none, so the player is asked to pick one
+ * (every game needs a character).
+ */
+export function useEquippedAvatar(avatars: AvatarOption[]) {
+  const [avatarId, setAvatarId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (avatarId || avatars.length === 0) return;
+    const last = rememberedAvatar();
+    if (avatars.some((a) => a.id === last && a.owned)) setAvatarId(last);
+  }, [avatars, avatarId]);
+
+  const equip = useCallback((id: string) => {
+    setAvatarId(id);
+    rememberAvatar(id);
+  }, []);
+
+  return { avatarId, equip, loaded: avatars.length > 0 };
 }
