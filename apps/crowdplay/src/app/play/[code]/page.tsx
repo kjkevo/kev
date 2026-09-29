@@ -28,30 +28,30 @@ import { BuySheet } from "@/components/BuySheet";
 import { SquadInvite } from "@/components/SquadInvite";
 import { usePlayerVenue } from "@/lib/venue";
 import { useSeason } from "@/hooks/useSeason";
-import { SeasonNotice } from "@/components/SeasonNotice";
+import { SeasonChip } from "@/components/SeasonNotice";
 import { Avatar } from "@/components/Avatar";
 import { GetReady } from "@/components/GetReady";
 import { SuddenDeathResultList } from "@/components/SuddenDeath";
 import { useQuestionById } from "@/hooks/useQuestionById";
 
 const JOIN_ERRORS: Record<string, string> = {
-  ROOM_NOT_FOUND: "That room code doesn't exist. Double check with your host.",
-  ROOM_ALREADY_STARTED: "This game already started. Wait for the next one to board.",
-  TOO_MANY_JOINS: "Too many joins from this connection. Wait a few seconds and try again.",
-  INVALID_NICKNAME: "Enter a name between 1 and 30 characters.",
-  NICKNAME_TAKEN: "Someone in this room already picked that name. Try another.",
-  INVALID_TEAM_NAME: "Team names need to be between 1 and 30 characters.",
-  TEAM_NAME_TAKEN: "Another team already has that name. Try another.",
-  TEAM_NOT_FOUND: "That team isn't around anymore. Pick another.",
-  TEAM_LOCKED: "That team's round already started. Join a different one.",
-  TEAM_FULL: "That team is already full (5 max). Join a different one.",
-  USERNAME_TAKEN: "Someone already has that username this month. Try another.",
+  ROOM_NOT_FOUND: "That game code doesn't exist.",
+  ROOM_ALREADY_STARTED: "Game already started. Wait for the next one.",
+  TOO_MANY_JOINS: "Too many joins. Try again in a few seconds.",
+  INVALID_NICKNAME: "Names need 1 to 30 characters.",
+  NICKNAME_TAKEN: "Name taken in this game. Try another.",
+  INVALID_TEAM_NAME: "Team names need 1 to 30 characters.",
+  TEAM_NAME_TAKEN: "Team name taken. Try another.",
+  TEAM_NOT_FOUND: "That team is gone. Pick another.",
+  TEAM_LOCKED: "That team already started. Pick another.",
+  TEAM_FULL: "That team is full (5 max).",
+  USERNAME_TAKEN: "Username taken this month. Try another.",
   INVALID_USERNAME: "Usernames need 2 to 20 characters.",
-  TOO_MANY_TEAMS: "All 8 team spots are taken. Join a team with room, or play solo and we'll place you.",
-  ROOM_FULL: "This game is full (8 teams of 5). Sending you to the next one…",
-  AVATAR_REQUIRED: "Pick a character first. Every player needs one to play.",
-  AVATAR_LOCKED: "That character isn't unlocked on this phone. Pick another one.",
-  AVATAR_NOT_FOUND: "That character isn't available anymore. Pick another one.",
+  TOO_MANY_TEAMS: "All 8 teams taken. Join one or go solo.",
+  ROOM_FULL: "Game full. Moving you to the next one…",
+  AVATAR_REQUIRED: "Pick a character first.",
+  AVATAR_LOCKED: "That character isn't unlocked. Pick another.",
+  AVATAR_NOT_FOUND: "That character is gone. Pick another.",
 };
 
 const LAST_MODE_KEY = "crowdplay_last_mode";
@@ -126,6 +126,7 @@ export default function PlayPage() {
   const [myVote, setMyVote] = useState<string | null>(null);
   const [confirmingQuit, setConfirmingQuit] = useState(false);
   const [recap, setRecap] = useState<FinalRecapRow[] | null>(null);
+  const [recapOpen, setRecapOpen] = useState(false);
   const teamProgress = useTeamProgress(room?.phase === "question" ? room?.id : undefined, room?.phase === "question" ? question?.id : undefined);
   const { votes: questionVotes, lock: teamLock, hint: teamHint, refresh: refreshVotes } = useQuestionVotes(
     room?.id,
@@ -264,7 +265,7 @@ export default function PlayPage() {
     const name = buying.name;
     setBuying(null);
     refreshAvatars();
-    setAvatarNote(`${name} unlocked! Tap Equip to wear it. It's yours on this phone from now on.`);
+    setAvatarNote(`${name} unlocked! Tap it to wear it.`);
   }
 
   const buySheet = buying && (
@@ -293,7 +294,7 @@ export default function PlayPage() {
       p_avatar_id: id,
       p_device_key: deviceKey(),
     });
-    if (error) setAvatarNote("Couldn't switch avatars. Try again.");
+    if (error) setAvatarNote("Couldn't switch characters. Try again.");
   }
 
   async function join(e: React.FormEvent) {
@@ -421,8 +422,8 @@ export default function PlayPage() {
       }
       setVoteError(
         /TIME_EXPIRED|NOT_ACCEPTING_ANSWERS|STALE_QUESTION/.test(error.message)
-          ? "Time ran out before that vote landed, so it didn't count."
-          : "Your vote didn't go through. Try again."
+          ? "Too late. Time ran out."
+          : "Didn't go through. Try again."
       );
       return;
     }
@@ -466,8 +467,8 @@ export default function PlayPage() {
     setConfirmingHint(false);
     if (error && !/TEAM_LOCKED_IN/.test(error.message)) {
       setVoteError(/TIME_EXPIRED|NOT_ACCEPTING_ANSWERS|STALE_QUESTION/.test(error.message)
-        ? "Time ran out before the hint came through."
-        : "Couldn't get a hint just now. Try again.");
+        ? "Too late for a hint."
+        : "Couldn't get a hint. Try again.");
     }
     refreshVotes();
   }
@@ -510,11 +511,11 @@ export default function PlayPage() {
       setRejoining(false);
       setRejoinError(
         error?.message.includes("NO_NEXT_GAME")
-          ? "The next game isn't open yet. Give it a few seconds and try again."
+          ? "Next game isn't open yet. Try again in a few seconds."
           : error?.message.includes("TEAM_FULL")
-            ? "Your team is already full in the next game."
+            ? "Your team is full in the next game."
             : error?.message.includes("TOO_MANY_TEAMS")
-              ? "All 8 team spots in the next game are taken. Head back to Trivia to join as a solo player."
+              ? "Next game's teams are full. Join solo from Trivia."
               : friendlyError(error?.message ?? "")
       );
       return;
@@ -537,7 +538,7 @@ export default function PlayPage() {
       <Center>
         <BackButton onClick={() => router.push("/")} />
         <h1 className="text-xl font-bold mb-2">That room doesn&apos;t exist</h1>
-        <p className="text-slate-400 max-w-xs">Double check the code with your host, or ask if there&#39;s a new one.</p>
+        <p className="text-slate-400 max-w-xs">Scan the QR code again.</p>
       </Center>
     );
   if (!room) return null;
@@ -555,25 +556,21 @@ export default function PlayPage() {
       <Center>
         <BackButton onClick={() => leaveRoom("/")} />
         {buySheet}
-        <div className="w-full max-w-xs flex flex-col gap-4 py-16">
-          <div>
-            <h1 className="text-2xl font-black">
-              Trivia
-              {!room.queued && room.phase === "lobby" && room.starts_at && !scheduledCountdown.reached && (
-                <>
-                  {" "}· starts in <span className="text-amber-400 tabular-nums">{scheduledCountdown.label}</span>
-                </>
-              )}
-            </h1>
+        <div className="w-full max-w-sm flex flex-col gap-4 pt-16 pb-8">
+          <div className="flex flex-col items-center gap-1">
+            {!room.queued && room.phase === "lobby" && room.starts_at && !scheduledCountdown.reached ? (
+              <p className="text-6xl font-black text-amber-400 tabular-nums leading-none">{scheduledCountdown.label}</p>
+            ) : (
+              <h1 className="text-3xl font-black">Trivia</h1>
+            )}
             {room.queued && (
-              <p className="text-sm mt-1">
-                <span className="text-amber-400 font-bold">Next game. {roundsToWaitLabel(myQueueSpot?.o_rounds_to_wait ?? 1)}</span>
+              <p className="text-sm">
+                <span className="text-amber-400 font-bold">Next game · {roundsToWaitLabel(myQueueSpot?.o_rounds_to_wait ?? 1)}</span>
                 {queueProgress && <span className="block text-xs text-slate-400 mt-0.5">{queueProgress}</span>}
               </p>
             )}
+            <SeasonChip season={season} />
           </div>
-
-          {!seasonName && <SeasonNotice season={season} compact />}
 
           <form onSubmit={join} className="flex flex-col gap-4">
             {/* Player card: this month's username and avatar. */}
@@ -594,14 +591,11 @@ export default function PlayPage() {
               </button>
               <div className="flex-1 min-w-0">
                 {seasonName ? (
-                  <>
-                    <p className="text-[11px] text-slate-400">Playing as</p>
-                    <p className="text-lg font-bold truncate">{seasonName}</p>
-                  </>
+                  <p className="text-lg font-bold truncate">{seasonName}</p>
                 ) : (
                   <>
                     <label htmlFor="username" className="text-[11px] text-slate-400">
-                      Your {season?.month ?? "monthly"} username
+                      Username for {season?.month ?? "the month"}
                     </label>
                     <input
                       id="username"
@@ -624,11 +618,6 @@ export default function PlayPage() {
                 {pickerOpen ? "Done" : needsCharacter ? "Pick" : "Edit"}
               </button>
             </div>
-            {!seasonName && (
-              <p className="text-[11px] text-slate-500 -mt-2">
-                You keep this name for every trivia game this month{season ? ` until ${season.resetsOn}` : ""}.
-              </p>
-            )}
             {needsCharacter ? (
               pickerOpen && (
                 <CharacterGate
@@ -668,11 +657,7 @@ export default function PlayPage() {
               ))}
             </div>
 
-            {joinMode === "solo" ? (
-              <p className="text-xs text-slate-400 -mt-2">
-                We&apos;ll put you on a team with room ({MIN_TEAM_SIZE} to {MAX_TEAM_SIZE} people).
-              </p>
-            ) : (
+            {joinMode === "team" && (
               <div className="flex flex-col gap-2 rounded-2xl bg-white/5 border border-white/10 p-3 text-left">
                 {invitedTeam ? (
                   <p className="text-sm">
@@ -694,9 +679,7 @@ export default function PlayPage() {
                     </button>
                   </div>
                 ) : (
-                  <p className="text-xs text-amber-300/80">
-                    All {MAX_TEAMS} team spots are taken, so no new teams this game. Join one below, or play solo.
-                  </p>
+                  <p className="text-xs text-amber-300/80">All {MAX_TEAMS} teams taken. Join one below or go solo.</p>
                 )}
                 {joinableTeams.length > 0 && (
                   <>
@@ -717,10 +700,7 @@ export default function PlayPage() {
                     </div>
                   </>
                 )}
-                <p className="text-[11px] text-slate-500">
-                  After you join, your team&apos;s QR code appears. Friends scan it to land on your team and just pick a name
-                  and character. Anyone who doesn&apos;t make it in time is filled in when the game starts.
-                </p>
+                <p className="text-[11px] text-slate-500">Friends scan your QR after you join.</p>
               </div>
             )}
 
@@ -733,13 +713,11 @@ export default function PlayPage() {
                 ? "Joining…"
                 : !avatarId
                   ? "Pick a character to join"
-                  : `Join${playName ? ` as ${playName}` : ""} · ${
-                    joinMode === "solo" ? "Solo" : invitedTeam ? invitedTeam.name : "New team"
-                  }`}
+                  : `Join · ${joinMode === "solo" ? "Solo" : invitedTeam ? invitedTeam.name : "New team"}`}
             </button>
           </form>
 
-          <LobbyRoster players={players} teams={teams} avatars={avatarsById} title="Who's in so far" collapsible />
+          <LobbyRoster players={players} teams={teams} avatars={avatarsById} title="Who's in" collapsible />
         </div>
       </Center>
     );
@@ -749,52 +727,104 @@ export default function PlayPage() {
     const showCountdown = room.starts_at && !scheduledCountdown.reached;
     const teamName = myTeam?.name ?? creds.teamName;
     const inviteShown = inviteOpen ?? (myTeam?.kind === "self" && teammates.length < MAX_TEAM_SIZE - 1);
+    const canInvite = myTeam?.kind === "self" && teammates.length < MAX_TEAM_SIZE;
+    const myCharacter = me?.avatar_id ? avatarsById[me.avatar_id] : avatarId ? avatarsById[avatarId] : undefined;
     return (
       <Center>
         <BackButton onClick={() => leaveRoom("/")} />
         {buySheet}
-        <div className="w-full max-w-xs flex flex-col gap-4 py-16">
-          {/* Pinned: which team you're on and when it starts. */}
-          <div className="sticky top-3 z-20 rounded-2xl bg-indigo-950/90 backdrop-blur border border-white/15 px-4 py-2.5 flex items-center justify-between gap-3 shadow-lg">
-            <div className="min-w-0 text-left">
-              <p className="text-[11px] text-slate-400 truncate">{me?.nickname} · you&apos;re on</p>
-              <p className="font-bold truncate">{teamName}</p>
+        <div className="w-full max-w-sm flex flex-col gap-3 pt-16 pb-8">
+          {/* Pinned: you, your team and teammates, the countdown, and the invite QR. */}
+          <div className="rounded-2xl bg-indigo-950/90 border border-white/15 p-3 shadow-lg text-left">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setLobbyAvatarOpen(!lobbyAvatarOpen)}
+                aria-label="Change your character"
+                className="relative shrink-0 active:scale-95 transition"
+              >
+                <Avatar emoji={myCharacter?.emoji} imageUrl={myCharacter?.imageUrl} size={48} />
+                <span className="absolute -bottom-1 -right-1 rounded-full bg-amber-400 text-black text-[9px] font-black px-1.5 py-0.5">
+                  {lobbyAvatarOpen ? "Done" : "Edit"}
+                </span>
+              </button>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-slate-400 truncate">{me?.nickname}</p>
+                <p className="font-bold truncate">{teamName}</p>
+              </div>
+              <div className="text-right shrink-0">
+                {room.queued ? (
+                  <p className="text-sm font-bold text-sky-300">Next game</p>
+                ) : showCountdown ? (
+                  <p className="text-3xl font-black text-amber-400 tabular-nums leading-none">{scheduledCountdown.label}</p>
+                ) : (
+                  <p className="text-sm font-bold text-amber-400">Starting…</p>
+                )}
+              </div>
             </div>
-            <div className="text-right shrink-0">
-              {room.queued ? (
-                <p className="text-sm font-bold text-sky-300">Next game</p>
-              ) : showCountdown ? (
-                <>
-                  <p className="text-[11px] text-slate-400">Starts in</p>
-                  <p className="text-xl font-black text-amber-400 tabular-nums leading-none">{scheduledCountdown.label}</p>
-                </>
-              ) : (
-                <p className="text-sm font-bold text-amber-400">Starting…</p>
+
+            <div className="mt-3 flex items-start gap-3">
+              <div className="flex-1 min-w-0 flex flex-wrap gap-x-3 gap-y-2 pt-1">
+                {teammates.map((p) => {
+                  const a = p.avatar_id ? avatarsById[p.avatar_id] : undefined;
+                  return (
+                    <span key={p.id} className="flex flex-col items-center w-12">
+                      <Avatar emoji={a?.emoji} imageUrl={a?.imageUrl} size={36} />
+                      <span className="text-[11px] text-slate-300 truncate w-full text-center">
+                        {p.id === creds.playerId ? "You" : p.nickname}
+                      </span>
+                    </span>
+                  );
+                })}
+                {Array.from({ length: Math.max(0, MIN_TEAM_SIZE - teammates.length) }, (_, i) => (
+                  <span key={`open-${i}`} className="flex flex-col items-center w-12">
+                    <span className="w-9 h-9 rounded-full border-2 border-dashed border-white/25" />
+                    <span className="text-[11px] text-slate-500">Open</span>
+                  </span>
+                ))}
+              </div>
+              {canInvite && inviteShown && myTeam && (
+                <SquadInvite
+                  compact
+                  code={room.code}
+                  teamId={myTeam.id}
+                  teamName={myTeam.name}
+                  venue={venueSlug ?? "main"}
+                  spotsLeft={MAX_TEAM_SIZE - teammates.length}
+                />
               )}
             </div>
+            {canInvite && (
+              <button
+                type="button"
+                onClick={() => setInviteOpen(!inviteShown)}
+                className="mt-2 text-xs font-bold text-amber-300"
+              >
+                {inviteShown ? "Hide QR" : "Invite friends"}
+              </button>
+            )}
+            {teammates.length < MIN_TEAM_SIZE && (
+              <p className="mt-1 text-[11px] text-slate-400">Open spots fill when the game starts.</p>
+            )}
           </div>
+
+          {lobbyAvatarOpen && (
+            <div className="flex flex-col items-center">
+              <AvatarPicker avatars={avatars} selectedId={me?.avatar_id ?? avatarId} onSelect={changeAvatar} onBuy={buyAvatar} />
+            </div>
+          )}
+          {avatarNote && <p className="text-xs text-amber-300/80">{avatarNote}</p>}
 
           {room.queued && (
             <div className="rounded-2xl bg-sky-500/10 border border-sky-400/40 px-4 py-3">
-              <p className="font-bold text-sky-200">You&apos;re in the next game</p>
-              <p className="text-sm text-slate-300">{roundsToWaitLabel(myQueueSpot?.o_rounds_to_wait ?? 1)}.</p>
-              {queueProgress && <p className="text-xs text-slate-400 mt-1">{queueProgress}.</p>}
-              <p className="text-xs text-slate-400 mt-1">
-                Keep this page open. The countdown starts here the moment the game before yours ends.
-              </p>
+              <p className="font-bold text-sky-200">Next game · {roundsToWaitLabel(myQueueSpot?.o_rounds_to_wait ?? 1)}</p>
+              {queueProgress && <p className="text-xs text-slate-400 mt-1">{queueProgress}</p>}
             </div>
           )}
 
-          {room.category_options && room.category_options.length > 0 ? (
-            <div className="rounded-2xl bg-amber-400/10 border border-amber-400/30 p-4">
-              <p className="text-base font-bold text-white mb-1">Vote for tonight&apos;s category</p>
-              <p className="text-xs text-slate-400 mb-3">
-                {room.queued
-                  ? "Voting stays open until your game starts."
-                  : showCountdown
-                    ? "Voting closes when the countdown ends."
-                    : "This game runs itself. It starts automatically, whether people are here yet or not."}
-              </p>
+          {room.category_options && room.category_options.length > 0 && (
+            <div className="rounded-2xl bg-amber-400/10 border border-amber-400/30 p-3">
+              <p className="text-sm font-bold text-white mb-2">Vote for a category</p>
               <div className="grid grid-cols-2 gap-2">
                 {room.category_options.map((packId) => (
                   <VoteButton
@@ -808,80 +838,16 @@ export default function PlayPage() {
                 ))}
               </div>
             </div>
-          ) : (
-            !showCountdown && (
-              <p className="text-slate-400 text-sm">
-                This game runs itself. It starts automatically, whether people are here yet or not.
-              </p>
-            )
           )}
 
-          <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
-            <p className="text-xs uppercase tracking-widest text-amber-400 mb-2">Your team</p>
-            <div className="flex flex-wrap gap-x-3 gap-y-2 justify-center">
-              {teammates.map((p) => {
-                const a = p.avatar_id ? avatarsById[p.avatar_id] : undefined;
-                return (
-                  <span key={p.id} className="flex items-center gap-1.5 text-sm">
-                    <Avatar emoji={a?.emoji} imageUrl={a?.imageUrl} size={30} />
-                    {p.nickname}
-                  </span>
-                );
-              })}
-            </div>
-            {teammates.length < MIN_TEAM_SIZE && (
-              <p className="text-xs text-amber-400/80 mt-2">
-                {myTeam?.kind === "self"
-                  ? "Have your friends scan your team's QR code. Any open spots are filled in when the game starts."
-                  : "Waiting for a teammate. Any open spots are filled in when the game starts."}
-              </p>
-            )}
-            {myTeam?.kind === "self" && teammates.length < MAX_TEAM_SIZE && (
-              <button
-                type="button"
-                onClick={() => setInviteOpen(!inviteShown)}
-                className="mt-3 w-full rounded-xl bg-amber-400 text-black font-bold py-2.5 active:scale-95 transition"
-              >
-                {inviteShown ? "Hide invite" : "Invite friends"}
-              </button>
-            )}
-            {myTeam?.kind === "self" && inviteShown && (
-              <div className="mt-3 flex justify-center">
-                <SquadInvite
-                  code={room.code}
-                  teamId={myTeam.id}
-                  teamName={myTeam.name}
-                  venue={venueSlug ?? "main"}
-                  spotsLeft={MAX_TEAM_SIZE - teammates.length}
-                />
-              </div>
-            )}
-          </div>
-
           <Shoutouts roomId={room.id} creds={creds} />
-
-          <div className="flex flex-col items-center">
-            <button
-              type="button"
-              onClick={() => setLobbyAvatarOpen(!lobbyAvatarOpen)}
-              className="rounded-full bg-white/10 border border-white/20 px-4 py-2 text-sm font-bold active:scale-95 transition"
-            >
-              {lobbyAvatarOpen ? "Done" : "Switch or unlock a character"}
-            </button>
-            {lobbyAvatarOpen && (
-              <div className="mt-3">
-                <AvatarPicker avatars={avatars} selectedId={me?.avatar_id ?? avatarId} onSelect={changeAvatar} onBuy={buyAvatar} />
-              </div>
-            )}
-            {avatarNote && <p className="text-xs text-amber-300/80 mt-2">{avatarNote}</p>}
-          </div>
 
           <LobbyRoster
             players={players}
             teams={teams}
             avatars={avatarsById}
             highlightTeamId={creds.teamId}
-            title="Teams so far"
+            title="Teams"
             collapsible
           />
         </div>
@@ -932,8 +898,7 @@ export default function PlayPage() {
         <div>
           <p className="text-3xl font-black text-rose-400 tracking-wide">SUDDEN DEATH</p>
           <p className="text-sm text-slate-300 mt-1">
-            Tie for 1st: {tiedTeams.map((t) => t.name).join(" vs ")}. One teammate from each team answers. Get it wrong
-            while the other team gets it right, and you&apos;re out.
+            {tiedTeams.map((t) => t.name).join(" vs ")} · wrong answer is out
           </p>
         </div>
 
@@ -970,10 +935,10 @@ export default function PlayPage() {
         {!waiting &&
           (iAmUp ? (
             sent ? (
-              <p className="text-emerald-300 font-bold">Locked in. Waiting for the other team…</p>
+              <p className="text-emerald-300 font-bold">Locked in. Waiting…</p>
             ) : (
               <form onSubmit={submitSuddenDeath} className="w-full max-w-sm flex flex-col gap-3">
-                <p className="text-amber-300 font-bold">You&apos;re up for your team! One answer, no changes.</p>
+                <p className="text-amber-300 font-bold">You&apos;re up! One answer.</p>
                 <input
                   value={sdAnswer}
                   onChange={(e) => setSdAnswer(e.target.value)}
@@ -995,11 +960,11 @@ export default function PlayPage() {
             )
           ) : myTeamIn ? (
             <p className="text-slate-300">
-              {myTeammateUp ? `${myTeammateUp.nickname} is answering for your team. No helping!` : "Your teammate is answering."} ·{" "}
+              {myTeammateUp ? `${myTeammateUp.nickname} is up. No helping!` : "Your teammate is up."} ·{" "}
               {sdClock.remainingSeconds}s
             </p>
           ) : (
-            <p className="text-slate-400">Watching the tiebreaker · {sdClock.remainingSeconds}s</p>
+            <p className="text-slate-400">Tiebreaker · {sdClock.remainingSeconds}s</p>
           ))}
         {confirmingQuit && <QuitConfirm onCancel={() => setConfirmingQuit(false)} onConfirm={() => leaveRoom("/trivia")} />}
       </main>
@@ -1010,6 +975,8 @@ export default function PlayPage() {
     const myVote = questionVotes[creds.playerId];
     const teamOptions = groupTeamVotes(teammates, questionVotes, creds.playerId);
     const myCharacter = me?.avatar_id ? avatarsById[me.avatar_id] : undefined;
+    const category = room.winning_category_id ? packs[room.winning_category_id] : undefined;
+    const hintCost = question.hint_cost ?? 50;
     const buddyMood: CharacterMood = teamLock !== null ? "cheer" : myVote !== undefined ? "hop" : "idle";
     const buddySays =
       teamLock !== null
@@ -1017,11 +984,12 @@ export default function PlayPage() {
         : countdown.expired
           ? "Time's up!"
           : myVote !== undefined
-            ? "Voted!"
+            ? "Sent!"
             : countdown.fraction < 0.25
               ? "Hurry!"
               : "Hmm…";
     const locked = teamLock !== null;
+    const urgent = countdown.fraction <= 0.2;
     const canVote =
       !locked &&
       !countdown.expired &&
@@ -1029,78 +997,88 @@ export default function PlayPage() {
       answerText.trim().length > 0 &&
       !(myVote !== undefined && normalizeAnswer(myVote) === normalizeAnswer(answerText));
     return (
-      <main className="min-h-screen bg-slate-950 text-white flex flex-col px-5 py-6 relative">
-        <div className="flex items-center justify-between mb-2">
+      <main className="min-h-screen bg-slate-950 text-white flex flex-col px-4 py-4 gap-3 relative">
+        <div className="flex items-center justify-between">
           <ExitButton onClick={() => setConfirmingQuit(true)} />
           <TeamBadge name={myTeam?.name ?? creds.teamName} />
         </div>
-        <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden mb-2">
-          <div className="h-full bg-amber-400 transition-[width] duration-100 linear" style={{ width: `${countdown.fraction * 100}%` }} />
+
+        {/* One tight row: Q5/20 · Movies · 26s */}
+        <div className="flex items-center gap-2 text-sm font-bold">
+          <span className="text-slate-300 tabular-nums">
+            Q{room.current_question_index + 1}
+            {totalQuestions ? `/${totalQuestions}` : ""}
+          </span>
+          {category && (
+            <>
+              <span className="text-slate-600">·</span>
+              <span className="flex items-center gap-1 min-w-0 text-slate-300">
+                <CategoryIcon slug={category.icon} className="w-4 h-4 shrink-0 text-amber-400" />
+                <span className="truncate">{category.name}</span>
+              </span>
+            </>
+          )}
+          <span className={`ml-auto text-2xl font-black tabular-nums ${urgent ? "text-red-400" : "text-amber-400"}`}>
+            {countdown.remainingSeconds}s
+          </span>
         </div>
-        <p className="text-center text-xs text-slate-500 mb-4">
-          Question {room.current_question_index + 1} of {totalQuestions || "?"}
-        </p>
-        <h2 className="text-xl font-bold mb-6 text-center">{question.prompt}</h2>
-        <div className="flex-1 flex flex-col items-center justify-center gap-6">
-          <div className="flex flex-col items-center gap-3">
-            <CategoryBadge
-              name={room.winning_category_id ? packs[room.winning_category_id]?.name : undefined}
-              icon={room.winning_category_id ? packs[room.winning_category_id]?.icon : undefined}
-            />
-            <div className="flex items-end gap-4">
-              {myCharacter && (
-                <CharacterBuddy
-                  emoji={myCharacter.emoji}
-                  imageUrl={myCharacter.imageUrl}
-                  mood={buddyMood}
-                  says={buddySays}
-                  size={96}
-                />
-              )}
-              <CountdownRing fraction={countdown.fraction} seconds={countdown.remainingSeconds} />
-            </div>
-          </div>
+        <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+          <div
+            className={`h-full transition-[width] duration-100 linear ${urgent ? "bg-red-400" : "bg-amber-400"}`}
+            style={{ width: `${countdown.fraction * 100}%` }}
+          />
+        </div>
+
+        {/* The character beside the question. */}
+        <div className="flex items-center gap-2">
+          {myCharacter && (
+            <CharacterBuddy emoji={myCharacter.emoji} imageUrl={myCharacter.imageUrl} mood={buddyMood} says={buddySays} size={72} />
+          )}
+          <h2 className="flex-1 text-xl font-bold text-left">{question.prompt}</h2>
+        </div>
+
+        <div className="w-full max-w-sm mx-auto flex flex-col gap-3">
           {locked ? (
-            <div className="w-full max-w-sm rounded-2xl bg-emerald-500/15 border border-emerald-400/50 px-5 py-4 text-center">
-              <p className="text-xs uppercase tracking-widest text-emerald-300 mb-1">Locked in</p>
+            <div className="rounded-2xl bg-emerald-500/15 border border-emerald-400/50 px-5 py-4 text-center">
+              <p className="text-xs uppercase tracking-widest text-emerald-300 mb-1">Team locked in</p>
               <p className="text-2xl font-black break-words">{teamLock}</p>
-              <p className="text-sm text-slate-300 mt-1">Everyone agreed, so that&apos;s your team&apos;s answer.</p>
             </div>
           ) : (
-          <form onSubmit={submitAnswer} className="w-full max-w-sm flex flex-col gap-3">
-            <input
-              value={answerText}
-              onChange={(e) => setAnswerText(e.target.value)}
-              disabled={countdown.expired}
-              maxLength={200}
-              placeholder="Type your answer…"
-              autoComplete="off"
-              className="w-full text-center text-lg font-semibold bg-white/10 border border-white/20 rounded-2xl py-4 px-4 outline-none focus:border-amber-400 disabled:opacity-50"
-            />
-            <button
-              disabled={!canVote}
-              className="rounded-2xl bg-amber-400 text-black font-bold text-lg py-4 disabled:opacity-40 active:scale-95 transition"
-            >
-              {sendingVote ? "Sending…" : !myVote ? "Submit Vote" : canVote ? "Change my vote" : "Vote in"}
-            </button>
-            {voteError && <p className="text-center text-sm text-rose-400">{voteError}</p>}
-          </form>
+            <form onSubmit={submitAnswer} className="flex flex-col gap-2">
+              <input
+                value={answerText}
+                onChange={(e) => setAnswerText(e.target.value)}
+                disabled={countdown.expired}
+                maxLength={200}
+                placeholder="Type your answer…"
+                autoComplete="off"
+                className="w-full text-center text-lg font-semibold bg-white/10 border border-white/20 rounded-2xl py-4 px-4 outline-none focus:border-amber-400 disabled:opacity-50"
+              />
+              <button
+                disabled={!canVote}
+                className="rounded-2xl bg-amber-400 text-black font-bold text-lg py-4 disabled:opacity-40 active:scale-95 transition"
+              >
+                {sendingVote ? "Sending…" : !myVote ? "Lock in" : canVote ? "Switch to this" : "Sent ✓"}
+              </button>
+              {voteError && <p className="text-center text-sm text-rose-400">{voteError}</p>}
+            </form>
           )}
           {teamHint ? (
-            <div className="w-full max-w-sm rounded-2xl bg-sky-500/10 border border-sky-400/40 px-4 py-3 text-center">
-              <p className="text-xs uppercase tracking-widest text-sky-300 mb-1">Hint · worth 500 points now</p>
+            <div className="rounded-2xl bg-sky-500/10 border border-sky-400/40 px-4 py-2.5 text-center">
+              <p className="text-xs uppercase tracking-widest text-sky-300 mb-1">
+                Hint · worth {(1000 - hintCost).toLocaleString()} now
+              </p>
               <p className="font-semibold">{teamHint}</p>
             </div>
           ) : !locked && !countdown.expired ? (
             confirmingHint ? (
-              <div className="w-full max-w-sm rounded-2xl bg-white/5 border border-amber-400/40 px-4 py-3 text-center">
-                <p className="font-semibold mb-1">Use a hint?</p>
-                <p className="text-sm text-slate-300 mb-3">
-                  It narrows the answer down to two. If your team gets it right, you&apos;ll earn 500 points instead of 1,000 on this question. Your whole team will see it.
+              <div className="rounded-2xl bg-white/5 border border-amber-400/40 px-4 py-3 text-center">
+                <p className="text-sm text-slate-200 mb-3">
+                  Narrows it to 2 for your team. Right answer: {(1000 - hintCost).toLocaleString()} instead of 1,000.
                 </p>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => setConfirmingHint(false)} className="flex-1 rounded-xl bg-white/10 py-2 font-semibold">
-                    Never mind
+                    Cancel
                   </button>
                   <button
                     type="button"
@@ -1108,21 +1086,22 @@ export default function PlayPage() {
                     disabled={gettingHint}
                     className="flex-1 rounded-xl bg-amber-400 text-black py-2 font-bold disabled:opacity-50"
                   >
-                    {gettingHint ? "Getting hint…" : "Show hint (−500)"}
+                    {gettingHint ? "Getting hint…" : `Show hint (−${hintCost})`}
                   </button>
                 </div>
               </div>
             ) : (
               <button type="button" onClick={() => setConfirmingHint(true)} className="text-sm text-sky-300 underline underline-offset-4">
-                Stuck? Get a hint (costs half the points)
+                Hint (−{hintCost})
               </button>
             )
           ) : null}
         </div>
-        <div className="mt-4 w-full max-w-sm mx-auto">
-          <p className="text-xs uppercase tracking-widest text-amber-400 mb-2 text-center">Your team&apos;s answers</p>
-          {/* One row per teammate (bots too): their character, name and answer. */}
-          <div className="flex flex-col gap-2">
+
+        <div className="w-full max-w-sm mx-auto">
+          <p className="text-xs uppercase tracking-widest text-amber-400 mb-2 text-center">Your team</p>
+          {/* One slim row per teammate (bots too): face, name, answer. */}
+          <div className="flex flex-col gap-1.5">
             {teammates.map((p) => {
               const a = p.avatar_id ? avatarsById[p.avatar_id] : undefined;
               const v = questionVotes[p.id];
@@ -1137,49 +1116,40 @@ export default function PlayPage() {
                   type="button"
                   onClick={() => v && !sameAsMine && castVote(v)}
                   disabled={!v || isMe || sameAsMine || locked || countdown.expired || sendingVote}
-                  className={`flex items-center gap-3 rounded-xl px-3 py-2 text-left transition active:scale-[0.98] ${
+                  className={`flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-left transition active:scale-[0.98] ${
                     sameAsMine ? "bg-amber-400/20 border border-amber-400/50" : "bg-white/5 border border-white/10 hover:border-white/30"
                   }`}
                 >
-                  <Avatar emoji={a?.emoji} imageUrl={a?.imageUrl} size={40} className={v ? "" : "opacity-50"} />
-                  <span className="flex-1 min-w-0">
-                    <span className="block text-xs text-slate-400 truncate">{isMe ? "You" : p.nickname}</span>
+                  <Avatar emoji={a?.emoji} imageUrl={a?.imageUrl} size={30} className={v ? "" : "opacity-50"} />
+                  <span className="w-16 shrink-0 text-xs text-slate-400 truncate">{isMe ? "You" : p.nickname}</span>
+                  <span className="flex-1 min-w-0 truncate">
                     {v ? (
-                      <span className="block font-semibold truncate">
+                      <span className="font-semibold">
                         {v}
-                        {leading && <span className="ml-2 text-[10px] uppercase tracking-wider text-amber-300">Leading</span>}
+                        {leading && <span className="ml-1.5 text-[10px] uppercase tracking-wider text-amber-300">Leading</span>}
                       </span>
                     ) : (
-                      <span className="block text-sm text-slate-500 italic">Thinking…</span>
+                      <span className="text-sm text-slate-500 italic">Thinking…</span>
                     )}
                   </span>
-                  <span className="shrink-0 text-xs text-slate-300">
-                    {!v
+                  <span className="shrink-0 text-[11px] font-bold text-amber-300">
+                    {!v || isMe
                       ? ""
-                      : isMe
-                        ? "Your answer"
-                        : sameAsMine
-                          ? "Same as you"
-                          : locked || countdown.expired
-                            ? `${votes} vote${votes === 1 ? "" : "s"}`
-                            : "Go with this"}
+                      : sameAsMine
+                        ? "✓"
+                        : locked || countdown.expired
+                          ? `${votes} vote${votes === 1 ? "" : "s"}`
+                          : "Go with this"}
                   </span>
                 </button>
               );
             })}
           </div>
-          <p className="text-center text-xs text-slate-500 mt-3">
-            {locked
-              ? "Your team is done with this one. Results are revealed at the end of the game."
-              : countdown.expired
-                ? "Time's up. Your team's answer is whatever got the most votes. Results are revealed at the end of the game."
-                : teammates.length > 1
-                  ? "Tap a teammate's answer to go with it, or type your own. When everyone agrees, it locks in. Otherwise the most votes wins when time runs out."
-                  : "Type your answer. You can change it until time runs out."}
-          </p>
+          {(locked || countdown.expired) && (
+            <p className="text-center text-xs text-slate-500 mt-2">Results at the end of the game.</p>
+          )}
           {teamProgress.some((t) => t.id !== creds.teamId) && (
-            <div className="mt-4 border-t border-white/10 pt-3">
-              <p className="text-xs uppercase tracking-widest text-slate-500 mb-2 text-center">Other teams</p>
+            <div className="mt-3 border-t border-white/10 pt-3">
               <div className="flex flex-wrap gap-2 justify-center">
                 {teamProgress
                   .filter((t) => t.id !== creds.teamId)
@@ -1190,13 +1160,13 @@ export default function PlayPage() {
                         t.locked ? "bg-emerald-500/15 text-emerald-300" : "bg-white/5 text-slate-400"
                       }`}
                     >
-                      {t.name} · {t.locked ? "locked in" : `${t.voted}/${t.members} voted`}
+                      {t.name} · {t.locked ? "locked in" : `${t.voted}/${t.members} in`}
                     </span>
                   ))}
               </div>
             </div>
           )}
-          <div className="mt-4 flex justify-center">
+          <div className="mt-3 flex justify-center">
             <Shoutouts roomId={room.id} creds={creds} compact />
           </div>
         </div>
@@ -1209,11 +1179,10 @@ export default function PlayPage() {
     const myRecap = recap?.filter((r) => r.o_team_id === creds.teamId) ?? [];
     return (
       <Center>
-        <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
+        <div className="absolute top-4 left-4 z-10">
           <ExitButton onClick={() => leaveRoom("/trivia")} />
-          <TeamBadge name={myTeam?.name ?? creds.teamName} />
         </div>
-        <h1 className="text-2xl font-bold mb-6">Final Results</h1>
+        <h1 className="text-2xl font-bold mb-6 mt-16">Final Results</h1>
         {room.sd_winner_team_id && (
           <p className="-mt-4 mb-4 rounded-full bg-rose-500/20 border border-rose-400/50 px-4 py-1 text-sm font-bold text-rose-200">
             {teams.find((t) => t.id === room.sd_winner_team_id)?.name} won in sudden death (+100)
@@ -1249,9 +1218,6 @@ export default function PlayPage() {
                 />
               </div>
             )}
-            <p className="text-slate-400">
-              {myTeam?.name ?? creds.teamName} finished #{myTeamRank || "-"} with {myTeam?.score ?? 0} points
-            </p>
 
             {restTeams.length > 0 && (
               <div className="flex flex-col gap-2">
@@ -1266,25 +1232,42 @@ export default function PlayPage() {
                     <span>
                       #{topThree.length + i + 1} {t.name}
                     </span>
-                    <span>{t.score}</span>
+                    <span className="tabular-nums">{t.score.toLocaleString()}</span>
                   </div>
                 ))}
               </div>
             )}
 
-            {myRecap.length > 0 && (
+            {myRecap.length > 0 && !recapOpen && (
+              <button
+                type="button"
+                onClick={() => setRecapOpen(true)}
+                className="rounded-xl bg-white/5 border border-white/10 px-4 py-2.5 text-sm flex items-center justify-between"
+              >
+                <span>
+                  Your answers:{" "}
+                  <span className="font-bold text-emerald-400">
+                    {myRecap.filter((r) => r.o_team_correct).length}/{myRecap.length} ✓
+                  </span>
+                </span>
+                <span className="text-xs font-bold text-indigo-300">See all ▾</span>
+              </button>
+            )}
+            {myRecap.length > 0 && recapOpen && (
               <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
-                <p className="text-xs uppercase tracking-widest text-slate-500 mb-1">Question recap</p>
+                <button type="button" onClick={() => setRecapOpen(false)} className="text-xs uppercase tracking-widest text-slate-500 mb-1">
+                  Your answers ▴
+                </button>
                 {myRecap.map((r) => (
                   <div key={r.o_question_order} className="rounded-xl bg-white/5 px-4 py-3 text-left">
                     <p className="text-sm font-semibold mb-1">{r.o_prompt}</p>
                     <p className="text-xs text-slate-400">
-                      Correct: <span className="text-emerald-400">{r.o_correct_answer}</span>
+                      Answer: <span className="text-emerald-400">{r.o_correct_answer}</span>
                     </p>
                     <p className="text-xs text-slate-400">
-                      Your team said:{" "}
+                      Your team:{" "}
                       <span className={r.o_team_correct ? "text-emerald-400" : "text-rose-400"}>
-                        {r.o_team_answer ?? "No vote cast"}
+                        {r.o_team_answer ?? "No answer"}
                       </span>
                     </p>
                   </div>
@@ -1297,8 +1280,8 @@ export default function PlayPage() {
               disabled={rejoining}
               className="rounded-2xl bg-amber-400 text-black font-black text-lg py-4 shadow-lg shadow-amber-400/20 disabled:opacity-50 active:scale-95 transition"
             >
-              {rejoining ? "Getting you in…" : "Play the next game"}
-              <span className="block text-xs font-semibold text-black/70">Same team: {myTeam?.name ?? creds.teamName}</span>
+              {rejoining ? "Getting you in…" : "Play again"}
+              <span className="block text-xs font-semibold text-black/70">Same team · {myTeam?.name ?? creds.teamName}</span>
             </button>
             {rejoinError && <p className="text-sm text-amber-300/90">{rejoinError}</p>}
             <button onClick={() => leaveRoom("/")} className="text-sm text-slate-400 underline">
@@ -1329,13 +1312,21 @@ function VoteButton({
   return (
     <button
       onClick={onClick}
-      className={`rounded-xl border px-4 py-3 text-left transition ${
+      className={`relative rounded-xl border px-3 py-2.5 flex items-center gap-2 text-left transition active:scale-95 ${
         selected ? "bg-amber-400 text-black border-amber-400" : "bg-white/5 border-white/10"
       }`}
     >
-      <CategoryIcon slug={icon} className={`w-5 h-5 mb-1 ${selected ? "text-black" : "text-amber-400"}`} />
-      <div className="font-semibold text-sm">{name ?? "…"}</div>
-      <div className={`font-bold text-lg ${selected ? "" : "text-amber-400"}`}>{count} vote{count === 1 ? "" : "s"}</div>
+      <CategoryIcon slug={icon} className={`w-5 h-5 shrink-0 ${selected ? "text-black" : "text-amber-400"}`} />
+      <span className="flex-1 min-w-0 font-bold text-sm leading-tight">{name ?? "…"}</span>
+      {count > 0 && (
+        <span
+          className={`shrink-0 min-w-[1.25rem] rounded-full px-1.5 text-center text-[11px] font-black ${
+            selected ? "bg-black text-amber-400" : "bg-amber-400 text-black"
+          }`}
+        >
+          {count}
+        </span>
+      )}
     </button>
   );
 }
@@ -1368,54 +1359,6 @@ function ExitButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-function CategoryBadge({ name, icon }: { name?: string; icon?: string | null }) {
-  if (!name) return null;
-  return (
-    <span className="flex items-center gap-2 rounded-full bg-white/10 border border-white/20 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-slate-300">
-      <CategoryIcon slug={icon} className="w-4 h-4 text-amber-400" />
-      {name}
-    </span>
-  );
-}
-
-// Fills the gap between the prompt and the answer box with something that
-// actually communicates urgency, rather than leaving it visually dead —
-// the same fraction/seconds already driving the top progress bar, just
-// rendered as a ring since that's the natural shape for "time remaining."
-function CountdownRing({ fraction, seconds }: { fraction: number; seconds: number }) {
-  const size = 96;
-  const stroke = 6;
-  const radius = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference * (1 - fraction);
-  const urgent = fraction <= 0.2;
-
-  return (
-    <div className="relative" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={radius} stroke="rgba(255,255,255,0.1)" strokeWidth={stroke} fill="none" />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke={urgent ? "#f87171" : "#fbbf24"}
-          strokeWidth={stroke}
-          fill="none"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          className="transition-[stroke-dashoffset] duration-100 linear"
-        />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className={`text-2xl font-black tabular-nums ${urgent ? "text-red-400" : "text-amber-400"}`}>
-          {seconds}
-        </span>
-      </div>
-    </div>
-  );
-}
-
 const RANK_MEDAL: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
 
 function PodiumRow({ rank, name, score, mine }: { rank: number; name: string; score: number; mine: boolean }) {
@@ -1433,7 +1376,7 @@ function PodiumRow({ rank, name, score, mine }: { rank: number; name: string; sc
       <span className={`font-bold ${isWinner ? "text-xl" : "text-base"}`}>
         {RANK_MEDAL[rank] ?? `#${rank}`} {name}
       </span>
-      <span className={isWinner ? "text-xl font-black" : "font-semibold"}>{score}</span>
+      <span className={`tabular-nums ${isWinner ? "text-xl font-black" : "font-semibold"}`}>{score.toLocaleString()}</span>
     </div>
   );
 }
@@ -1451,7 +1394,7 @@ function QuitConfirm({ onCancel, onConfirm }: { onCancel: () => void; onConfirm:
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center px-6 z-50">
       <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 max-w-xs w-full text-center">
         <p className="font-bold text-lg mb-1">Exit the game?</p>
-        <p className="text-sm text-slate-400 mb-5">Your team will be notified, and your spot opens up for someone else.</p>
+        <p className="text-sm text-slate-400 mb-5">Your spot opens up for someone else.</p>
         <div className="flex gap-3">
           <button onClick={onCancel} className="flex-1 rounded-xl bg-white/10 py-3 font-semibold">
             Cancel
@@ -1485,10 +1428,10 @@ type TeamVoteOption = { text: string; voters: string[]; mine: boolean };
 // at-a-glance view.
 /** How the character takes the final result. */
 function finalReaction(rank: number, teamCount: number): { mood: CharacterMood; says: string } {
-  if (rank === 1) return { mood: "cheer", says: "We won!" };
-  if (teamCount > 2 && rank === teamCount) return { mood: "slump", says: "Next time…" };
-  if (rank > 0 && rank <= 3) return { mood: "hop", says: "Podium!" };
-  return { mood: "idle", says: "Good game!" };
+  if (rank === 1) return { mood: "cheer", says: "#1!" };
+  if (teamCount > 2 && rank === teamCount) return { mood: "slump", says: `#${rank}` };
+  if (rank > 0 && rank <= 3) return { mood: "hop", says: `#${rank}!` };
+  return { mood: "idle", says: rank > 0 ? `#${rank}` : "Good game!" };
 }
 
 function groupTeamVotes(

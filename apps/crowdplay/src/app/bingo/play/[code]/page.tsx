@@ -16,13 +16,13 @@ import { CharacterGate } from "@/components/CharacterGate";
 import { MyCharacterButton } from "@/components/CharacterLocker";
 
 const JOIN_ERRORS: Record<string, string> = {
-  ROOM_NOT_FOUND: "That room code doesn't exist. Double check with your host.",
-  INVALID_NICKNAME: "Enter a name between 1 and 30 characters.",
-  NICKNAME_TAKEN: "Someone in this room already picked that name. Try another.",
-  ROOM_FULL: "We've hit our 50 player limit for this beta round. Wait for the next game.",
-  AVATAR_REQUIRED: "Pick a character first. Every player needs one to play.",
-  AVATAR_LOCKED: "That character isn't unlocked on this phone. Pick another one.",
-  AVATAR_NOT_FOUND: "That character isn't available anymore. Pick another one.",
+  ROOM_NOT_FOUND: "That game code doesn't exist.",
+  INVALID_NICKNAME: "Names need 1 to 30 characters.",
+  NICKNAME_TAKEN: "Name taken in this game. Try another.",
+  ROOM_FULL: "Game full. Wait for the next one.",
+  AVATAR_REQUIRED: "Pick a character first.",
+  AVATAR_LOCKED: "That character isn't unlocked. Pick another.",
+  AVATAR_NOT_FOUND: "That character is gone. Pick another.",
 };
 
 function friendlyError(raw: string) {

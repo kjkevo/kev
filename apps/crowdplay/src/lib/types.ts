@@ -16,6 +16,7 @@ export type PublicQuestion = {
   prompt: string;
   choices: string[];
   time_limit_seconds: number;
+  hint_cost: number; // points a hint takes off a right answer (50-150)
 };
 export type QuestionPack = Database["public"]["Tables"]["question_packs"]["Row"];
 export type CategoryVote = Database["public"]["Tables"]["category_votes"]["Row"];

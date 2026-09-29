@@ -562,6 +562,7 @@ export type Database = {
           pack_id: string | null
           prompt: string | null
           time_limit_seconds: number | null
+          hint_cost: number | null
         }
         Relationships: []
       }

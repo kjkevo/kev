@@ -51,8 +51,18 @@ export function LobbyRoster({
         onClick={() => setOpen(true)}
         className="w-full max-w-sm rounded-2xl bg-white/5 border border-white/10 px-4 py-3 text-sm text-slate-300 flex items-center justify-between active:scale-[0.98] transition"
       >
-        <span>
-          {live.length} team{live.length === 1 ? "" : "s"} · {playerCount} player{playerCount === 1 ? "" : "s"}
+        <span className="flex items-center gap-2 min-w-0">
+          {avatars && playerCount > 0 && (
+            <span className="flex -space-x-2 shrink-0">
+              {live.flatMap((t) => t.members).slice(0, 6).map((p) => {
+                const a = p.avatar_id ? avatars[p.avatar_id] : undefined;
+                return <Avatar key={p.id} emoji={a?.emoji} imageUrl={a?.imageUrl} size={26} className="ring-2 ring-indigo-950 rounded-full" />;
+              })}
+            </span>
+          )}
+          <span className="truncate">
+            {live.length} team{live.length === 1 ? "" : "s"} · {playerCount} player{playerCount === 1 ? "" : "s"}
+          </span>
         </span>
         <span className="text-indigo-300 text-xs font-bold">Show ▾</span>
       </button>
@@ -73,7 +83,7 @@ export function LobbyRoster({
         </p>
       </div>
       {live.length === 0 ? (
-        <p className="text-sm text-slate-400 text-center py-2">Nobody yet. Be the first team in.</p>
+        <p className="text-sm text-slate-400 text-center py-2">Nobody yet. Be first!</p>
       ) : (
         <div className="flex flex-col gap-2">
           {live.map(({ team, members }) => (
@@ -107,7 +117,7 @@ export function LobbyRoster({
         </div>
       )}
       {live.length >= MAX_TEAMS && (
-        <p className="text-xs text-amber-300/80 mt-3 text-center">All {MAX_TEAMS} team spots are taken. New players join a team with room.</p>
+        <p className="text-xs text-amber-300/80 mt-3 text-center">All {MAX_TEAMS} teams taken. New players fill open spots.</p>
       )}
     </div>
   );
