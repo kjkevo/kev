@@ -60,19 +60,3 @@ export function CharacterGate({
   );
 }
 
-/** The equipped character with a way to go back and pick another. */
-export function EquippedCharacter({ avatar, onChange }: { avatar?: AvatarOption; onChange: () => void }) {
-  if (!avatar) return null;
-  return (
-    <div className="w-full rounded-2xl bg-white/5 border border-white/10 p-2 flex items-center gap-3 text-left">
-      <Avatar emoji={avatar.emoji} imageUrl={avatar.imageUrl} size={48} />
-      <div className="flex-1 min-w-0">
-        <p className="text-[11px] text-slate-400">Your character</p>
-        <p className="font-bold truncate">{avatar.name}</p>
-      </div>
-      <button type="button" onClick={onChange} className="text-xs font-bold text-amber-300 px-2">
-        Change
-      </button>
-    </div>
-  );
-}

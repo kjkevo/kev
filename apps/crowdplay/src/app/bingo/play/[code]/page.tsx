@@ -13,6 +13,7 @@ import { haptics } from "@/lib/haptics";
 import { deviceKey } from "@/lib/device";
 import { useAvatars, useEquippedAvatar } from "@/hooks/useAvatars";
 import { CharacterGate } from "@/components/CharacterGate";
+import { MyCharacterButton } from "@/components/CharacterLocker";
 
 const JOIN_ERRORS: Record<string, string> = {
   ROOM_NOT_FOUND: "That room code doesn't exist. Double check with your host.",
@@ -168,6 +169,9 @@ export default function BingoPlayPage() {
       <Center>
         <QuitButton onClick={() => setConfirmingQuit(true)} />
         <h1 className="text-2xl font-bold mb-2">You&apos;re in, {me?.nickname}!</h1>
+        <div className="mb-4">
+          <MyCharacterButton compact onEquip={equipAvatar} />
+        </div>
         {showCountdown ? (
           <p className="text-slate-300 mb-1">
             Starting in <span className="text-amber-400 font-bold tabular-nums">{scheduledCountdown.label}</span>

@@ -22,7 +22,8 @@ import { randomFunName } from "@/lib/funNames";
 import { haptics } from "@/lib/haptics";
 import { deviceKey } from "@/lib/device";
 import { useAvatars, useEquippedAvatar } from "@/hooks/useAvatars";
-import { CharacterGate, EquippedCharacter } from "@/components/CharacterGate";
+import { CharacterGate } from "@/components/CharacterGate";
+import { MyCharacterButton } from "@/components/CharacterLocker";
 
 const JOIN_ERRORS: Record<string, string> = {
   ROOM_NOT_FOUND: "That room code doesn't exist. Double check with your host.",
@@ -57,9 +58,8 @@ export default function FeudPlayPage() {
   const phaseCountdown = useCountdown(room?.phase_started_at ?? null, phaseDwellLimit);
 
   const [creds, setCreds] = useState<FeudPlayerCredentials | null>(null);
-  const { avatars, byId: avatarsById } = useAvatars();
+  const { avatars } = useAvatars();
   const { avatarId, equip: equipAvatar } = useEquippedAvatar(avatars);
-  const [changingCharacter, setChangingCharacter] = useState(false);
   const [nickname, setNickname] = useState("");
   const [teamChoice, setTeamChoice] = useState<FeudTeam | null>(null);
   const [joinError, setJoinError] = useState<string | null>(null);
@@ -197,16 +197,10 @@ export default function FeudPlayPage() {
         <h1 className="text-2xl font-bold mb-1">Room {room.code}</h1>
         <p className="text-slate-400 mb-6">Choose your team</p>
         <form onSubmit={join} className="flex flex-col gap-3 w-full max-w-xs">
-          {!avatarId || changingCharacter ? (
-            <CharacterGate
-              avatars={avatars}
-              onPick={(id) => {
-                equipAvatar(id);
-                setChangingCharacter(false);
-              }}
-            />
+          {!avatarId ? (
+            <CharacterGate avatars={avatars} onPick={equipAvatar} />
           ) : (
-            <EquippedCharacter avatar={avatarsById[avatarId]} onChange={() => setChangingCharacter(true)} />
+            <MyCharacterButton onEquip={equipAvatar} />
           )}
           <div className="relative">
             <input
