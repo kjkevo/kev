@@ -87,4 +87,5 @@ dashboard marked TEST.
   and go along with a real teammate's answer. Turn them off if you'd rather
   never show bots.
 - Remove the "Start new trivia game" testing button from the dashboard (restart_trivia_now). It is no longer on the player-facing /trivia page.
-- Delete bot test check-ins/scans (@crowdplay-bots.test, bot-scan-*).
+- Delete bot test check-ins/scans (@crowdplay-bots.test, bot-scan-*). Bots in games
+  are marked with players.is_bot (their names are regular first names).
