@@ -43,10 +43,10 @@ export function CharacterLocker({ onClose, onEquip }: { onClose: () => void; onE
             <>
               <Avatar emoji={current.emoji} imageUrl={current.imageUrl} size={140} variant="full" />
               <p className="font-bold">{current.name}</p>
-              <p className="text-xs text-slate-400">Equipped for every game on this phone</p>
+              <p className="text-xs text-slate-400">Used in every game</p>
             </>
           ) : (
-            <p className="text-sm text-slate-300">Pick a character. You need one to play any game.</p>
+            <p className="text-sm text-slate-300">Pick one to play.</p>
           )}
         </div>
         {note && <p className="text-xs text-amber-300 mb-2">{note}</p>}
@@ -64,7 +64,7 @@ export function CharacterLocker({ onClose, onEquip }: { onClose: () => void; onE
             setBuying(null);
             refresh();
             pick(id);
-            setNote(`${buying.name} unlocked and equipped. It's yours on this phone from now on.`);
+            setNote(`${buying.name} unlocked!`);
           }}
         />
       )}
@@ -84,19 +84,14 @@ export function MyCharacterButton({ onEquip, compact = false }: { onEquip?: (id:
         type="button"
         onClick={() => setOpen(true)}
         className={`flex items-center gap-3 rounded-2xl bg-white/5 border border-white/10 hover:border-amber-400/60 text-left transition active:scale-95 ${
-          compact ? "px-2 py-1.5" : "px-3 py-2 w-full max-w-[18rem] sm:max-w-md"
+          compact ? "px-2 py-1.5" : "px-3 py-2 w-full max-w-sm"
         }`}
       >
         <Avatar emoji={current?.emoji} imageUrl={current?.imageUrl} size={compact ? 32 : 44} />
-        <span className="flex-1 min-w-0">
-          <span className={`block font-bold ${compact ? "text-xs" : "text-sm"}`}>My character</span>
-          {!compact && (
-            <span className="block text-xs text-slate-400 truncate">
-              {current ? `${current.name} · switch or unlock new ones` : "Pick one to play"}
-            </span>
-          )}
+        <span className={`flex-1 min-w-0 font-bold truncate ${compact ? "text-xs" : "text-sm"}`}>
+          {current ? current.name : "Pick a character"}
         </span>
-        <span className="text-amber-300 text-sm font-bold">›</span>
+        <span className="text-amber-300 text-sm font-bold">{current ? "Change ›" : "›"}</span>
       </button>
       {open && (
         <CharacterLocker

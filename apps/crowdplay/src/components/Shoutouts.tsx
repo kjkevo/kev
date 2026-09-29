@@ -9,9 +9,9 @@ type Preset = { o_preset_id: string; o_text: string; o_left: number };
 type Shoutout = { o_id: number; o_text: string; o_nickname: string; o_team_name: string | null; o_emoji: string | null; o_image_url: string | null };
 
 const ERRORS: Record<string, string> = {
-  SHOUTOUT_TOO_SOON: "Give it 10 seconds between shoutouts.",
-  SHOUTOUTS_OFF: "Shoutouts are switched off here right now.",
-  SHOUTOUT_USED_UP: "You've used that one 3 times this game.",
+  SHOUTOUT_TOO_SOON: "Wait 10 seconds between shoutouts.",
+  SHOUTOUTS_OFF: "Shoutouts are off right now.",
+  SHOUTOUT_USED_UP: "Used up for this game.",
 };
 
 /**
@@ -62,11 +62,26 @@ export function Shoutouts({ roomId, creds, compact = false }: { roomId: string; 
       return;
     }
     setOpen(false);
-    setNote("Sent! It shows up for everyone in a few seconds.");
+    setNote("Sent! Shows up in a few seconds.");
     setTimeout(() => setNote(null), 4000);
   }
 
   const shown = feed.slice(0, compact ? 2 : 4);
+
+  if (shown.length === 0 && !open) {
+    return (
+      <div className="flex flex-col items-center gap-1">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="text-xs font-bold rounded-full bg-amber-400/15 text-amber-300 px-4 py-1.5 active:scale-95"
+        >
+          Send a shoutout
+        </button>
+        {note && <p className="text-xs text-amber-300/90">{note}</p>}
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-sm rounded-2xl bg-white/5 border border-white/10 p-3 text-left">
@@ -99,7 +114,7 @@ export function Shoutouts({ roomId, creds, compact = false }: { roomId: string; 
       )}
       {note && <p className="text-xs text-amber-300/90 mt-2">{note}</p>}
 
-      {shown.length > 0 ? (
+      {shown.length > 0 && (
         <ul className="mt-2 flex flex-col gap-1.5">
           {shown.map((s) => (
             <li key={s.o_id} className="flex items-center gap-2 text-sm">
@@ -112,8 +127,6 @@ export function Shoutouts({ roomId, creds, compact = false }: { roomId: string; 
             </li>
           ))}
         </ul>
-      ) : (
-        !open && <p className="text-xs text-slate-500 mt-1">No shoutouts yet. Start the hype.</p>
       )}
     </div>
   );

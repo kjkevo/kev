@@ -6,6 +6,10 @@ import { DEFAULT_VENUE } from "@/lib/venue";
 import { GameCarousel } from "@/components/GameCarousel";
 import { Avatar } from "@/components/Avatar";
 import { useTriviaChampion } from "@/hooks/useTriviaChampion";
+import { useVenueId } from "@/lib/venue";
+import { useLiveActiveRoom } from "@/hooks/useLiveActiveRoom";
+import { useLiveTeams } from "@/components/LobbyRoster";
+import { useCountdownTo } from "@/hooks/useCountdownTo";
 
 /**
  * The venue's "scan to play" display: headline, "free to play" and the QR
@@ -17,6 +21,11 @@ export default function QrPage() {
   const [url, setUrl] = useState("");
   const [venue, setVenue] = useState<string | null>(null);
   const champion = useTriviaChampion(venue);
+  // Under the QR: when the next game starts and how many teams are in.
+  const { room, players, teams } = useLiveActiveRoom(useVenueId(venue));
+  const liveTeams = useLiveTeams(players, teams);
+  const boarding = room?.phase === "lobby";
+  const countdown = useCountdownTo(boarding ? room.starts_at : null);
 
   useEffect(() => {
     // src=qr lets the dashboard count arrivals; venue sends them to that bar's games.
@@ -32,7 +41,7 @@ export default function QrPage() {
         {Array.from({ length: 9 }, (_, row) => (
           <div
             key={row}
-            className={`whitespace-nowrap font-black tracking-tight text-white/[0.05] text-7xl sm:text-9xl leading-none ${row % 2 ? "pl-24" : ""}`}
+            className={`whitespace-nowrap font-black tracking-tight text-white/[0.025] text-7xl sm:text-9xl leading-none ${row % 2 ? "pl-24" : ""}`}
           >
             {"Slimpse   ".repeat(8)}
           </div>
@@ -49,8 +58,23 @@ export default function QrPage() {
       {/* Wide (horizontal) screens: QR on the left, this month's champion on
           the right. Phones and portrait screens show the QR alone. */}
       <div className="relative flex flex-col items-center gap-10 lg:landscape:flex-row lg:landscape:gap-16">
-        <div className="bg-white p-6 rounded-3xl shadow-2xl">
-          {url ? <QRCodeSVG value={url} size={280} /> : <div style={{ width: 280, height: 280 }} />}
+        <div className="flex flex-col items-center gap-3">
+          <div className="bg-white p-6 rounded-3xl shadow-2xl">
+            {url ? <QRCodeSVG value={url} size={280} /> : <div style={{ width: 280, height: 280 }} />}
+          </div>
+          <p className="text-2xl sm:text-3xl font-black">
+            Scan to play
+            {boarding && room.starts_at && !countdown.reached && (
+              <>
+                {" "}· starts in <span className="text-amber-400 tabular-nums">{countdown.label}</span>
+              </>
+            )}
+          </p>
+          {boarding && liveTeams.length > 0 && (
+            <p className="text-lg font-semibold text-indigo-100">
+              {liveTeams.length} team{liveTeams.length === 1 ? "" : "s"} in
+            </p>
+          )}
         </div>
 
         <div className="hidden lg:landscape:flex flex-col items-center text-center w-80">

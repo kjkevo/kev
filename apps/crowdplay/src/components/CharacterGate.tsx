@@ -27,8 +27,7 @@ export function CharacterGate({
     <div className="w-full rounded-2xl bg-amber-400/10 border border-amber-400/40 p-4 text-left">
       <p className="text-lg font-black">Pick your character</p>
       <p className="text-sm text-slate-300 mt-0.5">
-        You need a character to play. It shows up next to your name on your team and on the big screen.
-        {owned.length === 0 && " Start with one of these free ones:"}
+        {owned.length === 0 ? "Free to start:" : "Needed to play."}
       </p>
       <div className="grid grid-cols-2 gap-3 mt-3">
         {starters.map((a) => (

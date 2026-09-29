@@ -1,16 +1,12 @@
 import type { Season } from "@/hooks/useSeason";
 
-/** "September season · usernames and leaderboards reset October 1". */
-export function SeasonNotice({ season, compact = false }: { season: Season | null; compact?: boolean }) {
+/** "Sept · resets Oct 1": usernames and leaderboards reset on the 1st. */
+export function SeasonChip({ season }: { season: Season | null }) {
   if (!season) return null;
+  const short = (s: string) => s.replace(/^September/, "Sept").replace(/^(?!Sept)(\w{3})\w*/, "$1");
   return (
-    <div
-      className={`w-full max-w-sm rounded-2xl border border-amber-400/30 bg-amber-400/10 text-center ${compact ? "px-3 py-2" : "px-4 py-3"}`}
-    >
-      <p className="text-sm font-bold text-amber-300">{season.month} Season</p>
-      <p className="text-xs text-slate-300">
-        Leaderboards and usernames reset on {season.resetsOn}. Everyone starts fresh and picks a new username.
-      </p>
-    </div>
+    <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-0.5 text-xs font-semibold text-amber-300 whitespace-nowrap">
+      {short(season.month)} · resets {short(season.resetsOn)}
+    </span>
   );
 }
