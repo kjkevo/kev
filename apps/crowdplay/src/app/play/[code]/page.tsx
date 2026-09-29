@@ -601,7 +601,7 @@ export default function PlayPage() {
                     onClick={() => setAvatarOpen(!pickerOpen)}
                     className="text-xs font-bold text-amber-300 mt-1"
                   >
-                    {pickerOpen ? "Done choosing character" : "Change character"}
+                    {pickerOpen ? "Done choosing character" : "Switch or unlock a character"}
                   </button>
                 )}
               </div>
@@ -836,7 +836,7 @@ export default function PlayPage() {
               onClick={() => setLobbyAvatarOpen(!lobbyAvatarOpen)}
               className="rounded-full bg-white/10 border border-white/20 px-4 py-2 text-sm font-bold active:scale-95 transition"
             >
-              {lobbyAvatarOpen ? "Done" : "Change avatar"}
+              {lobbyAvatarOpen ? "Done" : "Switch or unlock a character"}
             </button>
             {lobbyAvatarOpen && (
               <div className="mt-3">

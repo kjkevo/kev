@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { MyCharacterButton } from "@/components/CharacterLocker";
 
 const GAMES = [
   {
@@ -37,10 +38,13 @@ export default function Home() {
     <main className="min-h-screen flex flex-col items-center justify-center gap-6 bg-gradient-to-b from-indigo-950 via-purple-950 to-black text-white px-6 py-8 text-center">
       <div>
         <h1 className="text-4xl sm:text-6xl font-black tracking-tight">
-          Crowd<span className="text-amber-400">Play</span>
+          Slim<span className="text-amber-400">pse</span>
         </h1>
         <p className="mt-2 text-sm sm:text-lg text-indigo-200">Live games for your bar. No app, no login, just a phone.</p>
       </div>
+
+      {/* Switch characters or unlock new ones before picking a game. */}
+      <MyCharacterButton />
 
       {/* Small squares, two across even on phones, so the characters below
           are visible without scrolling. */}

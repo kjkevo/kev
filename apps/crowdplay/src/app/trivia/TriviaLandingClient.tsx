@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { MyCharacterButton } from "@/components/CharacterLocker";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLiveActiveRoom } from "@/hooks/useLiveActiveRoom";
@@ -147,6 +148,8 @@ export default function TriviaLandingClient() {
           <p className="text-4xl font-black text-amber-400 tabular-nums mt-2">{countdown.label}</p>
         )}
       </div>
+
+      <MyCharacterButton />
 
       {/* One clear main action: join this game when it's boarding, otherwise
           sign up for (or wait for) the next one. */}
