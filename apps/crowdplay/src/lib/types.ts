@@ -84,3 +84,19 @@ export type BingoSquare = { id: string | null; text: string; free: boolean };
 export type BingoPlayerCredentials = { playerId: string; clientToken: string; roomId: string };
 
 export const bingoPlayerKey = (code: string) => `crowdplay_bingo_player_${code.toUpperCase()}`;
+
+/** Published in rooms.sd_last_result after each sudden death round. */
+export type SuddenDeathResult = {
+  round: number;
+  correct_answer: string | null;
+  winner_team_id?: string;
+  players: {
+    team_id: string;
+    team_name: string;
+    player_id: string;
+    nickname: string;
+    avatar_id: string | null;
+    answer: string | null;
+    correct: boolean;
+  }[];
+};

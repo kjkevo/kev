@@ -16,7 +16,12 @@ import { ScreenAgent } from "@/components/ScreenAgent";
 import { useScreenVenue, useVenueId } from "@/lib/venue";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { supabase } from "@/lib/supabase";
-import type { Team, FinalRecapRow } from "@/lib/types";
+import type { Team, FinalRecapRow, SuddenDeathResult } from "@/lib/types";
+import { GetReady } from "@/components/GetReady";
+import { SuddenDeathResultList } from "@/components/SuddenDeath";
+import { useQuestionById } from "@/hooks/useQuestionById";
+import { useAvatars } from "@/hooks/useAvatars";
+import { Avatar } from "@/components/Avatar";
 
 /**
  * The venue's TV/projector view — leave this open all night. It always
@@ -42,6 +47,11 @@ export default function ScreenClient() {
   const packs = useAllPacks();
   const voteTally = useCategoryVoteTally(room?.phase === "lobby" ? room?.id : undefined);
   const [recap, setRecap] = useState<FinalRecapRow[] | null>(null);
+  const questionStart = useCountdownTo(room?.phase === "question" ? room.question_started_at : null);
+  const sdStart = useCountdownTo(room?.phase === "sudden_death" ? room.sd_started_at : null);
+  const sdClock = useCountdown(room?.phase === "sudden_death" ? room.sd_started_at : null, 20);
+  const sdPrompt = useQuestionById(room?.phase === "sudden_death" ? room.sd_question_id : null);
+  const { byId: avatarsById } = useAvatars();
   // Busy nights: while this game runs (or its lobby is full), the next
   // game is already open for sign-ups. Show its code in the corner.
   const queue = useTriviaQueue(venueId);
@@ -147,7 +157,56 @@ export default function ScreenClient() {
           </>
         )}
 
-        {room.phase === "question" && question && (
+        {room.phase === "question" && question && questionStart.remainingMs > 0 && (
+          <GetReady
+            big
+            title="Get ready! Question 1 is about"
+            subtitle={room.winning_category_id ? packs[room.winning_category_id]?.name : "Trivia"}
+            seconds={Math.ceil(questionStart.remainingMs / 1000)}
+          />
+        )}
+
+        {room.phase === "sudden_death" && (
+          <>
+            <h2 className="text-7xl font-black text-rose-400 tracking-wide">SUDDEN DEATH</h2>
+            <p className="text-2xl text-slate-300 max-w-3xl">
+              Tie for 1st: {teams.filter((t) => room.sd_team_ids.includes(t.id)).map((t) => t.name).join(" vs ")}. One
+              teammate from each team answers. Wrong while the other team is right, and you&apos;re out.
+            </p>
+            {sdStart.remainingMs > 0 ? (
+              <>
+                {(room.sd_last_result as unknown as SuddenDeathResult | null)?.round === room.sd_round - 1 && (
+                  <SuddenDeathResultList big result={room.sd_last_result as unknown as SuddenDeathResult} avatars={avatarsById} />
+                )}
+                <GetReady big title={`Round ${room.sd_round}`} seconds={Math.ceil(sdStart.remainingMs / 1000)} />
+              </>
+            ) : (
+              <>
+                <div className="w-full max-w-3xl h-3 bg-white/10 rounded-full overflow-hidden">
+                  <div className="h-full bg-rose-400 transition-[width] duration-100 linear" style={{ width: `${sdClock.fraction * 100}%` }} />
+                </div>
+                <h2 className="text-5xl font-bold max-w-4xl">{sdPrompt ?? "…"}</h2>
+                <p className="text-xl text-slate-400">{sdClock.remainingSeconds}s</p>
+              </>
+            )}
+            <div className="flex gap-10 justify-center">
+              {players
+                .filter((p) => room.sd_player_ids.includes(p.id))
+                .map((p) => {
+                  const a = p.avatar_id ? avatarsById[p.avatar_id] : undefined;
+                  return (
+                    <div key={p.id} className="flex flex-col items-center gap-2">
+                      <Avatar emoji={a?.emoji} imageUrl={a?.imageUrl} size={140} variant="full" />
+                      <p className="text-2xl font-bold">{p.nickname}</p>
+                      <p className="text-lg text-slate-400">{teams.find((t) => t.id === p.team_id)?.name}</p>
+                    </div>
+                  );
+                })}
+            </div>
+          </>
+        )}
+
+        {room.phase === "question" && question && questionStart.remainingMs <= 0 && (
           <>
             <div className="w-full max-w-3xl h-3 bg-white/10 rounded-full overflow-hidden">
               <div
@@ -169,6 +228,11 @@ export default function ScreenClient() {
         {room.phase === "final" && (
           <>
             <h2 className="text-4xl font-black text-amber-400">Final Results</h2>
+            {room.sd_winner_team_id && (
+              <p className="text-2xl font-bold text-rose-300">
+                {teams.find((t) => t.id === room.sd_winner_team_id)?.name} won in sudden death (+100)
+              </p>
+            )}
             <TeamStandings teams={sortedTeams} />
             {recap && <Recap recap={recap} />}
             <p className="text-slate-400">Next game boarding shortly…</p>

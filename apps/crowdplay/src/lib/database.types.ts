@@ -492,6 +492,13 @@ export type Database = {
           revealed_correct_index: number | null
           starts_at: string | null
           winning_category_id: string | null
+          sd_round: number
+          sd_question_id: string | null
+          sd_player_ids: string[]
+          sd_team_ids: string[]
+          sd_started_at: string | null
+          sd_last_result: Json | null
+          sd_winner_team_id: string | null
         }
         Insert: {
           category_option_a?: string | null
@@ -723,6 +730,10 @@ export type Database = {
       join_room: {
         Args: { p_code: string; p_nickname: string; p_team_id?: string; p_new_team_name?: string; p_avatar_id?: string; p_device_key?: string }
         Returns: { client_token: string; player_id: string; room_id: string; team_id: string; team_name: string }[]
+      }
+      submit_sudden_death_answer: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_answer_text: string }
+        Returns: boolean
       }
       cast_team_vote: {
         Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_question_id: string; p_answer_text: string }

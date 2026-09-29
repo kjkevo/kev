@@ -12,7 +12,7 @@ import { useAllPacks } from "@/hooks/useAllPacks";
 import { useCategoryVoteTally } from "@/hooks/useCategoryVoteTally";
 import { useQuestionVotes } from "@/hooks/useQuestionVotes";
 import { useTeamProgress } from "@/hooks/useTeamProgress";
-import { playerKey, type PlayerCredentials, type FinalRecapRow } from "@/lib/types";
+import { playerKey, type PlayerCredentials, type FinalRecapRow, type SuddenDeathResult } from "@/lib/types";
 import { randomFunName } from "@/lib/funNames";
 import { haptics } from "@/lib/haptics";
 import { CategoryIcon } from "@/components/CategoryIcon";
@@ -30,6 +30,9 @@ import { usePlayerVenue } from "@/lib/venue";
 import { useSeason } from "@/hooks/useSeason";
 import { SeasonNotice } from "@/components/SeasonNotice";
 import { Avatar } from "@/components/Avatar";
+import { GetReady } from "@/components/GetReady";
+import { SuddenDeathResultList } from "@/components/SuddenDeath";
+import { useQuestionById } from "@/hooks/useQuestionById";
 
 const JOIN_ERRORS: Record<string, string> = {
   ROOM_NOT_FOUND: "That room code doesn't exist. Double check with your host.",
@@ -52,6 +55,7 @@ const JOIN_ERRORS: Record<string, string> = {
 };
 
 const LAST_MODE_KEY = "crowdplay_last_mode";
+const SUDDEN_DEATH_SECONDS = 20; // matches trivia_sd_seconds() in the database
 
 function friendlyError(raw: string) {
   const key = Object.keys(JOIN_ERRORS).find((k) => raw.includes(k));
@@ -66,6 +70,15 @@ export default function PlayPage() {
   const question = useCurrentQuestion(room?.id, room?.current_question_index, room?.phase);
   const countdown = useCountdown(room?.question_started_at ?? null, question?.time_limit_seconds ?? 15);
   const scheduledCountdown = useCountdownTo(room?.starts_at ?? null);
+  // Question 1 opens with a few seconds of "Get ready" before its clock starts.
+  const questionStart = useCountdownTo(room?.phase === "question" ? room.question_started_at : null);
+  // Sudden death (a tie for 1st): its own get-ready, clock and question.
+  const sdStart = useCountdownTo(room?.phase === "sudden_death" ? room.sd_started_at : null);
+  const sdClock = useCountdown(room?.phase === "sudden_death" ? room.sd_started_at : null, SUDDEN_DEATH_SECONDS);
+  const sdPrompt = useQuestionById(room?.phase === "sudden_death" ? room.sd_question_id : null);
+  const [sdAnswer, setSdAnswer] = useState("");
+  const [sdSentRound, setSdSentRound] = useState<number | null>(null);
+  const [sdError, setSdError] = useState<string | null>(null);
   const totalQuestions = useTotalQuestions(room?.id, room?.phase);
   const packs = useAllPacks();
   const voteTally = useCategoryVoteTally(room?.phase === "lobby" ? room?.id : undefined);
@@ -410,6 +423,27 @@ export default function PlayPage() {
     }
     setAnswerText(t);
     refreshVotes();
+  }
+
+  // Sudden death: one answer, no changing it.
+  async function submitSuddenDeath(e: React.FormEvent) {
+    e.preventDefault();
+    if (!room || !creds || sdAnswer.trim().length === 0 || sdSentRound === room.sd_round) return;
+    setSdError(null);
+    const round = room.sd_round;
+    const { error } = await supabase.rpc("submit_sudden_death_answer", {
+      p_room_id: room.id,
+      p_player_id: creds.playerId,
+      p_client_token: creds.clientToken,
+      p_answer_text: sdAnswer.trim(),
+    });
+    if (error) {
+      setSdError(/VOTING_CLOSED/.test(error.message) ? "Time ran out before that landed." : "That didn't go through. Try again.");
+      return;
+    }
+    haptics.tap();
+    setSdSentRound(round);
+    setSdAnswer("");
   }
 
   // A hint narrows the answer to two options for the whole team, and halves
@@ -825,6 +859,123 @@ export default function PlayPage() {
     );
   }
 
+  if (room.phase === "question" && question && questionStart.remainingMs > 0) {
+    const categoryName = room.winning_category_id ? packs[room.winning_category_id]?.name : undefined;
+    return (
+      <Center>
+        <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
+          <ExitButton onClick={() => setConfirmingQuit(true)} />
+          <TeamBadge name={myTeam?.name ?? creds.teamName} />
+        </div>
+        <GetReady title="Get ready! Question 1 is about" subtitle={categoryName ?? "Trivia"} seconds={Math.ceil(questionStart.remainingMs / 1000)} />
+        {me?.avatar_id && avatarsById[me.avatar_id] && (
+          <div className="mt-6">
+            <CharacterBuddy
+              emoji={avatarsById[me.avatar_id].emoji}
+              imageUrl={avatarsById[me.avatar_id].imageUrl}
+              mood="hop"
+              says="Let's go!"
+              size={110}
+            />
+          </div>
+        )}
+        {confirmingQuit && <QuitConfirm onCancel={() => setConfirmingQuit(false)} onConfirm={() => leaveRoom("/trivia")} />}
+      </Center>
+    );
+  }
+
+  if (room.phase === "sudden_death") {
+    const tiedTeams = teams.filter((t) => room.sd_team_ids.includes(t.id));
+    const upPlayers = players.filter((p) => room.sd_player_ids.includes(p.id));
+    const iAmUp = room.sd_player_ids.includes(creds.playerId);
+    const myTeamIn = !!creds.teamId && room.sd_team_ids.includes(creds.teamId);
+    const myTeammateUp = upPlayers.find((p) => p.team_id === creds.teamId);
+    const lastResult = room.sd_last_result as unknown as SuddenDeathResult | null;
+    const waiting = sdStart.remainingMs > 0;
+    const sent = sdSentRound === room.sd_round;
+    return (
+      <main className="min-h-screen bg-slate-950 text-white flex flex-col items-center px-5 py-6 gap-5 text-center relative">
+        <div className="w-full flex items-center justify-between">
+          <ExitButton onClick={() => setConfirmingQuit(true)} />
+          <TeamBadge name={myTeam?.name ?? creds.teamName} />
+        </div>
+        <div>
+          <p className="text-3xl font-black text-rose-400 tracking-wide">SUDDEN DEATH</p>
+          <p className="text-sm text-slate-300 mt-1">
+            Tie for 1st: {tiedTeams.map((t) => t.name).join(" vs ")}. One teammate from each team answers. Get it wrong
+            while the other team gets it right, and you&apos;re out.
+          </p>
+        </div>
+
+        {waiting ? (
+          <>
+            {lastResult && lastResult.round === room.sd_round - 1 && (
+              <SuddenDeathResultList result={lastResult} avatars={avatarsById} />
+            )}
+            <GetReady title={`Round ${room.sd_round}`} seconds={Math.ceil(sdStart.remainingMs / 1000)} />
+          </>
+        ) : (
+          <>
+            <div className="w-full max-w-sm h-2 bg-white/10 rounded-full overflow-hidden">
+              <div className="h-full bg-rose-400 transition-[width] duration-100 linear" style={{ width: `${sdClock.fraction * 100}%` }} />
+            </div>
+            <h2 className="text-xl font-bold max-w-sm">{sdPrompt ?? "…"}</h2>
+          </>
+        )}
+
+        <div className="w-full max-w-sm flex flex-wrap justify-center gap-3">
+          {upPlayers.map((p) => {
+            const a = p.avatar_id ? avatarsById[p.avatar_id] : undefined;
+            const team = teams.find((t) => t.id === p.team_id);
+            return (
+              <div key={p.id} className="flex flex-col items-center gap-1 rounded-xl bg-white/5 border border-white/10 px-3 py-2">
+                <Avatar emoji={a?.emoji} imageUrl={a?.imageUrl} size={48} />
+                <span className="text-sm font-bold">{p.id === creds.playerId ? "You" : p.nickname}</span>
+                <span className="text-[11px] text-slate-400">{team?.name}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        {!waiting &&
+          (iAmUp ? (
+            sent ? (
+              <p className="text-emerald-300 font-bold">Locked in. Waiting for the other team…</p>
+            ) : (
+              <form onSubmit={submitSuddenDeath} className="w-full max-w-sm flex flex-col gap-3">
+                <p className="text-amber-300 font-bold">You&apos;re up for your team! One answer, no changes.</p>
+                <input
+                  value={sdAnswer}
+                  onChange={(e) => setSdAnswer(e.target.value)}
+                  disabled={sdClock.expired}
+                  maxLength={200}
+                  autoComplete="off"
+                  autoFocus
+                  placeholder="Type your answer…"
+                  className="w-full text-center text-lg font-semibold bg-white/10 border border-rose-400/60 rounded-2xl py-4 px-4 outline-none focus:border-rose-400"
+                />
+                <button
+                  disabled={sdAnswer.trim().length === 0 || sdClock.expired}
+                  className="rounded-2xl bg-rose-500 text-white font-black text-lg py-4 disabled:opacity-40 active:scale-95 transition"
+                >
+                  Lock it in · {sdClock.remainingSeconds}s
+                </button>
+                {sdError && <p className="text-sm text-rose-300">{sdError}</p>}
+              </form>
+            )
+          ) : myTeamIn ? (
+            <p className="text-slate-300">
+              {myTeammateUp ? `${myTeammateUp.nickname} is answering for your team. No helping!` : "Your teammate is answering."} ·{" "}
+              {sdClock.remainingSeconds}s
+            </p>
+          ) : (
+            <p className="text-slate-400">Watching the tiebreaker · {sdClock.remainingSeconds}s</p>
+          ))}
+        {confirmingQuit && <QuitConfirm onCancel={() => setConfirmingQuit(false)} onConfirm={() => leaveRoom("/trivia")} />}
+      </main>
+    );
+  }
+
   if (room.phase === "question" && question) {
     const myVote = questionVotes[creds.playerId];
     const teamOptions = groupTeamVotes(teammates, questionVotes, creds.playerId);
@@ -1037,6 +1188,11 @@ export default function PlayPage() {
           <TeamBadge name={myTeam?.name ?? creds.teamName} />
         </div>
         <h1 className="text-2xl font-bold mb-6">Final Results</h1>
+        {room.sd_winner_team_id && (
+          <p className="-mt-4 mb-4 rounded-full bg-rose-500/20 border border-rose-400/50 px-4 py-1 text-sm font-bold text-rose-200">
+            {teams.find((t) => t.id === room.sd_winner_team_id)?.name} won in sudden death (+100)
+          </p>
+        )}
 
         <div className="w-full max-w-xs flex flex-col gap-2 mb-2">
           {revealedPodium.map(({ team, rank }) => (

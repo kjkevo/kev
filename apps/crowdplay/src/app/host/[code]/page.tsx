@@ -191,6 +191,7 @@ export default function HostGamePage() {
           </>
         )}
 
+        {room.phase === "sudden_death" && <p className="text-rose-400 font-black">Sudden death! Tie for 1st.</p>}
         {room.phase === "final" && (
           <>
             <h2 className="text-4xl font-black text-amber-400">Final Results</h2>
