@@ -60,6 +60,7 @@ export function LiveGameGlance({ room, players, teams }: { room: Room; players: 
         </>
       )}
 
+      {room.phase === "sudden_death" && <p className="text-rose-400 font-black">Sudden death! Tie for 1st.</p>}
       {room.phase === "final" && (
         <div className="w-full flex flex-col gap-1.5">
           <p className="text-sm font-bold text-amber-400 mb-1">Final Results</p>
