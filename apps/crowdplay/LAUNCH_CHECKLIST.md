@@ -80,6 +80,11 @@ dashboard marked TEST.
 - Done: 2 free characters (Jungle Scout, Crystal Titan) and 9 paid ones.
 
 ## Testing leftovers to switch off
-- Turn off test bots for each venue (dashboard → Venues, links and test bots).
+- Decide on bots for each venue (dashboard → Venues, links and test bots).
+  With bots on, they only fill gaps: the lobby is topped up to 12 players
+  (3 teams of 4), each real player replaces a bot, and at 12+ real players
+  there are none. Bots play on their own teams, answer after real players,
+  and go along with a real teammate's answer. Turn them off if you'd rather
+  never show bots.
 - Remove the "Start new trivia game" testing button from the dashboard (restart_trivia_now). It is no longer on the player-facing /trivia page.
 - Delete bot test check-ins/scans (@crowdplay-bots.test, bot-scan-*).
