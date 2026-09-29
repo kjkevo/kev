@@ -20,6 +20,7 @@ import { LobbyRoster, useLiveTeams, MAX_TEAMS, MAX_TEAM_SIZE, MIN_TEAM_SIZE } fr
 import { useTriviaQueue, roundsToWaitLabel, currentGameProgress } from "@/hooks/useTriviaQueue";
 import { useAvatars, useEquippedAvatar, type AvatarOption } from "@/hooks/useAvatars";
 import { CharacterGate } from "@/components/CharacterGate";
+import { CharacterBuddy, type CharacterMood } from "@/components/CharacterBuddy";
 import { AvatarPicker } from "@/components/AvatarPicker";
 import { Shoutouts } from "@/components/Shoutouts";
 import { deviceKey } from "@/lib/device";
@@ -827,7 +828,20 @@ export default function PlayPage() {
   if (room.phase === "question" && question) {
     const myVote = questionVotes[creds.playerId];
     const teamOptions = groupTeamVotes(teammates, questionVotes, creds.playerId);
-    const waitingOn = teammates.filter((p) => questionVotes[p.id] === undefined).map((p) => (p.id === creds.playerId ? "You" : p.nickname));
+    const thinking = teammates.filter((p) => questionVotes[p.id] === undefined);
+    const waitingOn = thinking.map((p) => (p.id === creds.playerId ? "You" : p.nickname));
+    const myCharacter = me?.avatar_id ? avatarsById[me.avatar_id] : undefined;
+    const buddyMood: CharacterMood = teamLock !== null ? "cheer" : myVote !== undefined ? "hop" : "idle";
+    const buddySays =
+      teamLock !== null
+        ? "Locked in!"
+        : countdown.expired
+          ? "Time's up!"
+          : myVote !== undefined
+            ? "Voted!"
+            : countdown.fraction < 0.25
+              ? "Hurry!"
+              : "Hmm…";
     const locked = teamLock !== null;
     const canVote =
       !locked &&
@@ -854,7 +868,18 @@ export default function PlayPage() {
               name={room.winning_category_id ? packs[room.winning_category_id]?.name : undefined}
               icon={room.winning_category_id ? packs[room.winning_category_id]?.icon : undefined}
             />
-            <CountdownRing fraction={countdown.fraction} seconds={countdown.remainingSeconds} />
+            <div className="flex items-end gap-4">
+              {myCharacter && (
+                <CharacterBuddy
+                  emoji={myCharacter.emoji}
+                  imageUrl={myCharacter.imageUrl}
+                  mood={buddyMood}
+                  says={buddySays}
+                  size={96}
+                />
+              )}
+              <CountdownRing fraction={countdown.fraction} seconds={countdown.remainingSeconds} />
+            </div>
           </div>
           {locked ? (
             <div className="w-full max-w-sm rounded-2xl bg-emerald-500/15 border border-emerald-400/50 px-5 py-4 text-center">
@@ -936,7 +961,15 @@ export default function PlayPage() {
                         <span className="ml-2 text-[10px] uppercase tracking-wider text-amber-300">Leading</span>
                       )}
                     </span>
-                    <span className="block text-xs text-slate-400 truncate">Voted by {o.voters.join(", ")}</span>
+                    <span className="flex items-center gap-1.5 text-xs text-slate-400 min-w-0">
+                      <span className="flex -space-x-2 shrink-0">
+                        {o.voterAvatars.map((id, j) => {
+                          const a = id ? avatarsById[id] : undefined;
+                          return <Avatar key={j} emoji={a?.emoji} imageUrl={a?.imageUrl} size={22} />;
+                        })}
+                      </span>
+                      <span className="truncate">{o.voters.join(", ")}</span>
+                    </span>
                   </span>
                   <span className="shrink-0 text-xs text-slate-300">
                     {o.mine ? "Your vote" : locked || countdown.expired ? `${o.voters.length} vote${o.voters.length === 1 ? "" : "s"}` : "Go with this"}
@@ -948,7 +981,15 @@ export default function PlayPage() {
             <p className="text-center text-sm text-slate-500">No votes yet. Be the first.</p>
           )}
           {waitingOn.length > 0 && !countdown.expired && !locked && (
-            <p className="text-center text-xs text-slate-500 mt-2">Still thinking: {waitingOn.join(", ")}</p>
+            <p className="flex items-center justify-center gap-1.5 text-xs text-slate-500 mt-2">
+              <span className="flex -space-x-2 opacity-60">
+                {thinking.map((p) => {
+                  const a = p.avatar_id ? avatarsById[p.avatar_id] : undefined;
+                  return <Avatar key={p.id} emoji={a?.emoji} imageUrl={a?.imageUrl} size={20} />;
+                })}
+              </span>
+              Still thinking: {waitingOn.join(", ")}
+            </p>
           )}
           <p className="text-center text-xs text-slate-500 mt-3">
             {locked
@@ -1016,6 +1057,16 @@ export default function PlayPage() {
 
         {showRest && (
           <div className="w-full max-w-xs flex flex-col gap-4 animate-pop-in">
+            {me?.avatar_id && avatarsById[me.avatar_id] && (
+              <div className="flex justify-center">
+                <CharacterBuddy
+                  emoji={avatarsById[me.avatar_id].emoji}
+                  imageUrl={avatarsById[me.avatar_id].imageUrl}
+                  size={140}
+                  {...finalReaction(myTeamRank, sortedTeams.length)}
+                />
+              </div>
+            )}
             <p className="text-slate-400">
               {myTeam?.name ?? creds.teamName} finished #{myTeamRank || "-"} with {myTeam?.score ?? 0} points
             </p>
@@ -1244,14 +1295,22 @@ function normalizeAnswer(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
 }
 
-type TeamVoteOption = { text: string; voters: string[]; mine: boolean };
+type TeamVoteOption = { text: string; voters: string[]; voterAvatars: (string | null)[]; mine: boolean };
 
 // Groups the team's votes by answer (ignoring case and punctuation) so
 // everyone can see what's leading. The server groups more loosely -- by
 // meaning, so "mint" and "mint leaves" count together -- this is just the
 // at-a-glance view.
+/** How the character takes the final result. */
+function finalReaction(rank: number, teamCount: number): { mood: CharacterMood; says: string } {
+  if (rank === 1) return { mood: "cheer", says: "We won!" };
+  if (teamCount > 2 && rank === teamCount) return { mood: "slump", says: "Next time…" };
+  if (rank > 0 && rank <= 3) return { mood: "hop", says: "Podium!" };
+  return { mood: "idle", says: "Good game!" };
+}
+
 function groupTeamVotes(
-  teammates: { id: string; nickname: string }[],
+  teammates: { id: string; nickname: string; avatar_id?: string | null }[],
   votes: Record<string, string>,
   myId: string
 ): TeamVoteOption[] {
@@ -1260,8 +1319,9 @@ function groupTeamVotes(
     const v = votes[p.id];
     if (!v) continue;
     const key = normalizeAnswer(v);
-    const g = groups.get(key) ?? { text: v, voters: [], mine: false };
+    const g = groups.get(key) ?? { text: v, voters: [], voterAvatars: [], mine: false };
     g.voters.push(p.id === myId ? "You" : p.nickname);
+    g.voterAvatars.push(p.avatar_id ?? null);
     if (p.id === myId) g.mine = true;
     groups.set(key, g);
   }
