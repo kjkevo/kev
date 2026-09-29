@@ -18,10 +18,11 @@ import { haptics } from "@/lib/haptics";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { LobbyRoster, useLiveTeams, MAX_TEAMS, MAX_TEAM_SIZE, MIN_TEAM_SIZE } from "@/components/LobbyRoster";
 import { useTriviaQueue, roundsToWaitLabel, currentGameProgress } from "@/hooks/useTriviaQueue";
-import { useAvatars, type AvatarOption } from "@/hooks/useAvatars";
+import { useAvatars, useEquippedAvatar, type AvatarOption } from "@/hooks/useAvatars";
+import { CharacterGate } from "@/components/CharacterGate";
 import { AvatarPicker } from "@/components/AvatarPicker";
 import { Shoutouts } from "@/components/Shoutouts";
-import { deviceKey, rememberAvatar, rememberedAvatar } from "@/lib/device";
+import { deviceKey } from "@/lib/device";
 import { BuySheet } from "@/components/BuySheet";
 import { SquadInvite } from "@/components/SquadInvite";
 import { usePlayerVenue } from "@/lib/venue";
@@ -44,6 +45,9 @@ const JOIN_ERRORS: Record<string, string> = {
   INVALID_USERNAME: "Usernames need 2 to 20 characters.",
   TOO_MANY_TEAMS: "All 8 team spots are taken. Join a team with room, or play solo and we'll place you.",
   ROOM_FULL: "This game is full (8 teams of 5). Sending you to the next one…",
+  AVATAR_REQUIRED: "Pick a character first. Every player needs one to play.",
+  AVATAR_LOCKED: "That character isn't unlocked on this phone. Pick another one.",
+  AVATAR_NOT_FOUND: "That character isn't available anymore. Pick another one.",
 };
 
 const LAST_MODE_KEY = "crowdplay_last_mode";
@@ -83,7 +87,7 @@ export default function PlayPage() {
   // Monthly season: one username per phone per month, reset on the 1st.
   const { season, refresh: refreshSeason } = useSeason(venueSlug);
   const seasonName = season?.username ?? null;
-  const [avatarId, setAvatarId] = useState<string | null>(null);
+  const { avatarId, equip: equipAvatar } = useEquippedAvatar(avatars);
   const [avatarNote, setAvatarNote] = useState<string | null>(null);
   const [nickname, setNickname] = useState("");
   // How they want to play: pick on the join screen, or arrive with
@@ -113,15 +117,6 @@ export default function PlayPage() {
     room?.phase === "question" ? question?.id : undefined,
     creds
   );
-
-  // Start from the avatar this phone used last time, else a random free one.
-  useEffect(() => {
-    if (avatarId || avatars.length === 0) return;
-    const last = rememberedAvatar();
-    const usable = avatars.filter((a) => a.owned);
-    const pick = usable.find((a) => a.id === last) ?? usable[Math.floor(Math.random() * usable.length)];
-    if (pick) setAvatarId(pick.id);
-  }, [avatars, avatarId]);
 
   useEffect(() => {
     setNickname(randomFunName());
@@ -273,8 +268,7 @@ export default function PlayPage() {
   );
 
   async function changeAvatar(id: string) {
-    setAvatarId(id);
-    rememberAvatar(id);
+    equipAvatar(id);
     setAvatarNote(null);
     if (!creds) return;
     const { error } = await supabase.rpc("set_player_avatar", {
@@ -291,6 +285,10 @@ export default function PlayPage() {
     e.preventDefault();
     const typedName = seasonName ?? nickname.trim();
     if (!code || typedName.length === 0) return;
+    if (!avatarId) {
+      setJoinError(friendlyError("AVATAR_REQUIRED"));
+      return;
+    }
     setJoining(true);
     setJoinError(null);
     // First game of the month: lock in this season's username.
@@ -316,12 +314,20 @@ export default function PlayPage() {
       p_nickname: playName,
       p_team_id: joinMode === "team" && selectedTeamId ? selectedTeamId : undefined,
       p_new_team_name: creating ? teamName : undefined,
+      p_avatar_id: avatarId,
+      p_device_key: deviceKey(),
     });
     // Team names are random, so a clash is just bad luck: roll another.
     for (let tries = 0; creating && tries < 3 && result.error?.message.includes("TEAM_NAME_TAKEN"); tries++) {
       teamName = `Team ${randomFunName()}`;
       setNewTeamName(teamName);
-      result = await supabase.rpc("join_room", { p_code: code, p_nickname: playName, p_new_team_name: teamName });
+      result = await supabase.rpc("join_room", {
+        p_code: code,
+        p_nickname: playName,
+        p_new_team_name: teamName,
+        p_avatar_id: avatarId,
+        p_device_key: deviceKey(),
+      });
     }
     const { data, error } = result;
     setJoining(false);
@@ -354,16 +360,6 @@ export default function PlayPage() {
       p_client_token: c.clientToken,
       p_device_key: deviceKey(),
     });
-    if (avatarId) {
-      rememberAvatar(avatarId);
-      supabase.rpc("set_player_avatar", {
-        p_room_id: c.roomId,
-        p_player_id: c.playerId,
-        p_client_token: c.clientToken,
-        p_avatar_id: avatarId,
-        p_device_key: deviceKey(),
-      });
-    }
   }
 
   async function vote(packId: string) {
@@ -514,6 +510,7 @@ export default function PlayPage() {
     // First game of the month: the avatar picker is open so they choose one.
     // Returning players keep theirs and can open it with "Change avatar".
     const pickerOpen = avatarOpen ?? !seasonName;
+    const needsCharacter = avatars.length > 0 && !avatarId;
     return (
       <Center>
         <BackButton onClick={() => leaveRoom("/")} />
@@ -563,13 +560,15 @@ export default function PlayPage() {
                     />
                   </>
                 )}
-                <button
-                  type="button"
-                  onClick={() => setAvatarOpen(!pickerOpen)}
-                  className="text-xs font-bold text-amber-300 mt-1"
-                >
-                  {pickerOpen ? "Done choosing avatar" : "Change avatar"}
-                </button>
+                {!needsCharacter && (
+                  <button
+                    type="button"
+                    onClick={() => setAvatarOpen(!pickerOpen)}
+                    className="text-xs font-bold text-amber-300 mt-1"
+                  >
+                    {pickerOpen ? "Done choosing character" : "Change character"}
+                  </button>
+                )}
               </div>
             </div>
             {!seasonName && (
@@ -577,7 +576,9 @@ export default function PlayPage() {
                 You keep this name for every trivia game this month{season ? ` until ${season.resetsOn}` : ""}.
               </p>
             )}
-            {pickerOpen && (
+            {needsCharacter ? (
+              <CharacterGate avatars={avatars} onPick={changeAvatar} onBuy={buyAvatar} />
+            ) : pickerOpen && (
               <div>
                 <AvatarPicker avatars={avatars} selectedId={avatarId} onSelect={changeAvatar} onBuy={buyAvatar} />
               </div>
@@ -661,12 +662,14 @@ export default function PlayPage() {
 
             {joinError && <p className="text-red-400 text-sm">{joinError}</p>}
             <button
-              disabled={joining || playName.length === 0 || cantCreateTeam}
+              disabled={joining || playName.length === 0 || cantCreateTeam || !avatarId}
               className="rounded-2xl bg-amber-400 text-black font-black text-lg py-4 shadow-lg shadow-amber-400/20 disabled:opacity-40 active:scale-95 transition"
             >
               {joining
                 ? "Joining…"
-                : `Join${playName ? ` as ${playName}` : ""} · ${
+                : !avatarId
+                  ? "Pick a character to join"
+                  : `Join${playName ? ` as ${playName}` : ""} · ${
                     joinMode === "solo" ? "Solo" : invitedTeam ? invitedTeam.name : "New team"
                   }`}
             </button>

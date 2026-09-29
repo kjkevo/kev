@@ -20,6 +20,9 @@ import {
 } from "@/lib/types";
 import { randomFunName } from "@/lib/funNames";
 import { haptics } from "@/lib/haptics";
+import { deviceKey } from "@/lib/device";
+import { useAvatars, useEquippedAvatar } from "@/hooks/useAvatars";
+import { CharacterGate, EquippedCharacter } from "@/components/CharacterGate";
 
 const JOIN_ERRORS: Record<string, string> = {
   ROOM_NOT_FOUND: "That room code doesn't exist. Double check with your host.",
@@ -27,6 +30,9 @@ const JOIN_ERRORS: Record<string, string> = {
   INVALID_NICKNAME: "Enter a name between 1 and 30 characters.",
   NICKNAME_TAKEN: "Someone in this room already picked that name. Try another.",
   ROOM_FULL: "This room is full for our beta round. Wait for the next game.",
+  AVATAR_REQUIRED: "Pick a character first. Every player needs one to play.",
+  AVATAR_LOCKED: "That character isn't unlocked on this phone. Pick another one.",
+  AVATAR_NOT_FOUND: "That character isn't available anymore. Pick another one.",
 };
 
 function friendlyError(raw: string, fallback = "Something went wrong. Try again.") {
@@ -51,6 +57,9 @@ export default function FeudPlayPage() {
   const phaseCountdown = useCountdown(room?.phase_started_at ?? null, phaseDwellLimit);
 
   const [creds, setCreds] = useState<FeudPlayerCredentials | null>(null);
+  const { avatars, byId: avatarsById } = useAvatars();
+  const { avatarId, equip: equipAvatar } = useEquippedAvatar(avatars);
+  const [changingCharacter, setChangingCharacter] = useState(false);
   const [nickname, setNickname] = useState("");
   const [teamChoice, setTeamChoice] = useState<FeudTeam | null>(null);
   const [joinError, setJoinError] = useState<string | null>(null);
@@ -93,13 +102,15 @@ export default function FeudPlayPage() {
 
   async function join(e: React.FormEvent) {
     e.preventDefault();
-    if (!code || nickname.trim().length === 0) return;
+    if (!code || nickname.trim().length === 0 || !avatarId) return;
     setJoining(true);
     setJoinError(null);
     const { data, error } = await supabase.rpc("join_feud_room", {
       p_code: code,
       p_nickname: nickname.trim(),
       p_team: teamChoice ?? undefined,
+      p_avatar_id: avatarId,
+      p_device_key: deviceKey(),
     });
     setJoining(false);
     if (error || !data?.[0]) {
@@ -186,6 +197,17 @@ export default function FeudPlayPage() {
         <h1 className="text-2xl font-bold mb-1">Room {room.code}</h1>
         <p className="text-slate-400 mb-6">Choose your team</p>
         <form onSubmit={join} className="flex flex-col gap-3 w-full max-w-xs">
+          {!avatarId || changingCharacter ? (
+            <CharacterGate
+              avatars={avatars}
+              onPick={(id) => {
+                equipAvatar(id);
+                setChangingCharacter(false);
+              }}
+            />
+          ) : (
+            <EquippedCharacter avatar={avatarsById[avatarId]} onChange={() => setChangingCharacter(true)} />
+          )}
           <div className="relative">
             <input
               value={nickname}
@@ -228,10 +250,10 @@ export default function FeudPlayPage() {
 
           {joinError && <p className="text-red-400 text-sm">{joinError}</p>}
           <button
-            disabled={joining || nickname.trim().length === 0}
+            disabled={joining || nickname.trim().length === 0 || !avatarId}
             className="rounded-2xl bg-amber-400 text-black font-bold text-lg py-4 disabled:opacity-40 active:scale-95 transition"
           >
-            {joining ? "Joining…" : "Join Game"}
+            {joining ? "Joining…" : avatarId ? "Join Game" : "Pick a character to join"}
           </button>
         </form>
       </Center>
