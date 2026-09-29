@@ -82,8 +82,9 @@ begin
   -- same topic as a picked question (two capitals, two mountain ranges).
   -- Each later pass relaxes a rule so a small category still fills the game:
   -- pass 1 drops the easy/hard balance, pass 2 allows two per topic,
-  -- pass 3 drops everything.
-  for v_pass in 0..3 loop
+  -- pass 3 drops the topic rules but still never repeats an answer,
+  -- pass 4 drops everything.
+  for v_pass in 0..4 loop
     exit when coalesce(array_length(v_question_ids, 1), 0) >= v_questions_per_game;
     for c in
       select q.id, q.difficulty, q.prompt, q.choices->>q.correct_index answer
@@ -100,15 +101,16 @@ begin
       select coalesce(array_agg(v_p[i] || ' ' || v_p[i + 1]), '{}') into v_pairs
         from generate_series(1, coalesce(array_length(v_p, 1), 0) - 1) i;
       v_t := public.trivia_topic_words(c.prompt);
-      if v_pass < 3 and (
+      if (v_pass < 4 and (
            v_a && v_answer_words
         or exists (select 1 from unnest(v_a) t where t !~ '^[0-9]+$' and t = any(v_prompt_words))
         or exists (select 1 from unnest(v_answer_words) t where t !~ '^[0-9]+$' and t = any(v_p))
-        or v_pairs && v_topic_pairs
+        or exists (select 1 from public.questions q2 where q2.id = any(v_question_ids) and lower(q2.prompt) = lower(c.prompt))
+      )) or (v_pass < 3 and (
+           v_pairs && v_topic_pairs
         or (v_pass < 2 and v_t && v_topics)
         or (v_pass = 2 and exists (select 1 from unnest(v_t) w where (select count(*) from unnest(v_topics) x where x = w) >= 2))
-        or exists (select 1 from public.questions q2 where q2.id = any(v_question_ids) and lower(q2.prompt) = lower(c.prompt))
-      ) then
+      )) then
         continue;
       end if;
       v_question_ids := v_question_ids || c.id;
