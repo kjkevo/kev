@@ -979,8 +979,6 @@ export default function PlayPage() {
   if (room.phase === "question" && question) {
     const myVote = questionVotes[creds.playerId];
     const teamOptions = groupTeamVotes(teammates, questionVotes, creds.playerId);
-    const thinking = teammates.filter((p) => questionVotes[p.id] === undefined);
-    const waitingOn = thinking.map((p) => (p.id === creds.playerId ? "You" : p.nickname));
     const myCharacter = me?.avatar_id ? avatarsById[me.avatar_id] : undefined;
     const buddyMood: CharacterMood = teamLock !== null ? "cheer" : myVote !== undefined ? "hop" : "idle";
     const buddySays =
@@ -1092,56 +1090,54 @@ export default function PlayPage() {
           ) : null}
         </div>
         <div className="mt-4 w-full max-w-sm mx-auto">
-          <p className="text-xs uppercase tracking-widest text-amber-400 mb-2 text-center">Your team&apos;s votes</p>
-          {teamOptions.length > 0 ? (
-            <div className="flex flex-col gap-2">
-              {teamOptions.map((o, i) => (
+          <p className="text-xs uppercase tracking-widest text-amber-400 mb-2 text-center">Your team&apos;s answers</p>
+          {/* One row per teammate (bots too): their character, name and answer. */}
+          <div className="flex flex-col gap-2">
+            {teammates.map((p) => {
+              const a = p.avatar_id ? avatarsById[p.avatar_id] : undefined;
+              const v = questionVotes[p.id];
+              const isMe = p.id === creds.playerId;
+              const sameAsMine = !!v && !!myVote && normalizeAnswer(v) === normalizeAnswer(myVote);
+              const votes = v ? teamOptions.find((o) => normalizeAnswer(o.text) === normalizeAnswer(v))?.voters.length ?? 1 : 0;
+              const leading = !!v && teamOptions.length > 1 && normalizeAnswer(teamOptions[0].text) === normalizeAnswer(v)
+                && teamOptions[0].voters.length > teamOptions[1].voters.length;
+              return (
                 <button
-                  key={o.text}
+                  key={p.id}
                   type="button"
-                  onClick={() => !o.mine && castVote(o.text)}
-                  disabled={o.mine || locked || countdown.expired || sendingVote}
-                  className={`flex items-center justify-between gap-3 rounded-xl px-4 py-3 text-left transition active:scale-[0.98] ${
-                    o.mine ? "bg-amber-400/20 border border-amber-400/50" : "bg-white/5 border border-white/10 hover:border-white/30"
+                  onClick={() => v && !sameAsMine && castVote(v)}
+                  disabled={!v || isMe || sameAsMine || locked || countdown.expired || sendingVote}
+                  className={`flex items-center gap-3 rounded-xl px-3 py-2 text-left transition active:scale-[0.98] ${
+                    sameAsMine ? "bg-amber-400/20 border border-amber-400/50" : "bg-white/5 border border-white/10 hover:border-white/30"
                   }`}
                 >
-                  <span className="min-w-0">
-                    <span className="block font-semibold truncate">
-                      {o.text}
-                      {i === 0 && teamOptions.length > 1 && o.voters.length > teamOptions[1].voters.length && (
-                        <span className="ml-2 text-[10px] uppercase tracking-wider text-amber-300">Leading</span>
-                      )}
-                    </span>
-                    <span className="flex items-center gap-1.5 text-xs text-slate-400 min-w-0">
-                      <span className="flex -space-x-2 shrink-0">
-                        {o.voterAvatars.map((id, j) => {
-                          const a = id ? avatarsById[id] : undefined;
-                          return <Avatar key={j} emoji={a?.emoji} imageUrl={a?.imageUrl} size={22} />;
-                        })}
+                  <Avatar emoji={a?.emoji} imageUrl={a?.imageUrl} size={40} className={v ? "" : "opacity-50"} />
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-xs text-slate-400 truncate">{isMe ? "You" : p.nickname}</span>
+                    {v ? (
+                      <span className="block font-semibold truncate">
+                        {v}
+                        {leading && <span className="ml-2 text-[10px] uppercase tracking-wider text-amber-300">Leading</span>}
                       </span>
-                      <span className="truncate">{o.voters.join(", ")}</span>
-                    </span>
+                    ) : (
+                      <span className="block text-sm text-slate-500 italic">Thinking…</span>
+                    )}
                   </span>
                   <span className="shrink-0 text-xs text-slate-300">
-                    {o.mine ? "Your vote" : locked || countdown.expired ? `${o.voters.length} vote${o.voters.length === 1 ? "" : "s"}` : "Go with this"}
+                    {!v
+                      ? ""
+                      : isMe
+                        ? "Your answer"
+                        : sameAsMine
+                          ? "Same as you"
+                          : locked || countdown.expired
+                            ? `${votes} vote${votes === 1 ? "" : "s"}`
+                            : "Go with this"}
                   </span>
                 </button>
-              ))}
-            </div>
-          ) : (
-            <p className="text-center text-sm text-slate-500">No votes yet. Be the first.</p>
-          )}
-          {waitingOn.length > 0 && !countdown.expired && !locked && (
-            <p className="flex items-center justify-center gap-1.5 text-xs text-slate-500 mt-2">
-              <span className="flex -space-x-2 opacity-60">
-                {thinking.map((p) => {
-                  const a = p.avatar_id ? avatarsById[p.avatar_id] : undefined;
-                  return <Avatar key={p.id} emoji={a?.emoji} imageUrl={a?.imageUrl} size={20} />;
-                })}
-              </span>
-              Still thinking: {waitingOn.join(", ")}
-            </p>
-          )}
+              );
+            })}
+          </div>
           <p className="text-center text-xs text-slate-500 mt-3">
             {locked
               ? "Your team is done with this one. Results are revealed at the end of the game."
@@ -1451,7 +1447,7 @@ function normalizeAnswer(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
 }
 
-type TeamVoteOption = { text: string; voters: string[]; voterAvatars: (string | null)[]; mine: boolean };
+type TeamVoteOption = { text: string; voters: string[]; mine: boolean };
 
 // Groups the team's votes by answer (ignoring case and punctuation) so
 // everyone can see what's leading. The server groups more loosely -- by
@@ -1466,7 +1462,7 @@ function finalReaction(rank: number, teamCount: number): { mood: CharacterMood; 
 }
 
 function groupTeamVotes(
-  teammates: { id: string; nickname: string; avatar_id?: string | null }[],
+  teammates: { id: string; nickname: string }[],
   votes: Record<string, string>,
   myId: string
 ): TeamVoteOption[] {
@@ -1475,9 +1471,8 @@ function groupTeamVotes(
     const v = votes[p.id];
     if (!v) continue;
     const key = normalizeAnswer(v);
-    const g = groups.get(key) ?? { text: v, voters: [], voterAvatars: [], mine: false };
+    const g = groups.get(key) ?? { text: v, voters: [], mine: false };
     g.voters.push(p.id === myId ? "You" : p.nickname);
-    g.voterAvatars.push(p.avatar_id ?? null);
     if (p.id === myId) g.mine = true;
     groups.set(key, g);
   }
