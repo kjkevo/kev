@@ -81,9 +81,11 @@ dashboard marked TEST.
 
 ## Testing leftovers to switch off
 - Decide on bots for each venue (dashboard → Venues, links and test bots).
-  With bots on, they only fill gaps: the lobby is topped up to 12 players
-  (3 teams of 4), each real player replaces a bot, and at 12+ real players
-  there are none. Bots play on their own teams, answer after real players,
+  With bots on, they only fill gaps: while boarding, bots fill up to 2 teams
+  (12 minus real players, at most 8), leaving a team spot for real players.
+  When the game starts with fewer than 12 players, bots join real players'
+  teams first (up to 4 each), then the bot teams. At 12+ real players there
+  are none. Bots play on their own teams, answer after real players,
   and go along with a real teammate's answer. Turn them off if you'd rather
   never show bots.
 - Remove the "Start new trivia game" testing button from the dashboard (restart_trivia_now). It is no longer on the player-facing /trivia page.
