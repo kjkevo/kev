@@ -109,7 +109,8 @@ export default function PlayPage() {
   const [joinMode, setJoinMode] = useState<"solo" | "team">("solo");
   // null = default (open for a first-timer, closed for a returning player).
   const [avatarOpen, setAvatarOpen] = useState<boolean | null>(null);
-  const [inviteOpen, setInviteOpen] = useState(false);
+  // null: follow the default (shown while you're alone on a team you made).
+  const [inviteOpen, setInviteOpen] = useState<boolean | null>(null);
   const [lobbyAvatarOpen, setLobbyAvatarOpen] = useState(false);
   const [rejoining, setRejoining] = useState(false);
   const [rejoinError, setRejoinError] = useState<string | null>(null);
@@ -173,7 +174,7 @@ export default function PlayPage() {
     setRecap(null);
     setRejoining(false);
     setRejoinError(null);
-    setInviteOpen(false);
+    setInviteOpen(null);
   }, [room?.id]);
 
   useEffect(() => {
@@ -300,6 +301,8 @@ export default function PlayPage() {
     const typedName = seasonName ?? nickname.trim();
     if (!code || typedName.length === 0) return;
     if (!avatarId) {
+      // Every game needs a character: open the picker.
+      setAvatarOpen(true);
       setJoinError(friendlyError("AVATAR_REQUIRED"));
       return;
     }
@@ -366,6 +369,8 @@ export default function PlayPage() {
       localStorage.setItem(LAST_MODE_KEY, joinMode);
     } catch {}
     setCreds(c);
+    // Made a new team: show their invite QR code straight away.
+    if (creating) setInviteOpen(true);
     // Ties this player to the phone, so wins can be counted across games
     // (the "won 3 in a row" champion on the venue's QR display).
     supabase.rpc("link_player_device", {
@@ -542,9 +547,9 @@ export default function PlayPage() {
     const invitedTeam = selectedTeamId ? teams.find((t) => t.id === selectedTeamId) : undefined;
     const playName = seasonName ?? nickname.trim();
     const cantCreateTeam = joinMode === "team" && !selectedTeamId && teamSpotsLeft <= 0;
-    // First game of the month: the avatar picker is open so they choose one.
-    // Returning players keep theirs and can open it with "Change avatar".
-    const pickerOpen = avatarOpen ?? !seasonName;
+    // The character picker stays out of the way until they tap Edit (or
+    // try to join without a character, which every game needs).
+    const pickerOpen = avatarOpen ?? false;
     const needsCharacter = avatars.length > 0 && !avatarId;
     return (
       <Center>
@@ -573,7 +578,20 @@ export default function PlayPage() {
           <form onSubmit={join} className="flex flex-col gap-4">
             {/* Player card: this month's username and avatar. */}
             <div className="rounded-2xl bg-white/5 border border-white/10 p-3 flex items-center gap-3 text-left">
-              <Avatar emoji={myAvatar?.emoji} imageUrl={myAvatar?.imageUrl} size={56} />
+              <button
+                type="button"
+                onClick={() => setAvatarOpen(!pickerOpen)}
+                aria-label={needsCharacter ? "Pick your character" : "Edit your character"}
+                className="relative shrink-0 active:scale-95 transition"
+              >
+                {needsCharacter ? (
+                  <span className="w-14 h-14 rounded-full bg-amber-400/20 ring-2 ring-amber-400 flex items-center justify-center text-2xl font-black text-amber-300">
+                    ?
+                  </span>
+                ) : (
+                  <Avatar emoji={myAvatar?.emoji} imageUrl={myAvatar?.imageUrl} size={56} />
+                )}
+              </button>
               <div className="flex-1 min-w-0">
                 {seasonName ? (
                   <>
@@ -595,16 +613,16 @@ export default function PlayPage() {
                     />
                   </>
                 )}
-                {!needsCharacter && (
-                  <button
-                    type="button"
-                    onClick={() => setAvatarOpen(!pickerOpen)}
-                    className="text-xs font-bold text-amber-300 mt-1"
-                  >
-                    {pickerOpen ? "Done choosing character" : "Switch or unlock a character"}
-                  </button>
-                )}
               </div>
+              <button
+                type="button"
+                onClick={() => setAvatarOpen(!pickerOpen)}
+                className={`shrink-0 self-start rounded-full px-3 py-1 text-xs font-bold active:scale-95 transition ${
+                  needsCharacter && !pickerOpen ? "bg-amber-400 text-black" : "bg-white/10 text-amber-300"
+                }`}
+              >
+                {pickerOpen ? "Done" : needsCharacter ? "Pick" : "Edit"}
+              </button>
             </div>
             {!seasonName && (
               <p className="text-[11px] text-slate-500 -mt-2">
@@ -612,7 +630,17 @@ export default function PlayPage() {
               </p>
             )}
             {needsCharacter ? (
-              <CharacterGate avatars={avatars} onPick={changeAvatar} onBuy={buyAvatar} />
+              pickerOpen && (
+                <CharacterGate
+                  avatars={avatars}
+                  onPick={(id) => {
+                    changeAvatar(id);
+                    setAvatarOpen(false);
+                    setJoinError(null);
+                  }}
+                  onBuy={buyAvatar}
+                />
+              )
             ) : pickerOpen && (
               <div>
                 <AvatarPicker avatars={avatars} selectedId={avatarId} onSelect={changeAvatar} onBuy={buyAvatar} />
@@ -690,14 +718,15 @@ export default function PlayPage() {
                   </>
                 )}
                 <p className="text-[11px] text-slate-500">
-                  After you join you&apos;ll get a QR code your friends can scan to land on your team.
+                  After you join, your team&apos;s QR code appears. Friends scan it to land on your team and just pick a name
+                  and character. Anyone who doesn&apos;t make it in time is filled in when the game starts.
                 </p>
               </div>
             )}
 
             {joinError && <p className="text-red-400 text-sm">{joinError}</p>}
             <button
-              disabled={joining || playName.length === 0 || cantCreateTeam || !avatarId}
+              disabled={joining || playName.length === 0 || cantCreateTeam}
               className="rounded-2xl bg-amber-400 text-black font-black text-lg py-4 shadow-lg shadow-amber-400/20 disabled:opacity-40 active:scale-95 transition"
             >
               {joining
@@ -719,6 +748,7 @@ export default function PlayPage() {
   if (room.phase === "lobby") {
     const showCountdown = room.starts_at && !scheduledCountdown.reached;
     const teamName = myTeam?.name ?? creds.teamName;
+    const inviteShown = inviteOpen ?? (myTeam?.kind === "self" && teammates.length < MAX_TEAM_SIZE - 1);
     return (
       <Center>
         <BackButton onClick={() => leaveRoom("/")} />
@@ -802,20 +832,20 @@ export default function PlayPage() {
             {teammates.length < MIN_TEAM_SIZE && (
               <p className="text-xs text-amber-400/80 mt-2">
                 {myTeam?.kind === "self"
-                  ? "Invite a friend, or you'll be moved onto a team with room when the game starts."
-                  : "Waiting for a teammate. If nobody joins, you'll be moved onto a team with room when the game starts."}
+                  ? "Have your friends scan your team's QR code. Any open spots are filled in when the game starts."
+                  : "Waiting for a teammate. Any open spots are filled in when the game starts."}
               </p>
             )}
             {myTeam?.kind === "self" && teammates.length < MAX_TEAM_SIZE && (
               <button
                 type="button"
-                onClick={() => setInviteOpen(!inviteOpen)}
+                onClick={() => setInviteOpen(!inviteShown)}
                 className="mt-3 w-full rounded-xl bg-amber-400 text-black font-bold py-2.5 active:scale-95 transition"
               >
-                {inviteOpen ? "Hide invite" : "Invite friends"}
+                {inviteShown ? "Hide invite" : "Invite friends"}
               </button>
             )}
-            {myTeam?.kind === "self" && inviteOpen && (
+            {myTeam?.kind === "self" && inviteShown && (
               <div className="mt-3 flex justify-center">
                 <SquadInvite
                   code={room.code}
