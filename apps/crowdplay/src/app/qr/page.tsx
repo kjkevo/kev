@@ -10,6 +10,8 @@ import { useVenueId } from "@/lib/venue";
 import { useLiveActiveRoom } from "@/hooks/useLiveActiveRoom";
 import { useLiveTeams } from "@/components/LobbyRoster";
 import { useCountdownTo } from "@/hooks/useCountdownTo";
+import { JoinDrops } from "@/components/JoinDrops";
+import { useAvatars } from "@/hooks/useAvatars";
 
 /**
  * The venue's "scan to play" display: headline, "free to play" and the QR
@@ -26,6 +28,7 @@ export default function QrPage() {
   const liveTeams = useLiveTeams(players, teams);
   const boarding = room?.phase === "lobby";
   const countdown = useCountdownTo(boarding ? room.starts_at : null);
+  const { byId: avatarsById } = useAvatars();
 
   useEffect(() => {
     // src=qr lets the dashboard count arrivals; venue sends them to that bar's games.
@@ -36,6 +39,9 @@ export default function QrPage() {
 
   return (
     <main className="relative min-h-screen overflow-hidden flex flex-col items-center justify-center gap-6 bg-gradient-to-b from-indigo-950 via-purple-950 to-black text-white px-6 py-12 text-center">
+      {/* Entrance: each player's character drops in as they join. */}
+      {boarding && <JoinDrops players={players} teams={teams} avatars={avatarsById} big />}
+
       {/* Faded company wordmark behind everything */}
       <div aria-hidden="true" className="pointer-events-none select-none absolute -inset-1/4 flex flex-col justify-center gap-6 -rotate-12">
         {Array.from({ length: 9 }, (_, row) => (

@@ -24,6 +24,8 @@ import { Avatar } from "@/components/Avatar";
 import { useAnsweredPlayers } from "@/hooks/useAnsweredPlayers";
 import { useQuestionReveal } from "@/hooks/useQuestionReveal";
 import { LockInStrip, PickYourCorner } from "@/components/RoomCharacters";
+import { JoinDrops } from "@/components/JoinDrops";
+import { Podium } from "@/components/Podium";
 
 /**
  * The venue's TV/projector view — leave this open all night. It always
@@ -102,7 +104,7 @@ export default function ScreenClient() {
       )}
       <header className="flex items-center justify-between px-8 py-4 border-b border-white/10">
         <span className="font-black text-xl">
-          Crowd<span className="text-amber-400">Play</span>
+          Slim<span className="text-amber-400">pse</span>
         </span>
         <span className="text-slate-400">
           {activePlayers.length} player{activePlayers.length === 1 ? "" : "s"} · {teams.length} team
@@ -113,6 +115,7 @@ export default function ScreenClient() {
       <div className="flex-1 flex flex-col items-center justify-center px-8 py-10 text-center gap-8">
         {room.phase === "lobby" && (
           <>
+            <JoinDrops players={players} teams={teams} avatars={avatarsById} big />
             <p className="text-2xl text-slate-300">Join at</p>
             <p className="text-5xl font-black tracking-widest text-amber-400">{room.code}</p>
             <JoinQRCode code={room.code} venue={venue} />
@@ -248,6 +251,13 @@ export default function ScreenClient() {
                 {teams.find((t) => t.id === room.sd_winner_team_id)?.name} won in sudden death (+100)
               </p>
             )}
+            <Podium
+              placed={sortedTeams.slice(0, 3).map((team, i) => ({ team, rank: i + 1 }))}
+              teamCount={sortedTeams.length}
+              players={players}
+              avatars={avatarsById}
+              big
+            />
             <TeamStandings teams={sortedTeams} />
             {recap && <Recap recap={recap} />}
             <p className="text-slate-400">Next game boarding shortly…</p>
@@ -284,7 +294,7 @@ function TeamStandings({ teams }: { teams: Team[] }) {
           <span className="font-semibold">
             #{i + 1} {t.name}
           </span>
-          <span className="text-amber-400 font-bold">{t.score}</span>
+          <span className="text-amber-400 font-bold tabular-nums">{t.score.toLocaleString()}</span>
         </div>
       ))}
     </div>

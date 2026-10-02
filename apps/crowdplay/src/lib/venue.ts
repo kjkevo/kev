@@ -107,3 +107,24 @@ export function useVenueId(slug: string | null) {
   }, [slug]);
   return id;
 }
+
+/** The venue's display name (for share cards). */
+export function useVenueName(venueId: string | null | undefined) {
+  const [name, setName] = useState<string | null>(null);
+  useEffect(() => {
+    if (!venueId) return;
+    let cancelled = false;
+    supabase
+      .from("venues")
+      .select("name")
+      .eq("id", venueId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled) setName(data?.name ?? null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [venueId]);
+  return name;
+}
