@@ -966,22 +966,22 @@ export default function PlayPage() {
             </div>
 
             <div className="mt-3 flex items-start gap-3">
-              <div className="flex-1 min-w-0 flex flex-wrap gap-x-3 gap-y-2 pt-1">
+              <div className="flex-1 min-w-0 flex flex-wrap gap-x-1 gap-y-2 pt-1">
                 {teammates.map((p) => {
                   const a = p.avatar_id ? avatarsById[p.avatar_id] : undefined;
                   return (
-                    <span key={p.id} className="flex flex-col items-center w-12">
-                      <Avatar emoji={a?.emoji} imageUrl={a?.imageUrl} size={36} />
-                      <span className="text-[11px] text-slate-300 truncate w-full text-center">
+                    <span key={p.id} className="flex flex-col items-center w-16">
+                      <span className="text-[11px] font-semibold text-slate-200 truncate w-full text-center">
                         {p.id === creds.playerId ? "You" : p.nickname}
                       </span>
+                      <Avatar emoji={a?.emoji} imageUrl={a?.imageUrl} size={60} variant="full" />
                     </span>
                   );
                 })}
                 {Array.from({ length: Math.max(0, MIN_TEAM_SIZE - teammates.length) }, (_, i) => (
-                  <span key={`open-${i}`} className="flex flex-col items-center w-12">
-                    <span className="w-9 h-9 rounded-full border-2 border-dashed border-white/25" />
+                  <span key={`open-${i}`} className="flex flex-col items-center w-16">
                     <span className="text-[11px] text-slate-500">Open</span>
+                    <span className="mt-1 w-9 h-[52px] rounded-t-full rounded-b-lg border-2 border-dashed border-white/25" />
                   </span>
                 ))}
               </div>

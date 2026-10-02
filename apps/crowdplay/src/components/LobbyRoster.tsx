@@ -98,13 +98,14 @@ export function LobbyRoster({
                 </span>
               </p>
               {avatars ? (
-                <div className="flex flex-wrap gap-x-3 gap-y-1.5 mt-1">
+                // Full-figure characters side by side, each name above its character.
+                <div className="grid grid-cols-4 gap-1 mt-2">
                   {members.map((p) => {
                     const a = p.avatar_id ? avatars[p.avatar_id] : undefined;
                     return (
-                      <span key={p.id} className="flex items-center gap-1.5 text-sm text-slate-200">
-                        <Avatar emoji={a?.emoji} imageUrl={a?.imageUrl} size={30} />
-                        {p.nickname}
+                      <span key={p.id} className="flex flex-col items-center min-w-0">
+                        <span className="w-full truncate text-center text-[11px] font-semibold text-slate-200">{p.nickname}</span>
+                        <Avatar emoji={a?.emoji} imageUrl={a?.imageUrl} size={64} variant="full" />
                       </span>
                     );
                   })}
