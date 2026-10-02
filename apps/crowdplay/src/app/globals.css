@@ -125,26 +125,6 @@ body {
   100% { transform: translateY(0) scale(1); }
 }
 .join-drop { animation: join-drop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
-/* Emote: quick hop with a squash landing (feet stay planted: origin-bottom). */
-@keyframes emote-hop {
-  0%   { transform: translateY(0) scale(1, 1); animation-timing-function: ease-out; }
-  14%  { transform: translateY(0) scale(1.14, 0.84); animation-timing-function: ease-out; }   /* crouch */
-  30%  { transform: translateY(-58px) scale(0.88, 1.14); animation-timing-function: ease-out; } /* launch, stretched */
-  44%  { transform: translateY(-74px) scale(1, 1); animation-timing-function: ease-in; }       /* top of the hop */
-  60%  { transform: translateY(0) scale(0.92, 1.1); animation-timing-function: ease-out; }    /* touchdown */
-  68%  { transform: translateY(0) scale(1.22, 0.76); animation-timing-function: ease-in-out; } /* squash */
-  80%  { transform: translateY(0) scale(0.95, 1.06); }
-  90%  { transform: translateY(0) scale(1.03, 0.98); }
-  100% { transform: translateY(0) scale(1, 1); }
-}
-@keyframes emote-hop-shadow {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  14% { transform: scale(1.15, 1); }
-  44% { transform: scale(0.45); opacity: 0.35; }
-  68% { transform: scale(1.3, 1); opacity: 1; }
-}
-.emote-hop { animation: emote-hop 0.8s 1 both; }
-.emote-hop-shadow { animation: emote-hop-shadow 0.8s ease-in-out 1; }
 .char-drop { animation: char-drop 0.9s ease-in forwards; }
 .char-land { animation: char-land 0.45s cubic-bezier(0.34, 1.56, 0.64, 1); }
 .char-idle { animation: char-idle 3.2s ease-in-out infinite; }
@@ -153,8 +133,7 @@ body {
 .char-slump { animation: char-slump 0.9s ease-out forwards; }
 .char-sparkle { animation: char-sparkle 1.4s ease-out infinite; }
 @media (prefers-reduced-motion: reduce) {
-  .char-idle, .char-hop, .char-cheer, .char-sparkle, .char-land, .join-drop, .emote-hop-shadow { animation: none; }
-  .emote-hop { animation-duration: 0.01s; }
+  .char-idle, .char-hop, .char-cheer, .char-sparkle, .char-land, .join-drop { animation: none; }
   .char-drop { animation: none; opacity: 0.25; filter: grayscale(1); }
   .char-slump { animation: none; filter: grayscale(0.7) brightness(0.8); }
 }

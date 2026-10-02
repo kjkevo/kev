@@ -38,7 +38,6 @@ import { LockInStrip, PickYourCorner } from "@/components/RoomCharacters";
 import { JoinDrops } from "@/components/JoinDrops";
 import { Podium } from "@/components/Podium";
 import { ShareCard } from "@/components/ShareCard";
-import { LobbyStage } from "@/components/LobbyStage";
 
 const JOIN_ERRORS: Record<string, string> = {
   ROOM_NOT_FOUND: "That game code doesn't exist.",
@@ -963,11 +962,6 @@ export default function PlayPage() {
               <p className="mt-1 text-[11px] text-slate-400">Open spots fill when the game starts.</p>
             )}
           </div>
-
-          {/* Your character, waiting for the game, with an emote. */}
-          {myCharacter && !lobbyAvatarOpen && (
-            <LobbyStage name={me?.nickname ?? ""} emoji={myCharacter.emoji} imageUrl={myCharacter.imageUrl} />
-          )}
 
           {lobbyAvatarOpen && (
             <div className="flex flex-col items-center">
