@@ -50,7 +50,7 @@ const JOIN_ERRORS: Record<string, string> = {
   TEAM_NOT_FOUND: "That team is gone. Pick another.",
   TEAM_LOCKED: "That team already started. Pick another.",
   TEAM_FULL: "That team is full (4 max).",
-  USERNAME_TAKEN: "Username taken this month. Try another.",
+  USERNAME_TAKEN: "Someone just took that name, so here's a new one.",
   INVALID_USERNAME: "Usernames need 2 to 20 characters.",
   TOO_MANY_TEAMS: "All 8 teams taken. Join one or go solo.",
   ROOM_FULL: "Game full. Moving you to the next one…",
@@ -314,6 +314,26 @@ export default function PlayPage() {
 
   // A generated username nobody has this month. Checks a batch at a time
   // against the server and keeps the spares for the next Reroll.
+  // Live check while a first-timer types: is this username free this month?
+  const [nameStatus, setNameStatus] = useState<"checking" | "free" | "taken" | null>(null);
+  useEffect(() => {
+    const n = nickname.trim();
+    if (seasonName || n.length < 2) {
+      setNameStatus(null);
+      return;
+    }
+    setNameStatus("checking");
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      const { data } = await supabase.rpc("free_season_usernames", { p_venue: venueSlug ?? "main", p_names: [n] });
+      if (!cancelled) setNameStatus(data && data.length > 0 ? "free" : "taken");
+    }, 350);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [nickname, seasonName, venueSlug]);
+
   async function rerollName() {
     let pool = freeNames;
     if (pool.length === 0) {
@@ -364,6 +384,11 @@ export default function PlayPage() {
       if (claim.error || !claim.data?.[0]) {
         setJoining(false);
         setJoinError(friendlyError(claim.error?.message ?? ""));
+        // Taken a moment ago by someone else: offer a fresh free name.
+        if (claim.error?.message.includes("USERNAME_TAKEN")) {
+          rerollName();
+          setInvited(false);
+        }
         return;
       }
       playName = claim.data[0].o_username;
@@ -639,6 +664,16 @@ export default function PlayPage() {
                   aria-label="Username"
                   className="w-full text-center text-2xl font-black bg-white/10 border border-white/20 rounded-xl px-3 py-3 outline-none focus:border-amber-400"
                 />
+                {nameStatus === "taken" ? (
+                  <p className="text-xs font-bold text-rose-300">
+                    Taken.{" "}
+                    <button type="button" onClick={rerollName} className="underline text-amber-300">
+                      Give me another
+                    </button>
+                  </p>
+                ) : nameStatus === "free" ? (
+                  <p className="text-xs font-bold text-emerald-300">✓ Available</p>
+                ) : null}
                 <button
                   type="button"
                   onClick={rerollName}
@@ -648,7 +683,7 @@ export default function PlayPage() {
                 </button>
                 <button
                   type="button"
-                  disabled={nickname.trim().length < 2}
+                  disabled={nickname.trim().length < 2 || nameStatus === "taken" || nameStatus === "checking"}
                   onClick={() => {
                     setJoinError(null);
                     setInviteStep("character");
@@ -748,7 +783,7 @@ export default function PlayPage() {
                         onChange={(e) => setNickname(e.target.value)}
                         maxLength={20}
                         placeholder="Username"
-                        className="flex-1 min-w-0 text-lg font-bold bg-white/10 border border-white/20 rounded-xl px-3 py-1.5 outline-none focus:border-amber-400"
+                        className="flex-1 min-w-0 text-base font-bold bg-white/10 border border-white/20 rounded-xl px-2.5 py-1.5 outline-none focus:border-amber-400"
                       />
                       <button
                         type="button"
@@ -758,6 +793,18 @@ export default function PlayPage() {
                       >
                         🎲
                       </button>
+                    </div>
+                    <div className="mt-1 min-h-[1rem]">
+                      {nameStatus === "taken" ? (
+                        <p className="text-xs font-bold text-rose-300">
+                          Taken.{" "}
+                          <button type="button" onClick={rerollName} className="underline text-amber-300">
+                            Give me another
+                          </button>
+                        </p>
+                      ) : nameStatus === "free" ? (
+                        <p className="text-xs font-bold text-emerald-300">✓ Available</p>
+                      ) : null}
                     </div>
                   </>
                 )}
@@ -860,7 +907,7 @@ export default function PlayPage() {
 
             {joinError && <p className="text-red-400 text-sm">{joinError}</p>}
             <button
-              disabled={joining || playName.length === 0 || cantCreateTeam}
+              disabled={joining || playName.length === 0 || cantCreateTeam || (!seasonName && nameStatus === "taken")}
               className="rounded-2xl bg-amber-400 text-black font-black text-lg py-4 shadow-lg shadow-amber-400/20 disabled:opacity-40 active:scale-95 transition"
             >
               {joining
