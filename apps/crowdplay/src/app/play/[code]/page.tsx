@@ -11,7 +11,6 @@ import { useTotalQuestions } from "@/hooks/useTotalQuestions";
 import { useAllPacks } from "@/hooks/useAllPacks";
 import { useCategoryVoteTally } from "@/hooks/useCategoryVoteTally";
 import { useQuestionVotes } from "@/hooks/useQuestionVotes";
-import { useTeamProgress } from "@/hooks/useTeamProgress";
 import { playerKey, type PlayerCredentials, type FinalRecapRow, type SuddenDeathResult } from "@/lib/types";
 import { randomFunName, funNameBatch } from "@/lib/funNames";
 import { haptics } from "@/lib/haptics";
@@ -33,6 +32,9 @@ import { Avatar } from "@/components/Avatar";
 import { GetReady } from "@/components/GetReady";
 import { SuddenDeathResultList } from "@/components/SuddenDeath";
 import { useQuestionById } from "@/hooks/useQuestionById";
+import { useAnsweredPlayers } from "@/hooks/useAnsweredPlayers";
+import { useQuestionReveal } from "@/hooks/useQuestionReveal";
+import { LockInStrip, PickYourCorner } from "@/components/RoomCharacters";
 
 const JOIN_ERRORS: Record<string, string> = {
   ROOM_NOT_FOUND: "That game code doesn't exist.",
@@ -80,6 +82,9 @@ export default function PlayPage() {
   const [sdSentRound, setSdSentRound] = useState<number | null>(null);
   const [sdError, setSdError] = useState<string | null>(null);
   const totalQuestions = useTotalQuestions(room?.id, room?.phase);
+  // Who's locked in (ids only), and after time's up, who picked what.
+  const answeredIds = useAnsweredPlayers(room?.phase === "question" ? question?.id : undefined);
+  const reveal = useQuestionReveal(room?.id, room?.phase, room?.current_question_index);
   const packs = useAllPacks();
   const voteTally = useCategoryVoteTally(room?.phase === "lobby" ? room?.id : undefined);
   // Realtime confirmation typically lands well under a second, but the tap
@@ -133,7 +138,6 @@ export default function PlayPage() {
   const [confirmingQuit, setConfirmingQuit] = useState(false);
   const [recap, setRecap] = useState<FinalRecapRow[] | null>(null);
   const [recapOpen, setRecapOpen] = useState(false);
-  const teamProgress = useTeamProgress(room?.phase === "question" ? room?.id : undefined, room?.phase === "question" ? question?.id : undefined);
   const { votes: questionVotes, lock: teamLock, hint: teamHint, refresh: refreshVotes } = useQuestionVotes(
     room?.id,
     room?.phase === "question" ? question?.id : undefined,
@@ -1291,31 +1295,49 @@ export default function PlayPage() {
               );
             })}
           </div>
-          {(locked || countdown.expired) && (
-            <p className="text-center text-xs text-slate-500 mt-2">Results at the end of the game.</p>
-          )}
-          {teamProgress.some((t) => t.id !== creds.teamId) && (
-            <div className="mt-3 border-t border-white/10 pt-3">
-              <div className="flex flex-wrap gap-2 justify-center">
-                {teamProgress
-                  .filter((t) => t.id !== creds.teamId)
-                  .map((t) => (
-                    <span
-                      key={t.id}
-                      className={`rounded-full px-3 py-1 text-xs ${
-                        t.locked ? "bg-emerald-500/15 text-emerald-300" : "bg-white/5 text-slate-400"
-                      }`}
-                    >
-                      {t.name} · {t.locked ? "locked in" : `${t.voted}/${t.members} in`}
-                    </span>
-                  ))}
-              </div>
-            </div>
-          )}
+          <div className="mt-4 border-t border-white/10 pt-3">
+            <LockInStrip
+              players={players}
+              teams={teams}
+              avatars={avatarsById}
+              answered={answeredIds}
+              myId={creds.playerId}
+              myTeamId={creds.teamId}
+            />
+          </div>
           <div className="mt-3 flex justify-center">
             <Shoutouts roomId={room.id} creds={creds} compact />
           </div>
         </div>
+        {confirmingQuit && <QuitConfirm onCancel={() => setConfirmingQuit(false)} onConfirm={() => leaveRoom("/trivia")} />}
+      </main>
+    );
+  }
+
+  if (room.phase === "reveal") {
+    return (
+      <main className="min-h-screen bg-slate-950 text-white flex flex-col px-4 py-4 gap-3 relative">
+        <div className="flex items-center justify-between">
+          <ExitButton onClick={() => setConfirmingQuit(true)} />
+          <TeamBadge name={myTeam?.name ?? creds.teamName} />
+        </div>
+        <p className="text-sm font-bold text-slate-400">
+          Q{room.current_question_index + 1}
+          {totalQuestions ? `/${totalQuestions}` : ""} · Who picked what
+        </p>
+        {question && <h2 className="text-lg font-bold">{question.prompt}</h2>}
+        {reveal ? (
+          <PickYourCorner
+            reveal={reveal}
+            players={players}
+            teams={teams}
+            avatars={avatarsById}
+            myId={creds.playerId}
+            myTeamId={creds.teamId}
+          />
+        ) : (
+          <p className="text-center text-slate-400 py-10">Revealing…</p>
+        )}
         {confirmingQuit && <QuitConfirm onCancel={() => setConfirmingQuit(false)} onConfirm={() => leaveRoom("/trivia")} />}
       </main>
     );

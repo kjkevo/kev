@@ -50,13 +50,13 @@ export function LiveGameGlance({ room, players, teams }: { room: Room; players: 
         </>
       )}
 
-      {room.phase === "question" && question && (
+      {(room.phase === "question" || room.phase === "reveal") && question && (
         <>
           <p className="text-xs text-slate-400">
             Question {room.current_question_index + 1} of {totalQuestions || "?"} · {countdown.remainingSeconds}s
           </p>
           <p className="font-semibold text-center">{question.prompt}</p>
-          <p className="text-xs text-slate-500">Teams are typing their answers. Results reveal at the end</p>
+          <p className="text-xs text-slate-500">{room.phase === "reveal" ? "Revealing who picked what" : "Teams are typing their answers"}</p>
         </>
       )}
 
