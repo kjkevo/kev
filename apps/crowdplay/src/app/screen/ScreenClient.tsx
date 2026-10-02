@@ -7,7 +7,6 @@ import { useCurrentQuestion } from "@/hooks/useCurrentQuestion";
 import { useCountdown } from "@/hooks/useCountdown";
 import { useCountdownTo } from "@/hooks/useCountdownTo";
 import { useTotalQuestions } from "@/hooks/useTotalQuestions";
-import { useAnsweredCount } from "@/hooks/useAnsweredCount";
 import { useAllPacks } from "@/hooks/useAllPacks";
 import { useCategoryVoteTally } from "@/hooks/useCategoryVoteTally";
 import { JoinQRCode } from "@/components/JoinQRCode";
@@ -22,6 +21,9 @@ import { SuddenDeathResultList } from "@/components/SuddenDeath";
 import { useQuestionById } from "@/hooks/useQuestionById";
 import { useAvatars } from "@/hooks/useAvatars";
 import { Avatar } from "@/components/Avatar";
+import { useAnsweredPlayers } from "@/hooks/useAnsweredPlayers";
+import { useQuestionReveal } from "@/hooks/useQuestionReveal";
+import { LockInStrip, PickYourCorner } from "@/components/RoomCharacters";
 
 /**
  * The venue's TV/projector view — leave this open all night. It always
@@ -29,9 +31,8 @@ import { Avatar } from "@/components/Avatar";
  * pure spectator: no buttons, nothing to click. The database's autonomous
  * ticker drives every phase change on its own, so this page just reflects
  * whatever's true right now, the same as any player's phone would. Scoring
- * is team-based and hidden until the game actually ends, so this screen
- * never shows a per-question correct answer or a mid-game leaderboard —
- * just the live question and vote count, then the full recap at the end.
+ * is team-based; the standings stay hidden until the game ends, but after
+ * each question a short reveal shows who picked what.
  */
 export default function ScreenClient() {
   const venue = useScreenVenue();
@@ -43,7 +44,8 @@ export default function ScreenClient() {
   const countdown = useCountdown(room?.question_started_at ?? null, question?.time_limit_seconds ?? 15);
   const scheduledCountdown = useCountdownTo(room?.starts_at ?? null);
   const totalQuestions = useTotalQuestions(room?.id, room?.phase);
-  const votedCount = useAnsweredCount(room?.phase === "question" ? question?.id : undefined);
+  const answeredIds = useAnsweredPlayers(room?.phase === "question" ? question?.id : undefined);
+  const reveal = useQuestionReveal(room?.id, room?.phase, room?.current_question_index);
   const packs = useAllPacks();
   const voteTally = useCategoryVoteTally(room?.phase === "lobby" ? room?.id : undefined);
   const [recap, setRecap] = useState<FinalRecapRow[] | null>(null);
@@ -218,10 +220,23 @@ export default function ScreenClient() {
               Question {room.current_question_index + 1} of {totalQuestions || "?"} · {countdown.remainingSeconds}s
             </p>
             <h2 className="text-4xl font-bold max-w-3xl">{question.prompt}</h2>
-            <p className="text-2xl text-amber-400">Teams are typing their answers now</p>
-            <p className="text-slate-400">
-              {votedCount} of {activePlayers.length} votes cast &middot; results reveal at the end
+            <div className="w-full max-w-5xl mt-4">
+              <LockInStrip players={players} teams={teams} avatars={avatarsById} answered={answeredIds} big />
+            </div>
+          </>
+        )}
+
+        {room.phase === "reveal" && (
+          <>
+            <p className="text-lg text-slate-400">
+              Question {room.current_question_index + 1} of {totalQuestions || "?"} · Who picked what
             </p>
+            {question && <h2 className="text-3xl font-bold max-w-4xl">{question.prompt}</h2>}
+            {reveal && (
+              <div className="w-full max-w-6xl">
+                <PickYourCorner reveal={reveal} players={players} teams={teams} avatars={avatarsById} big />
+              </div>
+            )}
           </>
         )}
 

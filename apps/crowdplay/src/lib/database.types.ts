@@ -748,6 +748,18 @@ export type Database = {
         Args: { p_venue: string; p_names: string[] }
         Returns: { o_username: string }[]
       }
+      get_question_reveal: {
+        Args: { p_room_id: string }
+        Returns: {
+          o_player_id: string
+          o_team_id: string
+          o_group: string | null
+          o_label: string | null
+          o_correct: boolean
+          o_team_correct: boolean
+          o_correct_answer: string
+        }[]
+      }
       get_team_hint: {
         Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_question_id: string }
         Returns: { o_hint: string }[]

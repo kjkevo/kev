@@ -105,12 +105,27 @@ body {
   30% { opacity: 1; }
   100% { transform: translate(var(--sx), var(--sy)) scale(1); opacity: 0; }
 }
+/* Pick-your-corner reveal: wrong picks fall off their corner. */
+@keyframes char-drop {
+  0% { transform: translateY(0) rotate(0); opacity: 1; filter: none; }
+  25% { transform: translateY(-8px) rotate(-6deg); }
+  100% { transform: translateY(46px) rotate(28deg); opacity: 0.25; filter: grayscale(1); }
+}
+/* Lock-in pop: a character landing in the "locked in" strip. */
+@keyframes char-land {
+  0% { transform: translateY(-18px) scale(0.3); opacity: 0; }
+  60% { transform: translateY(2px) scale(1.2); opacity: 1; }
+  100% { transform: translateY(0) scale(1); }
+}
+.char-drop { animation: char-drop 0.9s ease-in forwards; }
+.char-land { animation: char-land 0.45s cubic-bezier(0.34, 1.56, 0.64, 1); }
 .char-idle { animation: char-idle 3.2s ease-in-out infinite; }
 .char-hop { animation: char-hop 0.7s ease-out 1, char-idle 3.2s ease-in-out 0.7s infinite; }
 .char-cheer { animation: char-cheer 1.4s ease-in-out infinite; }
 .char-slump { animation: char-slump 0.9s ease-out forwards; }
 .char-sparkle { animation: char-sparkle 1.4s ease-out infinite; }
 @media (prefers-reduced-motion: reduce) {
-  .char-idle, .char-hop, .char-cheer, .char-sparkle { animation: none; }
+  .char-idle, .char-hop, .char-cheer, .char-sparkle, .char-land { animation: none; }
+  .char-drop { animation: none; opacity: 0.25; filter: grayscale(1); }
   .char-slump { animation: none; filter: grayscale(0.7) brightness(0.8); }
 }

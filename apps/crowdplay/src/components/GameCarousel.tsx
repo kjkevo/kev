@@ -29,7 +29,7 @@ function statusSlides(c: Carousel): Slide[] {
   const t = c.trivia;
   if (t?.phase === "lobby" && t.starts_at) {
     out.push({ key: "t-lobby", game: "trivia", text: "starts in", startsAt: t.starts_at });
-  } else if (t?.phase === "question") {
+  } else if (t?.phase === "question" || t?.phase === "reveal") {
     out.push({ key: "t-q", game: "trivia", text: `Question ${t.question} of ${t.total || "?"} · ${t.teams} teams playing` });
   }
   if (c.next_trivia) {

@@ -162,7 +162,7 @@ export default function HostGamePage() {
           </>
         )}
 
-        {room.phase === "question" && question && (
+        {(room.phase === "question" || room.phase === "reveal") && question && (
           <>
             <div className="w-full max-w-3xl h-3 bg-white/10 rounded-full overflow-hidden">
               <div
