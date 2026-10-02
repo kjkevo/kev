@@ -27,7 +27,7 @@ export function useTeamProgress(roomId: string | undefined, questionId: string |
 
     load();
     const channel = supabase
-      .channel(`team-progress:${questionId}`)
+      .channel(`team-progress:${questionId}:${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "answers", filter: `question_id=eq.${questionId}` }, load)
       .subscribe();
     const poll = setInterval(load, 3000);

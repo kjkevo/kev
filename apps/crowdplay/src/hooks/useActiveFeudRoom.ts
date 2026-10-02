@@ -31,7 +31,7 @@ export function useActiveFeudRoom(venueId: string | null | undefined) {
 
     refresh();
     const channel = supabase
-      .channel(`active-feud-room-watch:${venueId}`)
+      .channel(`active-feud-room-watch:${venueId}:${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "feud_rooms", filter: `venue_id=eq.${venueId}` }, refresh)
       .subscribe();
 

@@ -44,7 +44,7 @@ export function useFeudRoomRealtime(code: string | null) {
       setLoading(false);
 
       const channel = supabase
-        .channel(`feud-room:${roomRow.id}`)
+        .channel(`feud-room:${roomRow.id}:${Math.random().toString(36).slice(2)}`)
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "feud_rooms", filter: `id=eq.${roomRow.id}` },

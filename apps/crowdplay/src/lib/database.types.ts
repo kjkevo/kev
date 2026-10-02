@@ -744,6 +744,10 @@ export type Database = {
         Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_question_id: string }
         Returns: { o_hint: string; o_points_if_right: number }[]
       }
+      free_season_usernames: {
+        Args: { p_venue: string; p_names: string[] }
+        Returns: { o_username: string }[]
+      }
       get_team_hint: {
         Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_question_id: string }
         Returns: { o_hint: string }[]

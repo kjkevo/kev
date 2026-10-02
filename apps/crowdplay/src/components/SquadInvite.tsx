@@ -25,6 +25,7 @@ export function SquadInvite({
 }) {
   const [url, setUrl] = useState("");
   const [note, setNote] = useState<string | null>(null);
+  const [big, setBig] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams({ team: teamId, src: "qr", venue });
@@ -48,13 +49,39 @@ export function SquadInvite({
   if (compact) {
     return (
       <div className="flex flex-col items-center gap-1 shrink-0">
-        <div className="bg-white p-1.5 rounded-lg">{url ? <QRCodeSVG value={url} size={88} /> : <div style={{ width: 88, height: 88 }} />}</div>
+        <button type="button" onClick={() => setBig(true)} aria-label="Enlarge QR code" className="bg-white p-1.5 rounded-lg active:scale-95 transition">
+          {url ? <QRCodeSVG value={url} size={88} /> : <div style={{ width: 88, height: 88 }} />}
+        </button>
         <p className="text-[11px] font-bold text-amber-300">
           {spotsLeft} spot{spotsLeft === 1 ? "" : "s"} left
         </p>
-        <button type="button" onClick={share} className="text-[11px] font-bold text-slate-300 underline underline-offset-2">
-          {note ?? "Share link"}
-        </button>
+        <div className="flex gap-2 text-[11px] font-bold">
+          <button type="button" onClick={() => setBig(true)} className="rounded-full bg-amber-400 text-black px-2.5 py-0.5 active:scale-95">
+            Enlarge
+          </button>
+          <button type="button" onClick={share} className="text-slate-300 underline underline-offset-2">
+            {note ?? "Share"}
+          </button>
+        </div>
+        {big && (
+          // Full screen, so a friend can scan it from across the table.
+          <div className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center gap-5 px-6" onClick={() => setBig(false)}>
+            <p className="text-2xl font-black text-white text-center">Join {teamName}</p>
+            <div className="bg-white p-4 rounded-3xl w-full max-w-[22rem]" onClick={(e) => e.stopPropagation()}>
+              {url && <QRCodeSVG value={url} size={320} style={{ width: "100%", height: "auto" }} />}
+            </div>
+            <p className="text-lg font-bold text-amber-300">
+              {spotsLeft} spot{spotsLeft === 1 ? "" : "s"} left
+            </p>
+            <button
+              type="button"
+              onClick={() => setBig(false)}
+              className="rounded-full bg-white/15 border border-white/30 px-6 py-2.5 font-bold text-white active:scale-95"
+            >
+              Shrink
+            </button>
+          </div>
+        )}
       </div>
     );
   }

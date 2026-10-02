@@ -6,7 +6,7 @@ import { Avatar } from "@/components/Avatar";
 import type { AvatarOption } from "@/hooks/useAvatars";
 
 export const MAX_TEAMS = 8;
-export const MAX_TEAM_SIZE = 5;
+export const MAX_TEAM_SIZE = 4;
 export const MIN_TEAM_SIZE = 2;
 
 /** Teams that have at least one player still in the room, largest first. */

@@ -13,7 +13,7 @@ import { useCategoryVoteTally } from "@/hooks/useCategoryVoteTally";
 import { useQuestionVotes } from "@/hooks/useQuestionVotes";
 import { useTeamProgress } from "@/hooks/useTeamProgress";
 import { playerKey, type PlayerCredentials, type FinalRecapRow, type SuddenDeathResult } from "@/lib/types";
-import { randomFunName } from "@/lib/funNames";
+import { randomFunName, funNameBatch } from "@/lib/funNames";
 import { haptics } from "@/lib/haptics";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { LobbyRoster, useLiveTeams, MAX_TEAMS, MAX_TEAM_SIZE, MIN_TEAM_SIZE } from "@/components/LobbyRoster";
@@ -44,7 +44,7 @@ const JOIN_ERRORS: Record<string, string> = {
   TEAM_NAME_TAKEN: "Team name taken. Try another.",
   TEAM_NOT_FOUND: "That team is gone. Pick another.",
   TEAM_LOCKED: "That team already started. Pick another.",
-  TEAM_FULL: "That team is full (5 max).",
+  TEAM_FULL: "That team is full (4 max).",
   USERNAME_TAKEN: "Username taken this month. Try another.",
   INVALID_USERNAME: "Usernames need 2 to 20 characters.",
   TOO_MANY_TEAMS: "All 8 teams taken. Join one or go solo.",
@@ -104,6 +104,12 @@ export default function PlayPage() {
   const { avatarId, equip: equipAvatar } = useEquippedAvatar(avatars);
   const [avatarNote, setAvatarNote] = useState<string | null>(null);
   const [nickname, setNickname] = useState("");
+  // Free (untaken) generated usernames, used up one per Reroll.
+  const [freeNames, setFreeNames] = useState<string[]>([]);
+  // Scanned a team's QR code: name, then character, then straight onto that team.
+  const [invited, setInvited] = useState(false);
+  const [inviteStep, setInviteStep] = useState<"name" | "character">("name");
+  const [autoJoinTried, setAutoJoinTried] = useState(false);
   // How they want to play: pick on the join screen, or arrive with
   // ?mode=solo / ?mode=team from the "wait for the next game" screen.
   const [joinMode, setJoinMode] = useState<"solo" | "team">("solo");
@@ -144,6 +150,7 @@ export default function PlayPage() {
     if (invitedTeam) {
       setJoinMode("team");
       setSelectedTeamId(invitedTeam);
+      setInvited(true);
       return;
     }
     // ?mode= from the trivia landing wins; otherwise however they played last.
@@ -297,11 +304,40 @@ export default function PlayPage() {
     if (error) setAvatarNote("Couldn't switch characters. Try again.");
   }
 
+  // A generated username nobody has this month. Checks a batch at a time
+  // against the server and keeps the spares for the next Reroll.
+  async function rerollName() {
+    let pool = freeNames;
+    if (pool.length === 0) {
+      const { data } = await supabase.rpc("free_season_usernames", {
+        p_venue: venueSlug ?? "main",
+        p_names: funNameBatch(12),
+      });
+      pool = (data ?? []).map((r) => r.o_username);
+    }
+    if (pool.length === 0) {
+      setNickname(randomFunName());
+      return;
+    }
+    setNickname(pool[0]);
+    setFreeNames(pool.slice(1));
+  }
+
+  // First-timers start with a free generated name.
+  useEffect(() => {
+    if (season && !season.username) rerollName();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [season?.username, season?.month]);
+
   async function join(e: React.FormEvent) {
     e.preventDefault();
+    await joinWith(avatarId);
+  }
+
+  async function joinWith(characterId: string | null) {
     const typedName = seasonName ?? nickname.trim();
     if (!code || typedName.length === 0) return;
-    if (!avatarId) {
+    if (!characterId) {
       // Every game needs a character: open the picker.
       setAvatarOpen(true);
       setJoinError(friendlyError("AVATAR_REQUIRED"));
@@ -332,7 +368,7 @@ export default function PlayPage() {
       p_nickname: playName,
       p_team_id: joinMode === "team" && selectedTeamId ? selectedTeamId : undefined,
       p_new_team_name: creating ? teamName : undefined,
-      p_avatar_id: avatarId,
+      p_avatar_id: characterId,
       p_device_key: deviceKey(),
     });
     // Team names are random, so a clash is just bad luck: roll another.
@@ -343,7 +379,7 @@ export default function PlayPage() {
         p_code: code,
         p_nickname: playName,
         p_new_team_name: teamName,
-        p_avatar_id: avatarId,
+        p_avatar_id: characterId,
         p_device_key: deviceKey(),
       });
     }
@@ -351,6 +387,8 @@ export default function PlayPage() {
     setJoining(false);
     if (error || !data?.[0]) {
       setJoinError(friendlyError(error?.message ?? ""));
+      // The invite didn't work (team full or gone): show the regular join screen.
+      setInvited(false);
       // Full: go straight to the next game in line, keeping their choice.
       const next = queue.find((q) => !q.o_full && q.o_code !== code);
       if (error?.message.includes("ROOM_FULL") && next) {
@@ -532,6 +570,15 @@ export default function PlayPage() {
     router.push(`/play/${row.o_code}`);
   }
 
+  // Scanned a team QR and already has this month's name and a character:
+  // straight onto that team, nothing to tap.
+  useEffect(() => {
+    if (!invited || autoJoinTried || creds || !room || room.phase !== "lobby" || !seasonName || !avatarId) return;
+    setAutoJoinTried(true);
+    joinWith(avatarId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invited, autoJoinTried, creds, room?.phase, seasonName, avatarId]);
+
   if (loading) return <Center text="Loading room…" />;
   if (notFound)
     return (
@@ -552,6 +599,95 @@ export default function PlayPage() {
     // try to join without a character, which every game needs).
     const pickerOpen = avatarOpen ?? false;
     const needsCharacter = avatars.length > 0 && !avatarId;
+
+    // Scanned a teammate's QR code: name → character → on the team.
+    if (invited && room.phase === "lobby") {
+      const teamLabel = invitedTeam?.name ?? "your friend's team";
+      const step = seasonName ? "character" : inviteStep;
+      return (
+        <Center>
+          <BackButton onClick={() => leaveRoom("/")} />
+          {buySheet}
+          <div className="w-full max-w-sm flex flex-col gap-4 pt-16 pb-8">
+            <div className="flex flex-col items-center gap-1">
+              <p className="text-xs uppercase tracking-widest text-slate-400">Joining</p>
+              <h1 className="text-2xl font-black text-amber-300">{teamLabel}</h1>
+              {!room.queued && room.starts_at && !scheduledCountdown.reached && (
+                <p className="text-sm text-slate-400">
+                  Starts in <span className="font-bold text-amber-400 tabular-nums">{scheduledCountdown.label}</span>
+                </p>
+              )}
+            </div>
+
+            {joining || (seasonName && avatarId) ? (
+              <p className="text-lg font-bold text-amber-300">Joining {teamLabel}…</p>
+            ) : step === "name" ? (
+              <div className="rounded-2xl bg-white/5 border border-white/10 p-4 flex flex-col gap-3">
+                <p className="text-sm font-bold">Your name for {season?.month ?? "this month"}</p>
+                <input
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  maxLength={20}
+                  aria-label="Username"
+                  className="w-full text-center text-2xl font-black bg-white/10 border border-white/20 rounded-xl px-3 py-3 outline-none focus:border-amber-400"
+                />
+                <button
+                  type="button"
+                  onClick={rerollName}
+                  className="rounded-xl bg-white/10 py-2.5 text-sm font-bold active:scale-95 transition"
+                >
+                  🎲 Reroll
+                </button>
+                <button
+                  type="button"
+                  disabled={nickname.trim().length < 2}
+                  onClick={() => {
+                    setJoinError(null);
+                    setInviteStep("character");
+                  }}
+                  className="rounded-2xl bg-amber-400 text-black font-black text-lg py-4 disabled:opacity-40 active:scale-95 transition"
+                >
+                  Use this name
+                </button>
+              </div>
+            ) : (
+              <>
+                {!seasonName && (
+                  <button type="button" onClick={() => setInviteStep("name")} className="text-sm text-slate-300">
+                    Playing as <span className="font-bold text-white">{nickname.trim()}</span> · <span className="text-amber-300">Change</span>
+                  </button>
+                )}
+                {avatars.some((a) => a.owned && a.priceCents > 0) ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <p className="text-lg font-black">Pick your character</p>
+                    <AvatarPicker
+                      avatars={avatars}
+                      selectedId={avatarId}
+                      onSelect={(id) => {
+                        changeAvatar(id);
+                        joinWith(id);
+                      }}
+                      onBuy={buyAvatar}
+                    />
+                  </div>
+                ) : (
+                  <CharacterGate
+                    avatars={avatars}
+                    onPick={(id) => {
+                      changeAvatar(id);
+                      joinWith(id);
+                    }}
+                    onBuy={buyAvatar}
+                  />
+                )}
+              </>
+            )}
+            {joinError && <p className="text-red-400 text-sm">{joinError}</p>}
+          </div>
+        </Center>
+      );
+    }
+
     return (
       <Center>
         <BackButton onClick={() => leaveRoom("/")} />
@@ -597,14 +733,24 @@ export default function PlayPage() {
                     <label htmlFor="username" className="text-[11px] text-slate-400">
                       Username for {season?.month ?? "the month"}
                     </label>
-                    <input
-                      id="username"
-                      value={nickname}
-                      onChange={(e) => setNickname(e.target.value)}
-                      maxLength={20}
-                      placeholder="Username"
-                      className="w-full text-lg font-bold bg-white/10 border border-white/20 rounded-xl px-3 py-1.5 outline-none focus:border-amber-400"
-                    />
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        id="username"
+                        value={nickname}
+                        onChange={(e) => setNickname(e.target.value)}
+                        maxLength={20}
+                        placeholder="Username"
+                        className="flex-1 min-w-0 text-lg font-bold bg-white/10 border border-white/20 rounded-xl px-3 py-1.5 outline-none focus:border-amber-400"
+                      />
+                      <button
+                        type="button"
+                        onClick={rerollName}
+                        aria-label="Reroll username"
+                        className="shrink-0 w-9 h-9 rounded-xl bg-white/10 text-lg active:scale-90 transition"
+                      >
+                        🎲
+                      </button>
+                    </div>
                   </>
                 )}
               </div>

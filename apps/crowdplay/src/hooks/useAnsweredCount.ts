@@ -23,7 +23,7 @@ export function useAnsweredCount(questionId: string | undefined) {
         });
     refresh();
     const channel = supabase
-      .channel(`answers:${questionId}`)
+      .channel(`answers:${questionId}:${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "answers", filter: `question_id=eq.${questionId}` },
