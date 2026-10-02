@@ -54,7 +54,7 @@ export default function FeudScreenClient() {
       <ScreenAgent venue={venue} page="/feud/screen" />
       <header className="flex items-center justify-between px-8 py-4 border-b border-white/10">
         <span className="font-black text-xl">
-          Crowd<span className="text-amber-400">Play</span> · Family Feud
+          Slim<span className="text-amber-400">pse</span> · Family Feud
         </span>
         <span className="text-slate-400">
           {players.length} player{players.length === 1 ? "" : "s"}

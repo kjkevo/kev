@@ -50,7 +50,7 @@ export default function BingoScreenClient() {
       <ScreenAgent venue={venue} page="/bingo/screen" />
       <header className="flex items-center justify-between px-8 py-4 border-b border-white/10">
         <span className="font-black text-xl">
-          Crowd<span className="text-amber-400">Play</span> &middot; Social Bingo
+          Slim<span className="text-amber-400">pse</span> &middot; Social Bingo
         </span>
         <span className="text-slate-400">
           {players.length} player{players.length === 1 ? "" : "s"}

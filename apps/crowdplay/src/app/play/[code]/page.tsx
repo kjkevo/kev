@@ -25,7 +25,7 @@ import { Shoutouts } from "@/components/Shoutouts";
 import { deviceKey } from "@/lib/device";
 import { BuySheet } from "@/components/BuySheet";
 import { SquadInvite } from "@/components/SquadInvite";
-import { usePlayerVenue } from "@/lib/venue";
+import { usePlayerVenue, useVenueName } from "@/lib/venue";
 import { useSeason } from "@/hooks/useSeason";
 import { SeasonChip } from "@/components/SeasonNotice";
 import { Avatar } from "@/components/Avatar";
@@ -35,6 +35,9 @@ import { useQuestionById } from "@/hooks/useQuestionById";
 import { useAnsweredPlayers } from "@/hooks/useAnsweredPlayers";
 import { useQuestionReveal } from "@/hooks/useQuestionReveal";
 import { LockInStrip, PickYourCorner } from "@/components/RoomCharacters";
+import { JoinDrops } from "@/components/JoinDrops";
+import { Podium } from "@/components/Podium";
+import { ShareCard } from "@/components/ShareCard";
 
 const JOIN_ERRORS: Record<string, string> = {
   ROOM_NOT_FOUND: "That game code doesn't exist.",
@@ -103,6 +106,7 @@ export default function PlayPage() {
   const { avatars, byId: avatarsById, refresh: refreshAvatars } = useAvatars();
   const [buying, setBuying] = useState<AvatarOption | null>(null);
   const venueSlug = usePlayerVenue();
+  const venueName = useVenueName(room?.venue_id);
   // Monthly season: one username per phone per month, reset on the 1st.
   const { season, refresh: refreshSeason } = useSeason(venueSlug);
   const seasonName = season?.username ?? null;
@@ -883,6 +887,7 @@ export default function PlayPage() {
       <Center>
         <BackButton onClick={() => leaveRoom("/")} />
         {buySheet}
+        <JoinDrops players={players} teams={teams} avatars={avatarsById} excludeId={creds.playerId} />
         <div className="w-full max-w-sm flex flex-col gap-3 pt-16 pb-8">
           {/* Pinned: you, your team and teammates, the countdown, and the invite QR. */}
           <div className="rounded-2xl bg-indigo-950/90 border border-white/15 p-3 shadow-lg text-left">
@@ -1357,11 +1362,13 @@ export default function PlayPage() {
           </p>
         )}
 
-        <div className="w-full max-w-xs flex flex-col gap-2 mb-2">
-          {revealedPodium.map(({ team, rank }) => (
-            <PodiumRow key={team.id} rank={rank} name={team.name} score={team.score} mine={team.id === creds.teamId} />
-          ))}
-        </div>
+        <Podium
+          placed={revealedPodium}
+          teamCount={sortedTeams.length}
+          players={players}
+          avatars={avatarsById}
+          myTeamId={creds.teamId}
+        />
 
         {suspense && (
           <div className="flex flex-col items-center gap-3 py-6 animate-pop-in">
@@ -1376,16 +1383,28 @@ export default function PlayPage() {
 
         {showRest && (
           <div className="w-full max-w-xs flex flex-col gap-4 animate-pop-in">
-            {me?.avatar_id && avatarsById[me.avatar_id] && (
-              <div className="flex justify-center">
+            {/* Your character's reaction, beside a shareable card of your result. */}
+            <div className="flex items-end justify-center gap-4">
+              {me?.avatar_id && avatarsById[me.avatar_id] && (
                 <CharacterBuddy
                   emoji={avatarsById[me.avatar_id].emoji}
                   imageUrl={avatarsById[me.avatar_id].imageUrl}
-                  size={140}
+                  size={100}
                   {...finalReaction(myTeamRank, sortedTeams.length)}
                 />
-              </div>
-            )}
+              )}
+              {myTeamRank > 0 && me && (
+                <ShareCard
+                  rank={myTeamRank}
+                  venue={venueName ?? "the bar"}
+                  nickname={me.nickname}
+                  teamName={myTeam?.name ?? creds.teamName}
+                  score={myTeam?.score ?? 0}
+                  imageUrl={me.avatar_id ? avatarsById[me.avatar_id]?.imageUrl : null}
+                  emoji={me.avatar_id ? avatarsById[me.avatar_id]?.emoji : null}
+                />
+              )}
+            </div>
 
             {restTeams.length > 0 && (
               <div className="flex flex-col gap-2">
@@ -1524,28 +1543,6 @@ function ExitButton({ onClick }: { onClick: () => void }) {
     >
       Exit
     </button>
-  );
-}
-
-const RANK_MEDAL: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
-
-function PodiumRow({ rank, name, score, mine }: { rank: number; name: string; score: number; mine: boolean }) {
-  const isWinner = rank === 1;
-  return (
-    <div
-      className={`animate-pop-in flex items-center justify-between rounded-2xl px-4 transition ${
-        isWinner
-          ? "py-5 bg-amber-400 text-black shadow-lg shadow-amber-400/30 border-2 border-amber-300"
-          : mine
-            ? "py-3 bg-amber-400/20 text-amber-300 border border-amber-400/40"
-            : "py-3 bg-white/5 text-white border border-white/10"
-      }`}
-    >
-      <span className={`font-bold ${isWinner ? "text-xl" : "text-base"}`}>
-        {RANK_MEDAL[rank] ?? `#${rank}`} {name}
-      </span>
-      <span className={`tabular-nums ${isWinner ? "text-xl font-black" : "font-semibold"}`}>{score.toLocaleString()}</span>
-    </div>
   );
 }
 
