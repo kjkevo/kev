@@ -62,7 +62,7 @@ export default function TriviaLandingClient() {
 
   // Mid-round joins are blocked so everyone starts on equal footing --
   // once question 1 is up, Join goes grey and Wait becomes the one to tap.
-  const lobbyFull = room !== null && room.phase === "lobby" && players.filter((p) => !p.left_at).length >= 40;
+  const lobbyFull = room !== null && room.phase === "lobby" && players.filter((p) => !p.left_at).length >= 32;
   const canJoinNow = room !== null && room.phase === "lobby" && !lobbyFull;
   const isWaiting = room !== null && declinedCode === room.code;
 

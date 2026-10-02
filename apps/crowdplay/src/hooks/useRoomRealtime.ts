@@ -10,7 +10,10 @@ import type { Player, Room, Team } from "@/lib/types";
  * Postgres realtime changes to `rooms`, `players`, and `teams` — if a
  * phone's websocket drops (locked screen, bad wifi) and reconnects, the
  * initial select below re-syncs it rather than leaving it stuck on stale
- * state. Scoring is team-based now, so `teams` (with each team's score) is
+ * state. Channel names get a random suffix: supabase-js hands back an
+ * existing channel with the same name, so two screens watching one room
+ * (the trivia page, then the game page) would share one, and the first to
+ * close would cut the other off. Scoring is team-based now, so `teams` (with each team's score) is
  * as core to "what's happening" as `players` (who's on which team) is.
  */
 export function useRoomRealtime(code: string | null) {
@@ -70,7 +73,7 @@ export function useRoomRealtime(code: string | null) {
           });
 
       const channel = supabase
-        .channel(`room:${roomRow.id}`)
+        .channel(`room:${roomRow.id}:${Math.random().toString(36).slice(2)}`)
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "rooms", filter: `id=eq.${roomRow.id}` },
@@ -91,7 +94,15 @@ export function useRoomRealtime(code: string | null) {
         )
         .subscribe();
 
+      // Safety net for a dropped connection (phones sleep, Wi-Fi blips):
+      // re-read who's in every few seconds.
+      const poll = setInterval(() => {
+        refetchPlayers();
+        refetchTeams();
+      }, 5000);
+
       return () => {
+        clearInterval(poll);
         supabase.removeChannel(channel);
       };
     }

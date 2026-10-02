@@ -44,7 +44,7 @@ export function useBingoRoomRealtime(code: string | null) {
       setLoading(false);
 
       const channel = supabase
-        .channel(`bingo-room:${roomRow.id}`)
+        .channel(`bingo-room:${roomRow.id}:${Math.random().toString(36).slice(2)}`)
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "bingo_rooms", filter: `id=eq.${roomRow.id}` },

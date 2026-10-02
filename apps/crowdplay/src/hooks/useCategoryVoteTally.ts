@@ -29,7 +29,7 @@ export function useCategoryVoteTally(roomId: string | undefined) {
         });
     refresh();
     const channel = supabase
-      .channel(`votes:${roomId}`)
+      .channel(`votes:${roomId}:${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "category_votes", filter: `room_id=eq.${roomId}` },

@@ -72,7 +72,7 @@ export function useQuestionVotes(
 
     load();
     const channel = supabase
-      .channel(`votes:${questionId}`)
+      .channel(`votes:${questionId}:${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "answers", filter: `question_id=eq.${questionId}` },

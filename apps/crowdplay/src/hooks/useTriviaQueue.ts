@@ -30,7 +30,7 @@ export function useTriviaQueue(venueId: string | null | undefined) {
     refresh();
     const timer = setInterval(refresh, 5000);
     const channel = supabase
-      .channel(`trivia-queue:${venueId}`)
+      .channel(`trivia-queue:${venueId}:${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "rooms", filter: `venue_id=eq.${venueId}` }, refresh)
       .subscribe();
 

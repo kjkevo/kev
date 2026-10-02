@@ -31,7 +31,7 @@ export function useActiveBingoRoom(venueId: string | null | undefined) {
 
     refresh();
     const channel = supabase
-      .channel(`active-bingo-room-watch:${venueId}`)
+      .channel(`active-bingo-room-watch:${venueId}:${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "bingo_rooms", filter: `venue_id=eq.${venueId}` }, refresh)
       .subscribe();
 
