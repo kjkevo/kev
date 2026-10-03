@@ -1,6 +1,7 @@
 "use client";
 
 import { Avatar } from "@/components/Avatar";
+import { EmoteCharacter, type EmotePlay } from "@/components/EmoteCharacter";
 
 export type CharacterMood = "idle" | "hop" | "cheer" | "slump";
 
@@ -23,12 +24,17 @@ export function CharacterBuddy({
   mood,
   size = 104,
   says,
+  avatarId,
+  play,
 }: {
   emoji?: string | null;
   imageUrl?: string | null;
   mood: CharacterMood;
   size?: number;
   says?: string;
+  /** With an emote play request, the character performs it. */
+  avatarId?: string | null;
+  play?: EmotePlay | null;
 }) {
   return (
     <div className="relative flex flex-col items-center" style={{ width: size + 24 }}>
@@ -44,7 +50,11 @@ export function CharacterBuddy({
       <div className="relative">
         {/* key restarts the animation each time the mood changes */}
         <div key={mood} className={`char-${mood}`}>
-          <Avatar emoji={emoji} imageUrl={imageUrl} size={size} variant="full" />
+          {avatarId !== undefined ? (
+            <EmoteCharacter avatarId={avatarId} emoji={emoji} imageUrl={imageUrl} size={size} play={play} />
+          ) : (
+            <Avatar emoji={emoji} imageUrl={imageUrl} size={size} variant="full" />
+          )}
         </div>
         {mood === "cheer" &&
           SPARKLES.map((s, i) => (

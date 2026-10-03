@@ -38,6 +38,9 @@ import { LockInStrip, PickYourCorner } from "@/components/RoomCharacters";
 import { JoinDrops } from "@/components/JoinDrops";
 import { Podium } from "@/components/Podium";
 import { ShareCard } from "@/components/ShareCard";
+import { EmoteCharacter, EmoteButtons } from "@/components/EmoteCharacter";
+import { useRoomEmotes } from "@/hooks/useRoomEmotes";
+import { emotesFor } from "@/lib/emotes";
 
 const JOIN_ERRORS: Record<string, string> = {
   ROOM_NOT_FOUND: "That game code doesn't exist.",
@@ -103,6 +106,8 @@ export default function PlayPage() {
   const queueProgress = currentGameProgress(myQueueSpot);
 
   const [creds, setCreds] = useState<PlayerCredentials | null>(null);
+  // Character emotes, shared live with everyone in the game.
+  const { plays: emotePlays, send: sendEmote } = useRoomEmotes(creds?.roomId, creds?.playerId);
   const { avatars, byId: avatarsById, refresh: refreshAvatars } = useAvatars();
   const [buying, setBuying] = useState<AvatarOption | null>(null);
   const venueSlug = usePlayerVenue();
@@ -974,7 +979,7 @@ export default function PlayPage() {
                       <span className="text-[11px] font-semibold text-slate-200 truncate w-full text-center">
                         {p.id === creds.playerId ? "You" : p.nickname}
                       </span>
-                      <Avatar emoji={a?.emoji} imageUrl={a?.imageUrl} size={60} variant="full" />
+                      <EmoteCharacter avatarId={p.avatar_id} emoji={a?.emoji} imageUrl={a?.imageUrl} size={60} play={emotePlays[p.id]} />
                     </span>
                   );
                 })}
@@ -1009,6 +1014,21 @@ export default function PlayPage() {
               <p className="mt-1 text-[11px] text-slate-400">Open spots fill when the game starts.</p>
             )}
           </div>
+
+          {/* Your character with its emotes (only characters that have some). */}
+          {myCharacter && !lobbyAvatarOpen && emotesFor(me?.avatar_id).length > 0 && (
+            <div className="flex flex-col items-center gap-2">
+              <EmoteCharacter
+                avatarId={me?.avatar_id}
+                emoji={myCharacter.emoji}
+                imageUrl={myCharacter.imageUrl}
+                size={170}
+                play={emotePlays[creds.playerId]}
+                className="char-idle"
+              />
+              <EmoteButtons avatarId={me?.avatar_id} onPlay={sendEmote} />
+            </div>
+          )}
 
           {lobbyAvatarOpen && (
             <div className="flex flex-col items-center">
@@ -1234,7 +1254,18 @@ export default function PlayPage() {
         {/* The character beside the question. */}
         <div className="flex items-center gap-2">
           {myCharacter && (
-            <CharacterBuddy emoji={myCharacter.emoji} imageUrl={myCharacter.imageUrl} mood={buddyMood} says={buddySays} size={72} />
+            <div className="flex flex-col items-center gap-1 shrink-0">
+              <CharacterBuddy
+                emoji={myCharacter.emoji}
+                imageUrl={myCharacter.imageUrl}
+                mood={buddyMood}
+                says={buddySays}
+                size={72}
+                avatarId={me?.avatar_id}
+                play={emotePlays[creds.playerId]}
+              />
+              <EmoteButtons avatarId={me?.avatar_id} onPlay={sendEmote} small />
+            </div>
           )}
           <h2 className="flex-1 text-xl font-bold text-left">{question.prompt}</h2>
         </div>
