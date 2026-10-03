@@ -760,6 +760,10 @@ export type Database = {
           o_correct_answer: string
         }[]
       }
+      trivia_fresh_start: {
+        Args: { p_venue: string }
+        Returns: boolean
+      }
       get_team_hint: {
         Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_question_id: string }
         Returns: { o_hint: string }[]

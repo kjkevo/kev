@@ -95,7 +95,7 @@ export function EmoteButtons({
             small ? "px-2.5 py-0.5 text-[11px]" : "px-5 py-2 text-sm"
           }`}
         >
-          {e.label}
+          {emotes.length === 1 ? "Emote" : e.label}
         </button>
       ))}
     </div>

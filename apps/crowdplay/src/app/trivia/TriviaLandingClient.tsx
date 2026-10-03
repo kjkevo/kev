@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { MyCharacterButton } from "@/components/CharacterLocker";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { useLiveActiveRoom } from "@/hooks/useLiveActiveRoom";
 import { usePlayerVenue, useVenueId } from "@/lib/venue";
@@ -42,6 +43,12 @@ export default function TriviaLandingClient() {
   // flag — the moment the active room changes (this one finished, a new
   // one boarded), the choice should reset so they see a fresh invitation.
   const [declinedCode, setDeclinedCode] = useState<string | null>(null);
+
+  // Never wait behind a game with no real players in it: end it so a fresh
+  // lobby boards right away (games with real people are left alone).
+  useEffect(() => {
+    if (venue) supabase.rpc("trivia_fresh_start", { p_venue: venue });
+  }, [venue]);
   // Someone who waited gets asked straight away how they want to play the
   // new game (solo or their own team) instead of the generic join screen.
   const [waitedForNext, setWaitedForNext] = useState(false);

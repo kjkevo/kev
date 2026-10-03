@@ -127,8 +127,8 @@ body {
 .join-drop { animation: join-drop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
 .char-drop { animation: char-drop 0.9s ease-in forwards; }
 .char-land { animation: char-land 0.45s cubic-bezier(0.34, 1.56, 0.64, 1); }
-.char-idle { animation: char-idle 3.2s ease-in-out infinite; }
-.char-hop { animation: char-hop 0.7s ease-out 1, char-idle 3.2s ease-in-out 0.7s infinite; }
+.char-idle { animation: none; } /* characters stand still while idle */
+.char-hop { animation: char-hop 0.7s ease-out 1; }
 .char-cheer { animation: char-cheer 1.4s ease-in-out infinite; }
 .char-slump { animation: char-slump 0.9s ease-out forwards; }
 .char-sparkle { animation: char-sparkle 1.4s ease-out infinite; }
