@@ -63,7 +63,10 @@ export function EmoteCharacter({
           src={running.url}
           alt=""
           className="absolute bottom-0 left-1/2 -translate-x-1/2 max-w-none object-contain drop-shadow-[0_6px_14px_rgba(0,0,0,0.45)]"
-          style={{ height: size, width: size * running.emote.aspect }}
+          style={{
+            height: size * (1 + (running.emote.headroom ?? 0)),
+            width: size * (1 + (running.emote.headroom ?? 0)) * running.emote.aspect,
+          }}
         />
       ) : (
         <Avatar emoji={emoji} imageUrl={imageUrl} size={size} variant="full" />
