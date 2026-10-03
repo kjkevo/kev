@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { Avatar } from "@/components/Avatar";
-import { emotesFor, loadEmote, type Emote } from "@/lib/emotes";
+import { emotesFor, loadEmote, nextEmote, type Emote } from "@/lib/emotes";
 
 /** A play request: which emote, and a counter so the same one can replay. */
 export type EmotePlay = { emoteId: string; n: number };
@@ -75,7 +75,7 @@ export function EmoteCharacter({
   );
 }
 
-/** One button per emote this character has (none: nothing shown). */
+/** One Emote button: each tap plays this character's next emote, in order. */
 export function EmoteButtons({
   avatarId,
   onPlay,
@@ -85,22 +85,19 @@ export function EmoteButtons({
   onPlay: (emoteId: string) => void;
   small?: boolean;
 }) {
-  const emotes = emotesFor(avatarId);
-  if (emotes.length === 0) return null;
+  if (emotesFor(avatarId).length === 0) return null;
   return (
-    <div className="flex flex-wrap justify-center gap-1.5">
-      {emotes.map((e) => (
-        <button
-          key={e.id}
-          type="button"
-          onClick={() => onPlay(e.id)}
-          className={`rounded-full bg-amber-400 text-black font-black shadow active:scale-95 transition ${
-            small ? "px-2.5 py-0.5 text-[11px]" : "px-5 py-2 text-sm"
-          }`}
-        >
-          {emotes.length === 1 ? "Emote" : e.label}
-        </button>
-      ))}
-    </div>
+    <button
+      type="button"
+      onClick={() => {
+        const e = nextEmote(avatarId);
+        if (e) onPlay(e.id);
+      }}
+      className={`rounded-full bg-amber-400 text-black font-black shadow active:scale-95 transition ${
+        small ? "px-2.5 py-0.5 text-[11px]" : "px-5 py-2 text-sm"
+      }`}
+    >
+      Emote
+    </button>
   );
 }
