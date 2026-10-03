@@ -40,7 +40,6 @@ import { Podium } from "@/components/Podium";
 import { ShareCard } from "@/components/ShareCard";
 import { EmoteCharacter, EmoteButtons } from "@/components/EmoteCharacter";
 import { useRoomEmotes } from "@/hooks/useRoomEmotes";
-import { emotesFor } from "@/lib/emotes";
 
 const JOIN_ERRORS: Record<string, string> = {
   ROOM_NOT_FOUND: "That game code doesn't exist.",
@@ -608,6 +607,13 @@ export default function PlayPage() {
     router.push(`/play/${row.o_code}`);
   }
 
+  // Waiting behind a game nobody real is playing (or about to join one in
+  // progress): end that game so this one boards with a fresh countdown.
+  const blockedByRunningGame = !!room && (room.queued || (!creds && room.phase !== "lobby"));
+  useEffect(() => {
+    if (blockedByRunningGame && venueSlug) supabase.rpc("trivia_fresh_start", { p_venue: venueSlug });
+  }, [blockedByRunningGame, venueSlug]);
+
   // Scanned a team QR and already has this month's name and a character:
   // straight onto that team, nothing to tap.
   useEffect(() => {
@@ -970,27 +976,46 @@ export default function PlayPage() {
               </div>
             </div>
 
-            <div className="mt-3 flex items-start gap-3">
-              <div className="flex-1 min-w-0 flex flex-wrap gap-x-1 gap-y-2 pt-1">
-                {teammates.map((p) => {
+            {/* Your character big, with its emote, then teammates and open spots beside it. */}
+            <div className="mt-3 grid grid-cols-[1.6fr_1fr_1fr_1fr] items-end gap-1">
+              <div className="flex flex-col items-center min-w-0">
+                <span className="text-xs font-bold text-white truncate w-full text-center">You</span>
+                <EmoteCharacter
+                  avatarId={me?.avatar_id}
+                  emoji={myCharacter?.emoji}
+                  imageUrl={myCharacter?.imageUrl}
+                  size={124}
+                  play={emotePlays[creds.playerId]}
+                />
+              </div>
+              {teammates
+                .filter((p) => p.id !== creds.playerId)
+                .map((p) => {
                   const a = p.avatar_id ? avatarsById[p.avatar_id] : undefined;
                   return (
-                    <span key={p.id} className="flex flex-col items-center w-16">
-                      <span className="text-[11px] font-semibold text-slate-200 truncate w-full text-center">
-                        {p.id === creds.playerId ? "You" : p.nickname}
-                      </span>
-                      <EmoteCharacter avatarId={p.avatar_id} emoji={a?.emoji} imageUrl={a?.imageUrl} size={60} play={emotePlays[p.id]} />
-                    </span>
+                    <div key={p.id} className="flex flex-col items-center min-w-0">
+                      <span className="text-[11px] font-semibold text-slate-200 truncate w-full text-center">{p.nickname}</span>
+                      <EmoteCharacter avatarId={p.avatar_id} emoji={a?.emoji} imageUrl={a?.imageUrl} size={72} play={emotePlays[p.id]} />
+                    </div>
                   );
                 })}
-                {Array.from({ length: Math.max(0, MIN_TEAM_SIZE - teammates.length) }, (_, i) => (
-                  <span key={`open-${i}`} className="flex flex-col items-center w-16">
-                    <span className="text-[11px] text-slate-500">Open</span>
-                    <span className="mt-1 w-9 h-[52px] rounded-t-full rounded-b-lg border-2 border-dashed border-white/25" />
-                  </span>
-                ))}
+              {Array.from({ length: Math.max(0, MAX_TEAM_SIZE - teammates.length) }, (_, i) => (
+                <div key={`open-${i}`} className="flex flex-col items-center min-w-0">
+                  <span className="text-[11px] text-slate-500">Open</span>
+                  <span className="mt-1 w-10 h-[62px] rounded-t-full rounded-b-lg border-2 border-dashed border-white/25" />
+                </div>
+              ))}
+            </div>
+            <div className="mt-2 grid grid-cols-[1.6fr_1fr_1fr_1fr] gap-1">
+              <div className="flex justify-center">
+                <EmoteButtons avatarId={me?.avatar_id} onPlay={sendEmote} />
               </div>
-              {canInvite && inviteShown && myTeam && (
+            </div>
+            {teammates.length < MIN_TEAM_SIZE && (
+              <p className="mt-1 text-[11px] text-slate-400">Open spots fill when the game starts.</p>
+            )}
+            {canInvite && inviteShown && myTeam && (
+              <div className="mt-3 flex justify-center">
                 <SquadInvite
                   compact
                   code={room.code}
@@ -999,8 +1024,8 @@ export default function PlayPage() {
                   venue={venueSlug ?? "main"}
                   spotsLeft={MAX_TEAM_SIZE - teammates.length}
                 />
-              )}
-            </div>
+              </div>
+            )}
             {canInvite && (
               <button
                 type="button"
@@ -1010,25 +1035,7 @@ export default function PlayPage() {
                 {inviteShown ? "Hide QR" : "Invite friends"}
               </button>
             )}
-            {teammates.length < MIN_TEAM_SIZE && (
-              <p className="mt-1 text-[11px] text-slate-400">Open spots fill when the game starts.</p>
-            )}
           </div>
-
-          {/* Your character with its emotes (only characters that have some). */}
-          {myCharacter && !lobbyAvatarOpen && emotesFor(me?.avatar_id).length > 0 && (
-            <div className="flex flex-col items-center gap-2">
-              <EmoteCharacter
-                avatarId={me?.avatar_id}
-                emoji={myCharacter.emoji}
-                imageUrl={myCharacter.imageUrl}
-                size={170}
-                play={emotePlays[creds.playerId]}
-                className="char-idle"
-              />
-              <EmoteButtons avatarId={me?.avatar_id} onPlay={sendEmote} />
-            </div>
-          )}
 
           {lobbyAvatarOpen && (
             <div className="flex flex-col items-center">
