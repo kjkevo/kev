@@ -19,11 +19,23 @@ export const MAX_EMOTES = 4;
 export const EMOTES: Record<string, Emote[]> = {
   "crystal-titan": [
     { id: "jump", label: "Jump", src: "/emotes/crystal-titan-jump.webp", durationMs: 96 * 66, aspect: 288 / 456, headroom: 56 / 400 },
+    { id: "disappointed", label: "Disappointed", src: "/emotes/crystal-titan-disappointed.webp", durationMs: 120 * 83, aspect: 288 / 400 },
   ],
 };
 
 export function emotesFor(avatarId: string | null | undefined): Emote[] {
   return (avatarId && EMOTES[avatarId]?.slice(0, MAX_EMOTES)) || [];
+}
+
+// The Emote button plays a character's emotes in order, one per tap, then
+// starts over (remembered while the page is open, across lobby and game).
+const nextIndex = new Map<string, number>();
+export function nextEmote(avatarId: string | null | undefined): Emote | null {
+  const list = emotesFor(avatarId);
+  if (!avatarId || list.length === 0) return null;
+  const i = (nextIndex.get(avatarId) ?? 0) % list.length;
+  nextIndex.set(avatarId, i + 1);
+  return list[i];
 }
 
 // Each play gets a fresh object URL, so the animation always starts from
