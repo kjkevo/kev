@@ -3,7 +3,8 @@
  * can trigger in the lobby and during questions. Up to 4 per character.
  * Each file is the character on a transparent background, feet at the
  * bottom, in a box `aspect` wide for every 1 tall. `headroom` is extra
- * space above the standing figure (for jumps) that may rise above its box.
+ * space above the standing figure (for jumps) that may rise above its box;
+ * `footroom` is space below the feet for floor moves.
  */
 export type Emote = {
   id: string;
@@ -12,13 +13,14 @@ export type Emote = {
   durationMs: number;
   aspect: number; // width / height of the file
   headroom?: number; // empty space above the standing figure, as a share of its height
+  footroom?: number; // space below the standing feet (moves on the floor), may hang below its box
 };
 
 export const MAX_EMOTES = 4;
 
 export const EMOTES: Record<string, Emote[]> = {
   "crystal-titan": [
-    { id: "jump", label: "Jump", src: "/emotes/crystal-titan-jump.webp", durationMs: 96 * 66, aspect: 288 / 456, headroom: 56 / 400 },
+    { id: "breakdance", label: "Break dance", src: "/emotes/crystal-titan-breakdance.webp", durationMs: 120 * 83, aspect: 452 / 423, footroom: 23 / 400 },
     { id: "disappointed", label: "Disappointed", src: "/emotes/crystal-titan-disappointed.webp", durationMs: 120 * 83, aspect: 288 / 400 },
     { id: "flex", label: "Flex", src: "/emotes/crystal-titan-flex.webp", durationMs: 120 * 83, aspect: 368 / 400 },
     { id: "think", label: "Think", src: "/emotes/crystal-titan-think.webp", durationMs: 120 * 83, aspect: 288 / 400 },
