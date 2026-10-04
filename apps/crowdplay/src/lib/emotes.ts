@@ -21,6 +21,7 @@ export const EMOTES: Record<string, Emote[]> = {
     { id: "jump", label: "Jump", src: "/emotes/crystal-titan-jump.webp", durationMs: 96 * 66, aspect: 288 / 456, headroom: 56 / 400 },
     { id: "disappointed", label: "Disappointed", src: "/emotes/crystal-titan-disappointed.webp", durationMs: 120 * 83, aspect: 288 / 400 },
     { id: "flex", label: "Flex", src: "/emotes/crystal-titan-flex.webp", durationMs: 120 * 83, aspect: 368 / 400 },
+    { id: "think", label: "Think", src: "/emotes/crystal-titan-think.webp", durationMs: 120 * 83, aspect: 288 / 400 },
   ],
 };
 
