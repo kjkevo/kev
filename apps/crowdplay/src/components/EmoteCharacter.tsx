@@ -62,10 +62,11 @@ export function EmoteCharacter({
         <img
           src={running.url}
           alt=""
-          className="absolute bottom-0 left-1/2 -translate-x-1/2 max-w-none object-contain drop-shadow-[0_6px_14px_rgba(0,0,0,0.45)]"
+          className="absolute left-1/2 -translate-x-1/2 max-w-none object-contain drop-shadow-[0_6px_14px_rgba(0,0,0,0.45)]"
           style={{
-            height: size * (1 + (running.emote.headroom ?? 0)),
-            width: size * (1 + (running.emote.headroom ?? 0)) * running.emote.aspect,
+            bottom: -size * (running.emote.footroom ?? 0),
+            height: size * (1 + (running.emote.headroom ?? 0) + (running.emote.footroom ?? 0)),
+            width: size * (1 + (running.emote.headroom ?? 0) + (running.emote.footroom ?? 0)) * running.emote.aspect,
           }}
         />
       ) : (
