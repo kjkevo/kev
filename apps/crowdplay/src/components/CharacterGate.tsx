@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Avatar } from "@/components/Avatar";
 import { AvatarPicker } from "@/components/AvatarPicker";
+import { CharacterPreview } from "@/components/CharacterPreview";
 import type { AvatarOption } from "@/hooks/useAvatars";
 
 /**
@@ -19,6 +20,7 @@ export function CharacterGate({
   onBuy?: (avatar: AvatarOption) => void;
 }) {
   const [showAll, setShowAll] = useState(false);
+  const [viewing, setViewing] = useState<AvatarOption | null>(null);
   const free = avatars.filter((a) => a.priceCents === 0);
   const owned = avatars.filter((a) => a.owned && a.priceCents > 0);
   const starters = [...owned, ...free];
@@ -34,7 +36,7 @@ export function CharacterGate({
           <button
             key={a.id}
             type="button"
-            onClick={() => onPick(a.id)}
+            onClick={() => setViewing(a)}
             className="flex flex-col items-center gap-1 rounded-xl bg-white/5 border border-white/10 pt-3 pb-2 active:scale-95 transition"
           >
             <Avatar emoji={a.emoji} imageUrl={a.imageUrl} size={112} variant="full" />
@@ -49,6 +51,22 @@ export function CharacterGate({
         <button type="button" onClick={() => setShowAll(!showAll)} className="text-xs font-bold text-amber-300 mt-3">
           {showAll ? "Hide premium characters" : "Or unlock a premium character ▸"}
         </button>
+      )}
+      {viewing && (
+        <CharacterPreview
+          avatar={viewing}
+          equipped={false}
+          equipLabel="Choose"
+          onEquip={() => {
+            onPick(viewing.id);
+            setViewing(null);
+          }}
+          onBuy={() => {
+            onBuy?.(viewing);
+            setViewing(null);
+          }}
+          onClose={() => setViewing(null)}
+        />
       )}
       {onBuy && showAll && (
         <div className="mt-2">

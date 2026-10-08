@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { Avatar } from "@/components/Avatar";
+import { CharacterPreview } from "@/components/CharacterPreview";
 import type { AvatarOption } from "@/hooks/useAvatars";
 
 export function formatPrice(cents: number) {
@@ -9,9 +11,8 @@ export function formatPrice(cents: number) {
 
 /**
  * Free avatars first, then premium ones with a lock (no price in the grid).
- * Every avatar this phone can use (free or bought) has an Equip button;
- * the one in use says Equipped. Locked ones say Unlock and open the
- * "Unlock Character" screen with the price (onBuy).
+ * Tapping one opens a close-up (CharacterPreview) with Equip, or Unlock
+ * for a locked one (onBuy opens the "Unlock Character" screen).
  */
 export function AvatarPicker({
   avatars,
@@ -24,6 +25,7 @@ export function AvatarPicker({
   onSelect: (id: string) => void;
   onBuy?: (avatar: AvatarOption) => void;
 }) {
+  const [viewing, setViewing] = useState<AvatarOption | null>(null);
   if (avatars.length === 0) return null;
   return (
     <div className="w-full max-w-sm">
@@ -36,7 +38,7 @@ export function AvatarPicker({
             <button
               key={a.id}
               type="button"
-              onClick={() => (locked ? onBuy?.(a) : onSelect(a.id))}
+              onClick={() => setViewing(a)}
               aria-label={locked ? `Unlock ${a.name}` : selected ? `${a.name}, equipped` : `Equip ${a.name}`}
               aria-pressed={selected}
               className={`relative flex flex-col items-center gap-1 rounded-xl pt-2 pb-1.5 transition active:scale-95 ${
@@ -66,6 +68,21 @@ export function AvatarPicker({
           );
         })}
       </div>
+      {viewing && (
+        <CharacterPreview
+          avatar={viewing}
+          equipped={viewing.id === selectedId}
+          onEquip={() => {
+            onSelect(viewing.id);
+            setViewing(null);
+          }}
+          onBuy={() => {
+            onBuy?.(viewing);
+            setViewing(null);
+          }}
+          onClose={() => setViewing(null)}
+        />
+      )}
     </div>
   );
 }

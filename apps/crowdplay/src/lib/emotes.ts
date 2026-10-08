@@ -1,6 +1,7 @@
 /**
  * Character emotes: short animations (transparent animated WebP) a player
- * can trigger in the lobby and during questions. Up to 4 per character.
+ * can trigger in the lobby and during questions. One per character for now
+ * (room for up to 4 later).
  * Each file is the character on a transparent background, feet at the
  * bottom, in a box `aspect` wide for every 1 tall. `headroom` is extra
  * space above the standing figure (for jumps) that may rise above its box;
@@ -21,9 +22,6 @@ export const MAX_EMOTES = 4;
 export const EMOTES: Record<string, Emote[]> = {
   "crystal-titan": [
     { id: "breakdance", label: "Break dance", src: "/emotes/crystal-titan-breakdance.webp", durationMs: 120 * 83, aspect: 452 / 423, footroom: 23 / 400 },
-    { id: "disappointed", label: "Disappointed", src: "/emotes/crystal-titan-disappointed.webp", durationMs: 120 * 83, aspect: 288 / 400 },
-    { id: "flex", label: "Flex", src: "/emotes/crystal-titan-flex.webp", durationMs: 120 * 83, aspect: 368 / 400 },
-    { id: "think", label: "Think", src: "/emotes/crystal-titan-think.webp", durationMs: 120 * 83, aspect: 288 / 400 },
   ],
 };
 

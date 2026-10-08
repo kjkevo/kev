@@ -80,6 +80,9 @@ dashboard marked TEST.
 - Done: 2 free characters (Jungle Scout, Crystal Titan) and 9 paid ones.
 
 ## Testing leftovers to switch off
+- Lock the paid characters again. All characters are unlocked for everyone while
+  emotes are being made. In Supabase → SQL editor run:
+  `update public.feature_flags set enabled = false where key = 'all_characters_unlocked';`
 - Decide on bots for each venue (dashboard → Venues, links and test bots).
   With bots on, they only fill gaps: while boarding, bots fill up to 2 teams
   (12 minus real players, at most 8), leaving a team spot for real players.
