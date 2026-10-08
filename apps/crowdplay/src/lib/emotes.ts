@@ -23,6 +23,9 @@ export const EMOTES: Record<string, Emote[]> = {
   "crystal-titan": [
     { id: "breakdance", label: "Break dance", src: "/emotes/crystal-titan-breakdance.webp", durationMs: 120 * 83, aspect: 452 / 423, footroom: 23 / 400 },
   ],
+  "jungle-scout": [
+    { id: "finger-guns", label: "Finger guns", src: "/emotes/jungle-scout-finger-guns.webp", durationMs: 120 * 83, aspect: 207 / 400 },
+  ],
 };
 
 export function emotesFor(avatarId: string | null | undefined): Emote[] {
