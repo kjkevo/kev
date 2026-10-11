@@ -26,6 +26,9 @@ export const EMOTES: Record<string, Emote[]> = {
   "jungle-scout": [
     { id: "finger-guns", label: "Finger guns", src: "/emotes/jungle-scout-finger-guns.webp", durationMs: 120 * 83, aspect: 207 / 400 },
   ],
+  "alien-buddy": [
+    { id: "scheming", label: "Scheming", src: "/emotes/alien-buddy-scheming.webp", durationMs: 120 * 83, aspect: 235 / 400 },
+  ],
 };
 
 export function emotesFor(avatarId: string | null | undefined): Emote[] {
