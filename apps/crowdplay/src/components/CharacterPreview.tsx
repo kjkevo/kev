@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { EmoteCharacter, EmoteButtons, type EmotePlay } from "@/components/EmoteCharacter";
 import { formatPrice } from "@/components/AvatarPicker";
+import { emotesFor } from "@/lib/emotes";
 import type { AvatarOption } from "@/hooks/useAvatars";
 
 /**
@@ -26,6 +27,9 @@ export function CharacterPreview({
 }) {
   const [play, setPlay] = useState<EmotePlay | null>(null);
   const locked = !avatar.owned;
+  // Wide emotes (arms out, floor moves) must fit the screen: shrink the figure if needed.
+  const widest = Math.max(0, ...emotesFor(avatar.id).map((e) => e.aspect * (1 + (e.headroom ?? 0) + (e.footroom ?? 0))));
+  const size = Math.round(Math.min(300, widest > 0 ? 340 / widest : 300));
   return (
     <div className="fixed inset-0 z-[60] bg-slate-950/95 backdrop-blur-sm flex items-center justify-center px-6" onClick={onClose}>
       <div className="w-full max-w-sm flex flex-col items-center gap-3 text-white" onClick={(e) => e.stopPropagation()}>
@@ -34,7 +38,7 @@ export function CharacterPreview({
           avatarId={avatar.id}
           emoji={avatar.emoji}
           imageUrl={avatar.imageUrl}
-          size={300}
+          size={size}
           play={play}
         />
         <EmoteButtons avatarId={avatar.id} onPlay={(id) => setPlay((p) => ({ emoteId: id, n: (p?.n ?? 0) + 1 }))} />

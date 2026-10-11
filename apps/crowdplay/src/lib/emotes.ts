@@ -32,6 +32,9 @@ export const EMOTES: Record<string, Emote[]> = {
   "forest-guardian": [
     { id: "salute", label: "Salute", src: "/emotes/forest-guardian-salute.webp", durationMs: 66 * 83, aspect: 243 / 400 },
   ],
+  "stone-golem": [
+    { id: "shrug", label: "Shrug", src: "/emotes/stone-golem-shrug.webp", durationMs: 92 * 83, aspect: 537 / 400 },
+  ],
 };
 
 export function emotesFor(avatarId: string | null | undefined): Emote[] {
