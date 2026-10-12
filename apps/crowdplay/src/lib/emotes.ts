@@ -38,6 +38,9 @@ export const EMOTES: Record<string, Emote[]> = {
   "void-walker": [
     { id: "robot-dance", label: "Robot dance", src: "/emotes/void-walker-robot-dance.webp", durationMs: 103 * 83, aspect: 205 / 400 },
   ],
+  "sylvan-entity": [
+    { id: "air-guitar", label: "Air guitar", src: "/emotes/sylvan-entity-air-guitar.webp", durationMs: 120 * 83, aspect: 271 / 400 },
+  ],
 };
 
 export function emotesFor(avatarId: string | null | undefined): Emote[] {
