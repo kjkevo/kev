@@ -77,7 +77,7 @@ dashboard marked TEST.
 (`app_secrets.purchase_secret`); they must match.
 
 ## Avatars
-- Done: 2 free characters (Jungle Scout, Crystal Titan) and 9 paid ones.
+- Done: 2 free characters (Jungle Scout, Crystal Titan) and 7 paid ones (Forest Heart and Aethel Druid were removed).
 
 ## Testing leftovers to switch off
 - Lock the paid characters again. All characters are unlocked for everyone while
