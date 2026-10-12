@@ -43,7 +43,7 @@ import { useRoomEmotes } from "@/hooks/useRoomEmotes";
 
 const JOIN_ERRORS: Record<string, string> = {
   ROOM_NOT_FOUND: "That game code doesn't exist.",
-  ROOM_ALREADY_STARTED: "Game already started. Wait for the next one.",
+  ROOM_ALREADY_STARTED: "That game just started. Tap Join for the next one.",
   TOO_MANY_JOINS: "Too many joins. Try again in a few seconds.",
   INVALID_NICKNAME: "Names need 1 to 30 characters.",
   NICKNAME_TAKEN: "Name taken in this game. Try another.",
@@ -100,7 +100,7 @@ export default function PlayPage() {
 
   // Lobbies lined up behind the game on now: where this room sits in line
   // (if it's queued), and where to send someone when this one is full.
-  const queue = useTriviaQueue(room?.phase === "lobby" ? room.venue_id : null);
+  const queue = useTriviaQueue(room?.venue_id ?? null);
   const myQueueSpot = room?.queued ? queue.find((q) => q.o_room_id === room.id) : undefined;
   const queueProgress = currentGameProgress(myQueueSpot);
 
@@ -366,6 +366,26 @@ export default function PlayPage() {
     await joinWith(avatarId);
   }
 
+  // The next game with room at this venue: the first queued lobby, or the
+  // open lobby if the game before it has already ended.
+  async function nextGameCode(): Promise<string | null> {
+    if (!room) return null;
+    const { data } = await supabase.rpc("trivia_queue", { p_venue_id: room.venue_id });
+    const queued = (data ?? []).find((q) => !q.o_full && q.o_code !== code);
+    if (queued) return queued.o_code;
+    const { data: open } = await supabase
+      .from("rooms")
+      .select("code")
+      .eq("venue_id", room.venue_id)
+      .eq("phase", "lobby")
+      .eq("retired", false)
+      .neq("code", code!)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    return open?.code ?? null;
+  }
+
   async function joinWith(characterId: string | null) {
     const typedName = seasonName ?? nickname.trim();
     if (!code || typedName.length === 0) return;
@@ -398,27 +418,42 @@ export default function PlayPage() {
       playName = claim.data[0].o_username;
       refreshSeason();
     }
-    const creating = joinMode === "team" && !selectedTeamId;
+    // This game already started (or filled up): join the next one instead,
+    // so nobody is turned away; its lobby shows "Next game" and the wait.
+    let target = code;
+    let teamId = joinMode === "team" && selectedTeamId ? selectedTeamId : undefined;
+    if (room && room.phase !== "lobby") {
+      target = (await nextGameCode()) ?? code;
+      teamId = undefined; // a team picked here belongs to this game
+    }
+    let creating = joinMode === "team" && !teamId;
     let teamName = newTeamName.trim();
-    let result = await supabase.rpc("join_room", {
-      p_code: code,
-      p_nickname: playName,
-      p_team_id: joinMode === "team" && selectedTeamId ? selectedTeamId : undefined,
-      p_new_team_name: creating ? teamName : undefined,
-      p_avatar_id: characterId,
-      p_device_key: deviceKey(),
-    });
+    const attempt = () =>
+      supabase.rpc("join_room", {
+        p_code: target,
+        p_nickname: playName,
+        p_team_id: teamId,
+        p_new_team_name: creating ? teamName : undefined,
+        p_avatar_id: characterId,
+        p_device_key: deviceKey(),
+      });
+    let result = await attempt();
+    if (result.error && /ROOM_ALREADY_STARTED|ROOM_FULL/.test(result.error.message)) {
+      const next = await nextGameCode();
+      if (next && next !== target) {
+        target = next;
+        if (teamId) {
+          teamId = undefined;
+          creating = joinMode === "team";
+        }
+        result = await attempt();
+      }
+    }
     // Team names are random, so a clash is just bad luck: roll another.
     for (let tries = 0; creating && tries < 3 && result.error?.message.includes("TEAM_NAME_TAKEN"); tries++) {
       teamName = `Team ${randomFunName()}`;
       setNewTeamName(teamName);
-      result = await supabase.rpc("join_room", {
-        p_code: code,
-        p_nickname: playName,
-        p_new_team_name: teamName,
-        p_avatar_id: characterId,
-        p_device_key: deviceKey(),
-      });
+      result = await attempt();
     }
     const { data, error } = result;
     setJoining(false);
@@ -426,11 +461,6 @@ export default function PlayPage() {
       setJoinError(friendlyError(error?.message ?? ""));
       // The invite didn't work (team full or gone): show the regular join screen.
       setInvited(false);
-      // Full: go straight to the next game in line, keeping their choice.
-      const next = queue.find((q) => !q.o_full && q.o_code !== code);
-      if (error?.message.includes("ROOM_FULL") && next) {
-        setTimeout(() => router.push(`/play/${next.o_code}?mode=${joinMode === "team" ? "team" : "solo"}`), 1500);
-      }
       return;
     }
     const c: PlayerCredentials = {
@@ -440,10 +470,22 @@ export default function PlayPage() {
       teamId: data[0].team_id,
       teamName: data[0].team_name,
     };
-    localStorage.setItem(playerKey(code), JSON.stringify(c));
+    localStorage.setItem(playerKey(target), JSON.stringify(c));
     try {
       localStorage.setItem(LAST_MODE_KEY, joinMode);
     } catch {}
+    if (target !== code) {
+      // Joined the next game: go to its lobby (it loads these credentials).
+      if (creating) setInviteOpen(true);
+      supabase.rpc("link_player_device", {
+        p_room_id: c.roomId,
+        p_player_id: c.playerId,
+        p_client_token: c.clientToken,
+        p_device_key: deviceKey(),
+      });
+      router.push(`/play/${target}`);
+      return;
+    }
     setCreds(c);
     // Made a new team: show their invite QR code straight away.
     if (creating) setInviteOpen(true);
@@ -916,6 +958,9 @@ export default function PlayPage() {
               </div>
             )}
 
+            {room.phase !== "lobby" && !joinError && (
+              <p className="text-sm text-sky-200">This game is already playing. Join now for the next one.</p>
+            )}
             {joinError && <p className="text-red-400 text-sm">{joinError}</p>}
             <button
               disabled={joining || playName.length === 0 || cantCreateTeam || (!seasonName && nameStatus === "taken")}
@@ -925,7 +970,9 @@ export default function PlayPage() {
                 ? "Joining…"
                 : !avatarId
                   ? "Pick a character to join"
-                  : `Join · ${joinMode === "solo" ? "Solo" : invitedTeam ? invitedTeam.name : "New team"}`}
+                  : `${room.phase !== "lobby" ? "Join next game" : "Join"} · ${
+                    joinMode === "solo" ? "Solo" : invitedTeam && room.phase === "lobby" ? invitedTeam.name : "New team"
+                  }`}
             </button>
           </form>
 
