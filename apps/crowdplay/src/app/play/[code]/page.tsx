@@ -105,6 +105,11 @@ export default function PlayPage() {
   const queueProgress = currentGameProgress(myQueueSpot);
 
   const [creds, setCreds] = useState<PlayerCredentials | null>(null);
+  const [credsChecked, setCredsChecked] = useState(false);
+  // Opened a game that's already playing (or over) without being in it:
+  // we look up the next game and take them to its lobby. "none" = no game open.
+  const [forwarding, setForwarding] = useState<"looking" | "none" | null>(null);
+  const [forwardTry, setForwardTry] = useState(0);
   // Character emotes, shared live with everyone in the game.
   const { plays: emotePlays, send: sendEmote } = useRoomEmotes(creds?.roomId, creds?.playerId);
   const { avatars, byId: avatarsById, refresh: refreshAvatars } = useAvatars();
@@ -178,6 +183,7 @@ export default function PlayPage() {
     if (!code) return;
     const raw = localStorage.getItem(playerKey(code));
     if (raw) setCreds(JSON.parse(raw));
+    setCredsChecked(true);
   }, [code]);
 
   // Reset per-question vote state whenever the room moves to a new question.
@@ -656,6 +662,26 @@ export default function PlayPage() {
     if (blockedByRunningGame && venueSlug) supabase.rpc("trivia_fresh_start", { p_venue: venueSlug });
   }, [blockedByRunningGame, venueSlug]);
 
+  // Not in this game and it's already playing (or over): no error screen,
+  // straight to the next game's lobby, where they get a confirmed spot.
+  const shouldForward = !!room && credsChecked && !creds && (room.phase !== "lobby" || room.retired);
+  useEffect(() => {
+    if (!shouldForward) return;
+    let cancelled = false;
+    setForwarding("looking");
+    (async () => {
+      if (venueSlug) await supabase.rpc("trivia_fresh_start", { p_venue: venueSlug });
+      const next = await nextGameCode();
+      if (cancelled) return;
+      if (next) router.replace(`/play/${next}`);
+      else setForwarding("none");
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shouldForward, venueSlug, forwardTry]);
+
   // Scanned a team QR and already has this month's name and a character:
   // straight onto that team, nothing to tap.
   useEffect(() => {
@@ -675,6 +701,25 @@ export default function PlayPage() {
       </Center>
     );
   if (!room) return null;
+
+  if (shouldForward || (!credsChecked && room.phase !== "lobby")) {
+    if (forwarding === "none")
+      return (
+        <Center>
+          <BackButton onClick={() => router.push("/")} />
+          <h1 className="text-xl font-bold mb-2">This game is over</h1>
+          <p className="text-slate-400 max-w-xs mb-5">The next one opens in a moment.</p>
+          <button
+            type="button"
+            onClick={() => setForwardTry((n) => n + 1)}
+            className="rounded-2xl bg-amber-400 text-black px-6 py-3 font-black active:scale-95 transition"
+          >
+            Find the next game
+          </button>
+        </Center>
+      );
+    return <Center text="Taking you to the next game…" />;
+  }
 
   if (!creds) {
     const myAvatar = avatarId ? avatarsById[avatarId] : undefined;
