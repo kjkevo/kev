@@ -41,13 +41,25 @@ export function Avatar({
       </span>
     );
   }
+  if (!emoji) {
+    // No character picked yet: a plain blank figure.
+    return (
+      <span
+        aria-hidden="true"
+        style={{ width: size, height: size }}
+        className={`inline-block rounded-full overflow-hidden ring-1 ring-white/20 shrink-0 ${className}`}
+      >
+        <img src="/avatars/blank.png" alt="" className="w-full h-full object-cover" />
+      </span>
+    );
+  }
   return (
     <span
       style={{ width: size, height: size, fontSize: Math.round(size * 0.62) }}
       aria-hidden="true"
       className={`inline-flex items-center justify-center rounded-full bg-white/10 shrink-0 leading-none ${className}`}
     >
-      {emoji ?? "🙂"}
+      {emoji}
     </span>
   );
 }
