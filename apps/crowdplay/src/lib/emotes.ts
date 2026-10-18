@@ -41,6 +41,9 @@ export const EMOTES: Record<string, Emote[]> = {
   "sylvan-entity": [
     { id: "air-guitar", label: "Air guitar", src: "/emotes/sylvan-entity-air-guitar.webp", durationMs: 120 * 83, aspect: 271 / 400 },
   ],
+  "geo-sphinx": [
+    { id: "shadowbox", label: "Shadowbox", src: "/emotes/geo-sphinx-shadowbox.webp", durationMs: 55 * 83, aspect: 324 / 400 },
+  ],
 };
 
 export function emotesFor(avatarId: string | null | undefined): Emote[] {
