@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element -- small static game icon */
 import Link from "next/link";
 import { MyCharacterButton } from "@/components/CharacterLocker";
 
@@ -5,6 +6,7 @@ const GAMES = [
   {
     name: "Trivia",
     initial: "T",
+    icon: "/games/trivia.png",
     tagline: "Live teams, live leaderboard",
     href: "/trivia",
     live: true,
@@ -51,8 +53,8 @@ export default function Home() {
           href={trivia.href}
           className="rounded-3xl bg-amber-400 text-black p-5 flex items-center gap-4 text-left shadow-lg shadow-amber-400/25 transition active:scale-95"
         >
-          <div className="w-14 h-14 shrink-0 rounded-2xl bg-black text-amber-400 font-black text-2xl flex items-center justify-center">
-            {trivia.initial}
+          <div className="w-14 h-14 shrink-0 rounded-2xl bg-black overflow-hidden">
+            <img src={trivia.icon} alt="" className="w-full h-full object-cover" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="font-black text-2xl leading-tight">{trivia.name}</div>
