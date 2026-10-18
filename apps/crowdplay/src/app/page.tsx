@@ -14,6 +14,7 @@ const GAMES = [
   {
     name: "Family Feud",
     initial: "F",
+    icon: "/games/feud.png",
     tagline: "Top answers, buzzer battles",
     href: "/feud",
     live: false,
@@ -21,6 +22,7 @@ const GAMES = [
   {
     name: "Social Bingo",
     initial: "B",
+    icon: "/games/bingo.png",
     tagline: "Meet people, mark your card",
     href: "/bingo",
     live: false,
@@ -28,6 +30,7 @@ const GAMES = [
   {
     name: "Sports Predictions",
     initial: "S",
+    icon: "/games/sports.png",
     tagline: "Call it before it happens",
     href: "#",
     live: false,
@@ -70,8 +73,8 @@ export default function Home() {
               key={game.name}
               className="rounded-2xl bg-white/[0.03] border border-white/5 px-2 py-3 flex flex-col items-center gap-1 opacity-60"
             >
-              <div className="w-8 h-8 rounded-lg bg-white/10 text-slate-400 font-black text-sm flex items-center justify-center">
-                {game.initial}
+              <div className="w-12 h-12 rounded-xl bg-black overflow-hidden">
+                <img src={game.icon} alt="" className="w-full h-full object-cover" />
               </div>
               <div className="font-bold text-xs leading-tight">{game.name}</div>
               <div className="text-[10px] uppercase tracking-wider text-slate-500">Coming soon</div>
