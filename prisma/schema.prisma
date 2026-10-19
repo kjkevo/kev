@@ -327,3 +327,63 @@ model SupportTicket {
   @@index([createdAt])
   @@index([status])
 }
+
+// ── GA4 client reporting ──────────────────────────────────────────────────
+// One row per agency client whose GA4 property we report on. `slug` is the
+// public report URL (/report/[slug]); `propertyId` is left empty for the demo
+// client, which is seeded with sample data instead of a live GA4 pull.
+
+model Ga4Client {
+  id           Int      @id @default(autoincrement())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  slug         String   @unique
+  businessName String
+  propertyId   String?  // GA4 property ID, e.g. "properties/123456789" — null for demo/sample clients
+  timezone     String   @default("America/New_York")
+  active       Boolean  @default(true)
+
+  // Branding — reskin the hosted report per client
+  logoUrl      String?
+  brandColor   String   @default("#00E5C4")
+  agencyName   String   @default("Your Agency")
+
+  // Delivery
+  recipientEmail String?
+  deliverySchedule String @default("weekly") // weekly | monthly
+
+  snapshots    Ga4Snapshot[]
+
+  @@index([active])
+}
+
+model Ga4Snapshot {
+  id              Int       @id @default(autoincrement())
+  createdAt       DateTime  @default(now())
+  clientId        Int
+  client          Ga4Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  periodStart     DateTime
+  periodEnd       DateTime
+
+  sessions        Int
+  users           Int
+  conversions     Int
+  engagementRate  Float     // 0-1
+
+  // % change vs. the prior period of equal length, computed at pull time so
+  // the report page never has to reach back through history to render a trend.
+  sessionsChangePct    Float?
+  usersChangePct       Float?
+  conversionsChangePct Float?
+
+  // Breakdown data, stored as JSON so the schema doesn't need to change as
+  // metrics evolve. Shapes documented in app/lib/ga4.ts.
+  channels        Json      // ChannelRow[]
+  landingPages    Json      // LandingPageRow[]
+  conversionEvents Json     // ConversionEventRow[]
+
+  @@unique([clientId, periodEnd])
+  @@index([clientId, periodEnd])
+}

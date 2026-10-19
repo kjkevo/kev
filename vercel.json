@@ -11,6 +11,7 @@
   "crons": [
     { "path": "/api/cron/weekly-digest", "schedule": "0 9 * * 1" },
     { "path": "/api/cron/health-alert", "schedule": "0 8 * * *" },
-    { "path": "/api/cron/trial-enforcement", "schedule": "30 8 * * *" }
+    { "path": "/api/cron/trial-enforcement", "schedule": "30 8 * * *" },
+    { "path": "/api/cron/ga4-pull", "schedule": "0 7 * * 1" }
   ]
 }

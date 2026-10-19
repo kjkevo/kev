@@ -9,9 +9,15 @@ import { TopBar } from "./TopBar";
 
 const SHELL_EXCLUDED = ["/", "/login", "/signup", "/onboarding", "/admin", "/live", "/dashboard", "/privacy", "/terms", "/opt-in", "/support", "/demo", "/start", "/welcome"];
 
+// Dynamic routes that should also render shell-free, matched by prefix since
+// their pathname (e.g. "/report/acme-co") is never an exact SHELL_EXCLUDED entry.
+const SHELL_EXCLUDED_PREFIXES = ["/report/"];
+
 function useShellVisible() {
   const pathname = usePathname();
-  return !SHELL_EXCLUDED.includes(pathname);
+  if (SHELL_EXCLUDED.includes(pathname)) return false;
+  if (SHELL_EXCLUDED_PREFIXES.some((prefix) => pathname.startsWith(prefix))) return false;
+  return true;
 }
 
 /* ─── Width/height constants (must stay in sync with Sidebar + TopBar) ───── */
