@@ -6,6 +6,12 @@ export function isOpenQuestion(orderIndex: number) {
   return orderIndex % 3 === 2;
 }
 
+/** Seconds on the clock: 20 for multiple choice, 35 for an open answer
+ * (matches trivia_question_seconds() in the database). */
+export function questionSeconds(orderIndex: number) {
+  return isOpenQuestion(orderIndex) ? 35 : 20;
+}
+
 /**
  * The choices in a fixed, scrambled order: the same for everyone in the
  * game (seeded by the question id), but the right answer isn't always in
