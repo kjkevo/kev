@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { isOpenQuestion, questionSeconds, shuffledChoices } from "@/lib/questionMode";
 import { RoundStandings } from "@/components/RoundStandings";
+import { listenForUnlock, sounds } from "@/lib/sounds";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useRoomRealtime } from "@/hooks/useRoomRealtime";
@@ -166,6 +167,49 @@ export default function PlayPage() {
   );
   const showStandings = room?.phase === "reveal" && revealClock.reached;
 
+  // ---- Sounds ----
+  useEffect(() => listenForUnlock(), []);
+  // Get-ready beeps (3, 2, 1) and the last-5-seconds tick.
+  const getReadySecs = room?.phase === "question" ? Math.ceil(questionStart.remainingMs / 1000) : 0;
+  useEffect(() => {
+    if (getReadySecs >= 1 && getReadySecs <= 3) sounds.beep();
+  }, [getReadySecs]);
+  const tickSecs =
+    room?.phase === "question" && questionStart.remainingMs <= 0 && !countdown.expired && teamLock === null
+      ? countdown.remainingSeconds
+      : 0;
+  useEffect(() => {
+    if (tickSecs >= 1 && tickSecs <= 5) sounds.tick(tickSecs === 1);
+  }, [tickSecs]);
+  // Locked in.
+  const prevLock = useRef<string | null>(null);
+  useEffect(() => {
+    if (teamLock !== null && prevLock.current === null && room?.phase === "question") sounds.lock();
+    prevLock.current = teamLock;
+  }, [teamLock, room?.phase]);
+  // The reveal: a whoosh, then right or wrong for your team.
+  const myRevealPick = reveal && creds ? reveal.picks.find((r) => r.teamId === creds.teamId) : undefined;
+  const revealKey = room?.phase === "reveal" && reveal ? room.current_question_index : -1;
+  useEffect(() => {
+    if (revealKey < 0) return;
+    sounds.reveal();
+    const t = setTimeout(() => {
+      if (myRevealPick) (myRevealPick.teamCorrect ? sounds.correct : sounds.wrong)();
+    }, 700);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [revealKey]);
+  useEffect(() => {
+    if (showStandings) sounds.standings();
+  }, [showStandings]);
+  // Someone new joined the lobby.
+  const lobbyCount = room?.phase === "lobby" ? players.filter((p) => !p.left_at).length : 0;
+  const prevLobbyCount = useRef(lobbyCount);
+  useEffect(() => {
+    if (creds && lobbyCount > prevLobbyCount.current && prevLobbyCount.current > 0) sounds.join();
+    prevLobbyCount.current = lobbyCount;
+  }, [lobbyCount, creds]);
+
   // A buzz at 5 seconds left (once per question) if the team hasn't locked in.
   const buzzedFor = useRef<string | null>(null);
   useEffect(() => {
@@ -254,6 +298,8 @@ export default function PlayPage() {
   const restTeams = useMemo(() => sortedTeams.slice(topThree.length), [sortedTeams, topThree]);
   const revealOrder = useMemo(() => [...topThree].reverse(), [topThree]);
   const [revealCount, setRevealCount] = useState(0);
+  const myRankRef = useRef(0);
+  myRankRef.current = myTeamRank;
   const [suspense, setSuspense] = useState(false);
   const [showRest, setShowRest] = useState(false);
 
@@ -269,11 +315,16 @@ export default function PlayPage() {
         const isWinner = i === revealOrder.length - 1;
         if (isWinner && revealOrder.length > 1) {
           setSuspense(true);
+          sounds.drumroll(2.4);
           await sleep(2500);
           if (cancelled) return;
           setSuspense(false);
         }
         setRevealCount(i + 1);
+        if (isWinner) {
+          if (myRankRef.current === 1) sounds.fanfare();
+          else sounds.gameOver();
+        } else sounds.beep();
         await sleep(isWinner ? 900 : 1600);
       }
       if (!cancelled) setShowRest(true);
@@ -543,6 +594,7 @@ export default function PlayPage() {
     const t = text.trim();
     if (!room || !creds || !question || countdown.expired || sendingVote || t.length === 0) return;
     haptics.tap();
+    sounds.tap();
     setSendingVote(true);
     setVoteError(null);
     const { error } = await supabase.rpc("cast_team_vote", {
