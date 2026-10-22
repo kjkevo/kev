@@ -76,7 +76,7 @@ export function EmoteCharacter({
   );
 }
 
-/** One Emote button: each tap plays this character's next emote, in order. */
+/** One Emote button (a disco ball): each tap plays this character's next emote, in order. */
 export function EmoteButtons({
   avatarId,
   onPlay,
@@ -94,11 +94,13 @@ export function EmoteButtons({
         const e = nextEmote(avatarId);
         if (e) onPlay(e.id);
       }}
-      className={`rounded-full bg-amber-400 text-black font-black shadow active:scale-95 transition ${
-        small ? "px-2.5 py-0.5 text-[11px]" : "px-5 py-2 text-sm"
+      aria-label="Emote"
+      title="Emote"
+      className={`rounded-full bg-amber-400 shadow active:scale-95 transition flex items-center justify-center ${
+        small ? "w-8 h-8" : "w-12 h-12"
       }`}
     >
-      Emote
+      <img src="/icons/dance.png" alt="" className={small ? "w-5 h-5" : "w-8 h-8"} />
     </button>
   );
 }
