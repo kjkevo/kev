@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Avatar } from "@/components/Avatar";
+import { CharacterCarousel } from "@/components/CharacterCarousel";
 import { CharacterPreview } from "@/components/CharacterPreview";
 import type { AvatarOption } from "@/hooks/useAvatars";
 
@@ -10,9 +10,8 @@ export function formatPrice(cents: number) {
 }
 
 /**
- * Free avatars first, then premium ones with a lock (no price in the grid).
- * Tapping one opens a close-up (CharacterPreview) with Equip, or Unlock
- * for a locked one (onBuy opens the "Unlock Character" screen).
+ * The characters on a carousel. Tapping one opens a close-up
+ * (CharacterPreview); Unlock on a locked one opens the "Unlock Character" screen.
  */
 export function AvatarPicker({
   avatars,
@@ -29,45 +28,13 @@ export function AvatarPicker({
   if (avatars.length === 0) return null;
   return (
     <div className="w-full max-w-sm">
-      <p className="text-xs uppercase tracking-widest text-slate-400 mb-2">Pick your avatar</p>
-      <div className="grid grid-cols-3 gap-2">
-        {avatars.map((a) => {
-          const locked = !a.owned;
-          const selected = a.id === selectedId;
-          return (
-            <button
-              key={a.id}
-              type="button"
-              onClick={() => setViewing(a)}
-              aria-label={locked ? `Unlock ${a.name}` : selected ? `${a.name}, equipped` : `Equip ${a.name}`}
-              aria-pressed={selected}
-              className={`relative flex flex-col items-center gap-1 rounded-xl pt-2 pb-1.5 transition active:scale-95 ${
-                selected ? "bg-amber-400/25 ring-2 ring-amber-400" : "bg-white/5"
-              }`}
-            >
-              <Avatar emoji={a.emoji} imageUrl={a.imageUrl} size={96} variant="full" className={locked ? "opacity-60" : ""} />
-              <span className="text-xs font-semibold text-slate-200 truncate max-w-full px-1">{a.name}</span>
-              <span
-                aria-hidden="true"
-                className={`rounded-full px-2.5 text-xs font-bold leading-6 ${
-                  selected
-                    ? "bg-amber-400 text-black"
-                    : locked
-                      ? "bg-white/10 text-amber-300"
-                      : "bg-white/15 text-white"
-                }`}
-              >
-                {selected ? "Equipped ✓" : locked ? "Unlock" : "Equip"}
-              </span>
-              {locked && (
-                <span aria-hidden="true" className="absolute top-1.5 right-1.5 rounded-full bg-black/60 text-xs px-1 leading-5">
-                  🔒
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+      <CharacterCarousel
+        avatars={avatars}
+        selectedId={selectedId}
+        buttonLabel={(a) => (a.id === selectedId ? "Equipped ✓" : a.owned ? "Equip" : `Unlock · ${formatPrice(a.priceCents)}`)}
+        onButton={(a) => (a.owned ? onSelect(a.id) : onBuy?.(a))}
+        onView={setViewing}
+      />
       {viewing && (
         <CharacterPreview
           avatar={viewing}
