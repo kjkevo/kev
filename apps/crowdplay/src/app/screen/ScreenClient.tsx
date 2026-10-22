@@ -97,7 +97,7 @@ export default function ScreenClient() {
             <p className="text-2xl font-black tracking-widest">{nextGame.o_code}</p>
             <p className="text-sm text-slate-300">Scan to sign up</p>
             <p className="text-xs text-slate-500">
-              {roundsToWaitLabel(nextGame.o_rounds_to_wait)} · {nextGame.o_players} signed up
+              {roundsToWaitLabel(nextGame.o_rounds_to_wait, nextGame)} · {nextGame.o_players} signed up
             </p>
           </div>
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useRoomRealtime } from "@/hooks/useRoomRealtime";
@@ -156,6 +156,17 @@ export default function PlayPage() {
     room?.phase === "question" ? question?.id : undefined,
     creds
   );
+
+  // A buzz at 5 seconds left (once per question) if the team hasn't locked in.
+  const buzzedFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (room?.phase !== "question" || !creds || !question || teamLock !== null) return;
+    if (countdown.expired || countdown.remainingSeconds > 5 || buzzedFor.current === question.id) return;
+    buzzedFor.current = question.id;
+    try {
+      navigator.vibrate?.([150, 80, 150]);
+    } catch {}
+  }, [room?.phase, creds, question, teamLock, countdown.expired, countdown.remainingSeconds]);
 
   useEffect(() => {
     setNickname(randomFunName());
@@ -840,7 +851,7 @@ export default function PlayPage() {
             )}
             {room.queued && (
               <p className="text-sm">
-                <span className="text-amber-400 font-bold">Next game · {roundsToWaitLabel(myQueueSpot?.o_rounds_to_wait ?? 1)}</span>
+                <span className="text-amber-400 font-bold">Next game · {roundsToWaitLabel(myQueueSpot?.o_rounds_to_wait ?? 1, myQueueSpot)}</span>
                 {queueProgress && <span className="block text-xs text-slate-400 mt-0.5">{queueProgress}</span>}
               </p>
             )}
@@ -1144,7 +1155,7 @@ export default function PlayPage() {
 
           {room.queued && (
             <div className="rounded-2xl bg-sky-500/10 border border-sky-400/40 px-4 py-3">
-              <p className="font-bold text-sky-200">Next game · {roundsToWaitLabel(myQueueSpot?.o_rounds_to_wait ?? 1)}</p>
+              <p className="font-bold text-sky-200">Next game · {roundsToWaitLabel(myQueueSpot?.o_rounds_to_wait ?? 1, myQueueSpot)}</p>
               {queueProgress && <p className="text-xs text-slate-400 mt-1">{queueProgress}</p>}
             </div>
           )}
@@ -1345,11 +1356,15 @@ export default function PlayPage() {
               </span>
             </>
           )}
-          <span className={`ml-auto text-2xl font-black tabular-nums ${urgent ? "text-red-400" : "text-amber-400"}`}>
+          <span
+            className={`ml-auto text-4xl font-black tabular-nums leading-none ${urgent ? "text-red-400" : "text-amber-400"} ${
+              !countdown.expired && countdown.remainingSeconds <= 5 ? "animate-pulse scale-110" : ""
+            }`}
+          >
             {countdown.remainingSeconds}s
           </span>
         </div>
-        <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+        <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden">
           <div
             className={`h-full transition-[width] duration-100 linear ${urgent ? "bg-red-400" : "bg-amber-400"}`}
             style={{ width: `${countdown.fraction * 100}%` }}
@@ -1390,11 +1405,11 @@ export default function PlayPage() {
                 maxLength={200}
                 placeholder="Type your answer…"
                 autoComplete="off"
-                className="w-full text-center text-lg font-semibold bg-white/10 border border-white/20 rounded-2xl py-4 px-4 outline-none focus:border-amber-400 disabled:opacity-50"
+                className="w-full text-center text-2xl font-bold bg-white/10 border-2 border-white/20 rounded-2xl py-5 px-4 outline-none focus:border-amber-400 disabled:opacity-50"
               />
               <button
                 disabled={!canVote}
-                className="rounded-2xl bg-amber-400 text-black font-bold text-lg py-4 disabled:opacity-40 active:scale-95 transition"
+                className="rounded-2xl bg-amber-400 text-black font-black text-2xl py-5 disabled:opacity-40 active:scale-95 transition"
               >
                 {sendingVote ? "Sending…" : !myVote ? "Lock in" : canVote ? "Switch to this" : "Sent ✓"}
               </button>
@@ -1404,7 +1419,7 @@ export default function PlayPage() {
           {teamHint ? (
             <div className="rounded-2xl bg-sky-500/10 border border-sky-400/40 px-4 py-2.5 text-center">
               <p className="text-xs uppercase tracking-widest text-sky-300 mb-1">
-                Hint · worth {(1000 - hintCost).toLocaleString()} now
+                Hint · a right answer now scores {(1000 - hintCost).toLocaleString()}
               </p>
               <p className="font-semibold">{teamHint}</p>
             </div>
@@ -1412,7 +1427,8 @@ export default function PlayPage() {
             confirmingHint ? (
               <div className="rounded-2xl bg-white/5 border border-amber-400/40 px-4 py-3 text-center">
                 <p className="text-sm text-slate-200 mb-3">
-                  Narrows it to 2 for your team. Right answer: {(1000 - hintCost).toLocaleString()} instead of 1,000.
+                  Narrows it to 2 choices for your team. It costs {hintCost} points: a right answer scores{" "}
+                  {(1000 - hintCost).toLocaleString()} instead of 1,000.
                 </p>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => setConfirmingHint(false)} className="flex-1 rounded-xl bg-white/10 py-2 font-semibold">
@@ -1424,13 +1440,17 @@ export default function PlayPage() {
                     disabled={gettingHint}
                     className="flex-1 rounded-xl bg-amber-400 text-black py-2 font-bold disabled:opacity-50"
                   >
-                    {gettingHint ? "Getting hint…" : `Show hint (−${hintCost})`}
+                    {gettingHint ? "Getting hint…" : `Show hint · costs ${hintCost}`}
                   </button>
                 </div>
               </div>
             ) : (
-              <button type="button" onClick={() => setConfirmingHint(true)} className="text-sm text-sky-300 underline underline-offset-4">
-                Hint (−{hintCost})
+              <button
+                type="button"
+                onClick={() => setConfirmingHint(true)}
+                className="self-center rounded-full bg-sky-500/15 border border-sky-400/40 px-4 py-2 text-sm font-bold text-sky-200 active:scale-95 transition"
+              >
+                Need a hint? Costs {hintCost} points
               </button>
             )
           ) : null}
