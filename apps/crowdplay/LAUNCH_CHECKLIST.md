@@ -33,7 +33,7 @@ For launch, switch **Automatic Roller Coaster** on in the dashboard
 
 ## Connect your domain (Hostinger)
 Do this before printing any QR codes: the QR codes contain the site address,
-so codes printed while it's still crowdplay-psi.vercel.app would stop working
+so codes printed while it's still slimpse.vercel.app would stop working
 if that address ever changes.
 
 1. Buy/choose the domain in Hostinger (e.g. hivian.com, or play.hivian.com).

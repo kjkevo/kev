@@ -4,9 +4,9 @@ There are two complete copies of CrowdPlay. They never share data.
 
 | | Live (the bar) | Test |
 |---|---|---|
-| Game site | crowdplay-psi.vercel.app | crowdplay-staging.vercel.app (pink "Test site" tag) |
-| QR screen | crowdplay-psi.vercel.app/qr | crowdplay-staging.vercel.app/qr |
-| TV screen | crowdplay-psi.vercel.app/screen | crowdplay-staging.vercel.app/screen |
+| Game site | slimpse.vercel.app (the old crowdplay-psi.vercel.app redirects here) | crowdplay-staging.vercel.app (pink "Test site" tag) |
+| QR screen | slimpse.vercel.app/qr | crowdplay-staging.vercel.app/qr |
+| TV screen | slimpse.vercel.app/screen | crowdplay-staging.vercel.app/screen |
 | Dashboard | Control Room: claude.ai/artifact/2LSNrQXS6c5kKZ8kFM3yqV | Test Room: claude.ai/artifact/RyoZh9RFG5jPJ2eTESiZhd |
 | Database (Supabase) | `crowdplay` (cgkstbqwzsvmvgsffswy) | `crowdplay-staging` (xtvwtcphmecgvqtnfoak) |
 | Git branch | `main` | `staging` |
