@@ -1,5 +1,7 @@
 "use client";
 
+import { isOpenQuestion, questionSeconds, shuffledChoices } from "@/lib/questionMode";
+import { RoundStandings } from "@/components/RoundStandings";
 import { useEffect, useMemo, useState } from "react";
 import { useActiveRoom } from "@/hooks/useActiveRoom";
 import { useRoomRealtime } from "@/hooks/useRoomRealtime";
@@ -43,7 +45,7 @@ export default function ScreenClient() {
   const code = activeRoom?.code ?? null;
   const { room, players, teams } = useRoomRealtime(code);
   const question = useCurrentQuestion(room?.id, room?.current_question_index, room?.phase);
-  const countdown = useCountdown(room?.question_started_at ?? null, question?.time_limit_seconds ?? 15);
+  const countdown = useCountdown(room?.question_started_at ?? null, questionSeconds(room?.current_question_index ?? 0));
   const scheduledCountdown = useCountdownTo(room?.starts_at ?? null);
   const totalQuestions = useTotalQuestions(room?.id, room?.phase);
   const answeredIds = useAnsweredPlayers(room?.phase === "question" ? question?.id : undefined);
@@ -52,6 +54,10 @@ export default function ScreenClient() {
   const voteTally = useCategoryVoteTally(room?.phase === "lobby" ? room?.id : undefined);
   const [recap, setRecap] = useState<FinalRecapRow[] | null>(null);
   const questionStart = useCountdownTo(room?.phase === "question" ? room.question_started_at : null);
+  // Reveal: who picked what for 6 seconds, then the top 3 (12-second reveal).
+  const revealClock = useCountdownTo(
+    room?.phase === "reveal" && room.phase_started_at ? new Date(Date.parse(room.phase_started_at) + 6000).toISOString() : null
+  );
   const sdStart = useCountdownTo(room?.phase === "sudden_death" ? room.sd_started_at : null);
   const sdClock = useCountdown(room?.phase === "sudden_death" ? room.sd_started_at : null, 20);
   const sdPrompt = useQuestionById(room?.phase === "sudden_death" ? room.sd_question_id : null);
@@ -223,6 +229,18 @@ export default function ScreenClient() {
               Question {room.current_question_index + 1} of {totalQuestions || "?"} · {countdown.remainingSeconds}s
             </p>
             <h2 className="text-4xl font-bold max-w-3xl">{question.prompt}</h2>
+            {!isOpenQuestion(room.current_question_index) && question.choices?.length >= 2 ? (
+              <div className="grid grid-cols-2 gap-3 w-full max-w-3xl">
+                {shuffledChoices(question.choices, question.id).map((c, i) => (
+                  <div key={c} className="rounded-2xl bg-white/10 border border-white/20 px-5 py-4 text-2xl font-bold text-left">
+                    <span className="text-amber-400 mr-3">{"ABCD"[i]}</span>
+                    {c}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xl text-sky-300 font-bold">Open answer · teams type it in</p>
+            )}
             <div className="w-full max-w-5xl mt-4">
               <LockInStrip players={players} teams={teams} avatars={avatarsById} answered={answeredIds} big />
             </div>
@@ -235,10 +253,14 @@ export default function ScreenClient() {
               Question {room.current_question_index + 1} of {totalQuestions || "?"} · Who picked what
             </p>
             {question && <h2 className="text-3xl font-bold max-w-4xl">{question.prompt}</h2>}
-            {reveal && (
-              <div className="w-full max-w-6xl">
-                <PickYourCorner reveal={reveal} players={players} teams={teams} avatars={avatarsById} big />
-              </div>
+            {revealClock.reached ? (
+              <RoundStandings roomId={room.id} questionIndex={room.current_question_index} big />
+            ) : (
+              reveal && (
+                <div className="w-full max-w-6xl">
+                  <PickYourCorner reveal={reveal} players={players} teams={teams} avatars={avatarsById} big />
+                </div>
+              )
             )}
           </>
         )}

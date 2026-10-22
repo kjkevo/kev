@@ -1,5 +1,6 @@
 "use client";
 
+import { questionSeconds } from "@/lib/questionMode";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -21,7 +22,7 @@ export default function HostGamePage() {
   const code = params.code?.toUpperCase();
   const { room, players, teams, loading, notFound } = useRoomRealtime(code ?? null);
   const question = useCurrentQuestion(room?.id, room?.current_question_index, room?.phase);
-  const countdown = useCountdown(room?.question_started_at ?? null, question?.time_limit_seconds ?? 15);
+  const countdown = useCountdown(room?.question_started_at ?? null, questionSeconds(room?.current_question_index ?? 0));
   const scheduledCountdown = useCountdownTo(room?.starts_at ?? null);
   const votedCount = useAnsweredCount(room?.phase === "question" ? question?.id : undefined);
   const totalQuestions = useTotalQuestions(room?.id, room?.phase);

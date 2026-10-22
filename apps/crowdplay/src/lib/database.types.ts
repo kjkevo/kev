@@ -665,6 +665,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      get_round_standings: {
+        Args: { p_room_id: string }
+        Returns: {
+          o_team_id: string
+          o_name: string
+          o_score: number
+          o_points: number
+          o_rank: number
+        }[]
+      }
       trivia_queue: {
         Args: { p_venue_id: string }
         Returns: {

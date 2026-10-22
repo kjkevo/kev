@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { isOpenQuestion, shuffledChoices } from "@/lib/questionMode";
+import { isOpenQuestion, questionSeconds, shuffledChoices } from "@/lib/questionMode";
+import { RoundStandings } from "@/components/RoundStandings";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useRoomRealtime } from "@/hooks/useRoomRealtime";
@@ -63,7 +64,8 @@ const JOIN_ERRORS: Record<string, string> = {
 };
 
 const LAST_MODE_KEY = "crowdplay_last_mode";
-const SUDDEN_DEATH_SECONDS = 20; // matches trivia_sd_seconds() in the database
+const SUDDEN_DEATH_SECONDS = 20;
+const REVEAL_PICKS_MS = 6000; // of the 12-second reveal (trivia tick), then the top 3 // matches trivia_sd_seconds() in the database
 
 function friendlyError(raw: string) {
   const key = Object.keys(JOIN_ERRORS).find((k) => raw.includes(k));
@@ -76,7 +78,7 @@ export default function PlayPage() {
   const code = params.code?.toUpperCase();
   const { room, players, teams, loading, notFound } = useRoomRealtime(code ?? null);
   const question = useCurrentQuestion(room?.id, room?.current_question_index, room?.phase);
-  const countdown = useCountdown(room?.question_started_at ?? null, question?.time_limit_seconds ?? 15);
+  const countdown = useCountdown(room?.question_started_at ?? null, questionSeconds(room?.current_question_index ?? 0));
   const scheduledCountdown = useCountdownTo(room?.starts_at ?? null);
   // Question 1 opens with a few seconds of "Get ready" before its clock starts.
   const questionStart = useCountdownTo(room?.phase === "question" ? room.question_started_at : null);
@@ -157,6 +159,12 @@ export default function PlayPage() {
     room?.phase === "question" ? question?.id : undefined,
     creds
   );
+
+  // After each question: who picked what first, then the top 3 scores.
+  const revealClock = useCountdownTo(
+    room?.phase === "reveal" && room.phase_started_at ? new Date(Date.parse(room.phase_started_at) + REVEAL_PICKS_MS).toISOString() : null
+  );
+  const showStandings = room?.phase === "reveal" && revealClock.reached;
 
   // A buzz at 5 seconds left (once per question) if the team hasn't locked in.
   const buzzedFor = useRef<string | null>(null);
@@ -1407,6 +1415,7 @@ export default function PlayPage() {
                 <div className="grid grid-cols-1 gap-2">
                   {shuffledChoices(question.choices, question.id).map((c) => {
                     const mine = myVote !== undefined && normalizeAnswer(myVote) === normalizeAnswer(c);
+                    const teamVotes = teamOptions.find((o) => normalizeAnswer(o.text) === normalizeAnswer(c))?.voters.length ?? 0;
                     const ruledOut = !!teamHint && !teamHint.includes(c);
                     return (
                       <button
@@ -1423,13 +1432,18 @@ export default function PlayPage() {
                         }`}
                       >
                         {c}
-                        {mine && <span className="float-right text-base">✓</span>}
+                        {teamVotes > 0 && (
+                          <span className={`float-right text-sm font-bold mt-1 ${mine ? "text-black/70" : "text-amber-300"}`}>
+                            {teamVotes} {teamVotes === 1 ? "vote" : "votes"}
+                            {mine ? " ✓" : ""}
+                          </span>
+                        )}
                       </button>
                     );
                   })}
                 </div>
                 <p className="text-center text-xs text-slate-400">
-                  {myVote ? "Tap another to change your vote. Your team goes with the most votes." : "Tap your answer."}
+                  {myVote ? "Your team's answer is the one with the most votes. Tap another to switch." : "Tap your answer. Faster right answers score more (up to 1,000)."}
                 </p>
                 {voteError && <p className="text-center text-sm text-rose-400">{voteError}</p>}
               </div>
@@ -1459,7 +1473,7 @@ export default function PlayPage() {
           {teamHint ? (
             <div className="rounded-2xl bg-sky-500/10 border border-sky-400/40 px-4 py-2.5 text-center">
               <p className="text-xs uppercase tracking-widest text-sky-300 mb-1">
-                Hint · a right answer now scores {(1000 - hintCost).toLocaleString()}
+                Hint used · −{hintCost} points if right
               </p>
               <p className="font-semibold">{teamHint}</p>
             </div>
@@ -1467,8 +1481,7 @@ export default function PlayPage() {
             confirmingHint ? (
               <div className="rounded-2xl bg-white/5 border border-amber-400/40 px-4 py-3 text-center">
                 <p className="text-sm text-slate-200 mb-3">
-                  Narrows it to 2 choices for your team. It costs {hintCost} points: a right answer scores{" "}
-                  {(1000 - hintCost).toLocaleString()} instead of 1,000.
+                  Narrows it to 2 choices for your team. It takes {hintCost} points off a right answer.
                 </p>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => setConfirmingHint(false)} className="flex-1 rounded-xl bg-white/10 py-2 font-semibold">
@@ -1497,7 +1510,10 @@ export default function PlayPage() {
         </div>
 
         <div className="w-full max-w-sm mx-auto">
-          <p className="text-xs uppercase tracking-widest text-amber-400 mb-2 text-center">Your team</p>
+          <p className="text-xs uppercase tracking-widest text-amber-400 text-center">{open ? "Your team's answers" : "Your team"}</p>
+          <p className="text-[11px] text-slate-400 mb-2 text-center">
+            {open ? "Only your team sees these. Tap one to vote for it; the most votes is your team's answer." : "Only your team sees these votes."}
+          </p>
           {/* One slim row per teammate (bots too): face, name, answer. */}
           <div className="flex flex-col gap-1.5">
             {teammates.map((p) => {
@@ -1537,7 +1553,7 @@ export default function PlayPage() {
                         ? "✓"
                         : locked || countdown.expired
                           ? `${votes} vote${votes === 1 ? "" : "s"}`
-                          : "Go with this"}
+                          : `${votes} vote${votes === 1 ? "" : "s"} · Vote`}
                   </span>
                 </button>
               );
@@ -1571,10 +1587,12 @@ export default function PlayPage() {
         </div>
         <p className="text-sm font-bold text-slate-400">
           Q{room.current_question_index + 1}
-          {totalQuestions ? `/${totalQuestions}` : ""} · Who picked what
+          {totalQuestions ? `/${totalQuestions}` : ""} · {showStandings ? "Scores" : "Who picked what"}
         </p>
         {question && <h2 className="text-lg font-bold">{question.prompt}</h2>}
-        {reveal ? (
+        {showStandings ? (
+          <RoundStandings roomId={room.id} questionIndex={room.current_question_index} myTeamId={creds.teamId} />
+        ) : reveal ? (
           <PickYourCorner
             reveal={reveal}
             players={players}
