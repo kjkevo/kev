@@ -47,7 +47,7 @@ export function Podium({
                   {members.map((p) => {
                     const a = p.avatar_id ? avatars[p.avatar_id] : undefined;
                     return (
-                      <span key={p.id} className={rank === 1 ? "char-cheer" : "char-idle"}>
+                      <span key={p.id}>
                         <Avatar emoji={a?.emoji} imageUrl={a?.imageUrl} size={size} variant="full" />
                       </span>
                     );
