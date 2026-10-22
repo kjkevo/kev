@@ -2,7 +2,8 @@
 
 import { isOpenQuestion, questionSeconds, shuffledChoices } from "@/lib/questionMode";
 import { RoundStandings } from "@/components/RoundStandings";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { listenForUnlock, setVolume, soundReady, sounds, unlockSound } from "@/lib/sounds";
 import { useActiveRoom } from "@/hooks/useActiveRoom";
 import { useRoomRealtime } from "@/hooks/useRoomRealtime";
 import { useCurrentQuestion } from "@/hooks/useCurrentQuestion";
@@ -73,6 +74,42 @@ export default function ScreenClient() {
   const activePlayers = useMemo(() => players.filter((p) => !p.left_at), [players]);
   const sortedTeams = useMemo(() => [...teams].sort((a, b) => b.score - a.score), [teams]);
 
+  // ---- Sounds (louder on the TV; a tap turns them on, see the button below) ----
+  const [soundOn, setSoundOn] = useState(false);
+  useEffect(() => {
+    setVolume(0.9);
+    listenForUnlock();
+    const t = setInterval(() => setSoundOn(soundReady()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const getReadySecs = room?.phase === "question" ? Math.ceil(questionStart.remainingMs / 1000) : 0;
+  useEffect(() => {
+    if (getReadySecs >= 1 && getReadySecs <= 3) sounds.beep();
+  }, [getReadySecs]);
+  const tickSecs = room?.phase === "question" && questionStart.remainingMs <= 0 && !countdown.expired ? countdown.remainingSeconds : 0;
+  useEffect(() => {
+    if (tickSecs >= 1 && tickSecs <= 5) sounds.tick(tickSecs === 1);
+  }, [tickSecs]);
+  const revealKey = room?.phase === "reveal" ? room.current_question_index : -1;
+  useEffect(() => {
+    if (revealKey >= 0) sounds.reveal();
+  }, [revealKey]);
+  useEffect(() => {
+    if (room?.phase === "reveal" && revealClock.reached) sounds.standings();
+  }, [room?.phase, revealClock.reached]);
+  useEffect(() => {
+    if (room?.phase !== "final") return;
+    sounds.drumroll(2);
+    const t = setTimeout(() => sounds.fanfare(), 2100);
+    return () => clearTimeout(t);
+  }, [room?.phase, room?.id]);
+  const lobbyCount = room?.phase === "lobby" ? players.filter((p) => !p.left_at).length : 0;
+  const prevLobbyCount = useRef(lobbyCount);
+  useEffect(() => {
+    if (lobbyCount > prevLobbyCount.current) sounds.join();
+    prevLobbyCount.current = lobbyCount;
+  }, [lobbyCount]);
+
   useEffect(() => {
     if (room?.phase !== "final" || !room.id) {
       setRecap(null);
@@ -95,6 +132,19 @@ export default function ScreenClient() {
   return (
     <main className="min-h-screen bg-slate-950 text-white flex flex-col">
       <ScreenAgent venue={venue} page="/screen" />
+      {!soundOn && (
+        <button
+          type="button"
+          onClick={async () => {
+            await unlockSound();
+            sounds.standings();
+            setSoundOn(soundReady());
+          }}
+          className="fixed top-4 right-4 z-20 rounded-full bg-amber-400 text-black font-black px-5 py-2 shadow-lg"
+        >
+          🔊 Turn on sound
+        </button>
+      )}
       {nextGame && (room.phase !== "lobby" || activePlayers.length >= 40) && (
         <div className="fixed bottom-6 right-6 z-10 flex items-center gap-4 rounded-2xl bg-slate-900/95 border border-amber-400/40 p-3 pr-5 shadow-2xl">
           <JoinQRCode code={nextGame.o_code} venue={venue} size={110} />
