@@ -458,7 +458,20 @@ export default function PlayPage() {
     return open?.code ?? null;
   }
 
+  // One join at a time: a quick double tap (or the scanned-QR auto-join
+  // firing alongside a tap) must not put the same phone in the game twice.
+  const joinInFlight = useRef(false);
   async function joinWith(characterId: string | null) {
+    if (joinInFlight.current) return;
+    joinInFlight.current = true;
+    try {
+      await joinWithOnce(characterId);
+    } finally {
+      joinInFlight.current = false;
+    }
+  }
+
+  async function joinWithOnce(characterId: string | null) {
     const typedName = seasonName ?? nickname.trim();
     if (!code || typedName.length === 0) return;
     if (!characterId) {
