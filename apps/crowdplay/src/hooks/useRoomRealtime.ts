@@ -16,6 +16,10 @@ import type { Player, Room, Team } from "@/lib/types";
  * close would cut the other off. Scoring is team-based now, so `teams` (with each team's score) is
  * as core to "what's happening" as `players` (who's on which team) is.
  */
+// Everything but the secret columns (client_token, device_key), which the
+// database doesn't let phones read.
+const PLAYER_COLUMNS = "id, room_id, nickname, score, joined_at, team_members, left_at, team_id, avatar_id, is_bot";
+
 export function useRoomRealtime(code: string | null) {
   const [room, setRoom] = useState<Room | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -44,22 +48,22 @@ export function useRoomRealtime(code: string | null) {
       setRoom(roomRow);
 
       const [{ data: playerRows }, { data: teamRows }] = await Promise.all([
-        supabase.from("players").select("*").eq("room_id", roomRow.id).order("joined_at", { ascending: true }),
+        supabase.from("players").select(PLAYER_COLUMNS).eq("room_id", roomRow.id).order("joined_at", { ascending: true }),
         supabase.from("teams").select("*").eq("room_id", roomRow.id).order("created_at", { ascending: true }),
       ]);
       if (cancelled) return;
-      setPlayers(playerRows ?? []);
+      setPlayers((playerRows ?? []) as unknown as Player[]);
       setTeams(teamRows ?? []);
       setLoading(false);
 
       const refetchPlayers = () =>
         supabase
           .from("players")
-          .select("*")
+          .select(PLAYER_COLUMNS)
           .eq("room_id", roomRow.id)
           .order("joined_at", { ascending: true })
           .then(({ data }) => {
-            if (!cancelled) setPlayers(data ?? []);
+            if (!cancelled) setPlayers((data ?? []) as unknown as Player[]);
           });
 
       const refetchTeams = () =>

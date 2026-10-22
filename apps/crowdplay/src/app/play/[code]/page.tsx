@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { isOpenQuestion, shuffledChoices } from "@/lib/questionMode";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useRoomRealtime } from "@/hooks/useRoomRealtime";
@@ -1162,7 +1163,10 @@ export default function PlayPage() {
 
           {room.category_options && room.category_options.length > 0 && (
             <div className="rounded-2xl bg-amber-400/10 border border-amber-400/30 p-3">
-              <p className="text-sm font-bold text-white mb-2">Vote for a category</p>
+              <p className="text-sm font-bold text-white">Vote for a category</p>
+              <p className="text-xs text-slate-300 mb-2">
+                {myVote ? "Voted! Most votes picks the topic. You can still switch." : "Most votes picks the topic for this game."}
+              </p>
               <div className="grid grid-cols-2 gap-2">
                 {room.category_options.map((packId) => (
                   <VoteButton
@@ -1315,6 +1319,7 @@ export default function PlayPage() {
     const myCharacter = me?.avatar_id ? avatarsById[me.avatar_id] : undefined;
     const category = room.winning_category_id ? packs[room.winning_category_id] : undefined;
     const hintCost = question.hint_cost ?? 50;
+    const open = isOpenQuestion(room.current_question_index) || (question.choices?.length ?? 0) < 2;
     const buddyMood: CharacterMood = teamLock !== null ? "cheer" : myVote !== undefined ? "hop" : "idle";
     const buddySays =
       teamLock !== null
@@ -1397,8 +1402,42 @@ export default function PlayPage() {
               <p className="text-2xl font-black break-words">{teamLock}</p>
             </div>
           ) : (
+            !open ? (
+              <div className="flex flex-col gap-2">
+                <div className="grid grid-cols-1 gap-2">
+                  {shuffledChoices(question.choices, question.id).map((c) => {
+                    const mine = myVote !== undefined && normalizeAnswer(myVote) === normalizeAnswer(c);
+                    const ruledOut = !!teamHint && !teamHint.includes(c);
+                    return (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => !mine && castVote(c)}
+                        disabled={countdown.expired || sendingVote || ruledOut}
+                        className={`rounded-2xl px-4 py-4 text-xl font-black text-left transition active:scale-[0.98] border-2 ${
+                          mine
+                            ? "bg-amber-400 text-black border-amber-400"
+                            : ruledOut
+                              ? "bg-white/5 border-white/5 text-slate-500 line-through"
+                              : "bg-white/10 border-white/20 text-white"
+                        }`}
+                      >
+                        {c}
+                        {mine && <span className="float-right text-base">✓</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-center text-xs text-slate-400">
+                  {myVote ? "Tap another to change your vote. Your team goes with the most votes." : "Tap your answer."}
+                </p>
+                {voteError && <p className="text-center text-sm text-rose-400">{voteError}</p>}
+              </div>
+            ) : (
             <form onSubmit={submitAnswer} className="flex flex-col gap-2">
+              <p className="text-center text-xs font-bold uppercase tracking-widest text-sky-300">Open answer · type it in</p>
               <input
+                autoFocus
                 value={answerText}
                 onChange={(e) => setAnswerText(e.target.value)}
                 disabled={countdown.expired}
@@ -1415,6 +1454,7 @@ export default function PlayPage() {
               </button>
               {voteError && <p className="text-center text-sm text-rose-400">{voteError}</p>}
             </form>
+            )
           )}
           {teamHint ? (
             <div className="rounded-2xl bg-sky-500/10 border border-sky-400/40 px-4 py-2.5 text-center">
@@ -1559,6 +1599,11 @@ export default function PlayPage() {
           <ExitButton onClick={() => leaveRoom("/trivia")} />
         </div>
         <h1 className="text-2xl font-bold mb-6 mt-16">Final Results</h1>
+        {room.ended_reason === "idle" && (
+          <p className="-mt-4 mb-4 rounded-full bg-white/10 px-4 py-1 text-sm text-slate-300">
+            Game ended early: nobody answered for 3 questions
+          </p>
+        )}
         {room.sd_winner_team_id && (
           <p className="-mt-4 mb-4 rounded-full bg-rose-500/20 border border-rose-400/50 px-4 py-1 text-sm font-bold text-rose-200">
             {teams.find((t) => t.id === room.sd_winner_team_id)?.name} won in sudden death (+100)
@@ -1585,29 +1630,28 @@ export default function PlayPage() {
         )}
 
         {showRest && (
-          <div className="w-full max-w-xs flex flex-col gap-4 animate-pop-in">
-            {/* Your character's reaction, beside a shareable card of your result. */}
-            <div className="flex items-end justify-center gap-4">
-              {me?.avatar_id && avatarsById[me.avatar_id] && (
-                <CharacterBuddy
-                  emoji={avatarsById[me.avatar_id].emoji}
-                  imageUrl={avatarsById[me.avatar_id].imageUrl}
-                  size={100}
-                  {...finalReaction(myTeamRank, sortedTeams.length)}
-                />
-              )}
-              {myTeamRank > 0 && me && (
-                <ShareCard
-                  rank={myTeamRank}
-                  venue={venueName ?? "the bar"}
-                  nickname={me.nickname}
-                  teamName={myTeam?.name ?? creds.teamName}
-                  score={myTeam?.score ?? 0}
-                  imageUrl={me.avatar_id ? avatarsById[me.avatar_id]?.imageUrl : null}
-                  emoji={me.avatar_id ? avatarsById[me.avatar_id]?.emoji : null}
-                />
-              )}
-            </div>
+          <div className="w-full max-w-xs flex flex-col gap-4 mt-6 animate-pop-in">
+            {/* Your result first, then the card to share it. */}
+            {myTeamRank > 0 && (
+              <div className="rounded-2xl bg-amber-400/15 border border-amber-400/40 px-4 py-3 text-center">
+                <p className="text-xs uppercase tracking-widest text-amber-300">Your team</p>
+                <p className="text-2xl font-black">
+                  {ordinal(myTeamRank)} of {sortedTeams.length} · {(myTeam?.score ?? 0).toLocaleString()} pts
+                </p>
+                <p className="text-sm text-slate-300">{resultLine(myTeamRank, sortedTeams.length)}</p>
+              </div>
+            )}
+            {myTeamRank > 0 && me && (
+              <ShareCard
+                rank={myTeamRank}
+                venue={venueName ?? "the bar"}
+                nickname={me.nickname}
+                teamName={myTeam?.name ?? creds.teamName}
+                score={myTeam?.score ?? 0}
+                imageUrl={me.avatar_id ? avatarsById[me.avatar_id]?.imageUrl : null}
+                emoji={me.avatar_id ? avatarsById[me.avatar_id]?.emoji : null}
+              />
+            )}
 
             {restTeams.length > 0 && (
               <div className="flex flex-col gap-2">
@@ -1671,7 +1715,9 @@ export default function PlayPage() {
               className="rounded-2xl bg-amber-400 text-black font-black text-lg py-4 shadow-lg shadow-amber-400/20 disabled:opacity-50 active:scale-95 transition"
             >
               {rejoining ? "Getting you in…" : "Play again"}
-              <span className="block text-xs font-semibold text-black/70">Same team · {myTeam?.name ?? creds.teamName}</span>
+              <span className="block text-xs font-semibold text-black/70">
+                Same team · next game in about 2 min
+              </span>
             </button>
             {rejoinError && <p className="text-sm text-amber-300/90">{rejoinError}</p>}
             <button onClick={() => leaveRoom("/")} className="text-sm text-slate-400 underline">
@@ -1795,11 +1841,17 @@ type TeamVoteOption = { text: string; voters: string[]; mine: boolean };
 // meaning, so "mint" and "mint leaves" count together -- this is just the
 // at-a-glance view.
 /** How the character takes the final result. */
-function finalReaction(rank: number, teamCount: number): { mood: CharacterMood; says: string } {
-  if (rank === 1) return { mood: "cheer", says: "#1!" };
-  if (teamCount > 2 && rank === teamCount) return { mood: "slump", says: `#${rank}` };
-  if (rank > 0 && rank <= 3) return { mood: "hop", says: `#${rank}!` };
-  return { mood: "idle", says: rank > 0 ? `#${rank}` : "Good game!" };
+function ordinal(n: number) {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+function resultLine(rank: number, teamCount: number) {
+  if (rank === 1) return "You won! 🏆";
+  if (rank <= 3 && teamCount > 3) return "On the podium!";
+  if (teamCount > 2 && rank === teamCount) return "Next time is yours.";
+  return "Good game!";
 }
 
 function groupTeamVotes(

@@ -36,11 +36,11 @@ export function useBingoRoomRealtime(code: string | null) {
 
       const { data: playerRows } = await supabase
         .from("bingo_players")
-        .select("*")
+        .select("id, room_id, nickname, joined_at, card, marked, score, bingo_at, avatar_id")
         .eq("room_id", roomRow.id)
         .order("joined_at", { ascending: true });
       if (cancelled) return;
-      setPlayers(playerRows ?? []);
+      setPlayers((playerRows ?? []) as unknown as typeof players);
       setLoading(false);
 
       const channel = supabase
@@ -59,11 +59,11 @@ export function useBingoRoomRealtime(code: string | null) {
           () => {
             supabase
               .from("bingo_players")
-              .select("*")
+              .select("id, room_id, nickname, joined_at, card, marked, score, bingo_at, avatar_id")
               .eq("room_id", roomRow.id)
               .order("joined_at", { ascending: true })
               .then(({ data }) => {
-                if (!cancelled) setPlayers(data ?? []);
+                if (!cancelled) setPlayers((data ?? []) as unknown as typeof players);
               });
           }
         )

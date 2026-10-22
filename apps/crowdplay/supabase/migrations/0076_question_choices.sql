@@ -1,0 +1,42 @@
+-- Multiple choice: tougher wrong options where the answer was too easy to spot,
+-- fixes for broken options, and questions that gave away their own answer retired.
+-- The right answer is stored first; the phone shuffles the order for display.
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'Basking shark', 'Great white shark', 'Manta ray'), correct_index = 0 where id::text like '0a352558%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'Jarvis', 'Jeeves', 'Lucius'), correct_index = 0 where id::text like '133f705a%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'Greece', 'Bulgaria', 'Cyprus'), correct_index = 0 where id::text like '18b571d2%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'Birdie', 'Albatross', 'Bogey'), correct_index = 0 where id::text like '1954782b%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'Vienna', 'Prague', 'Warsaw'), correct_index = 0 where id::text like '2bd37020%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'Iago', 'Razoul', 'Gaston'), correct_index = 0 where id::text like '3c2e2e2b%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'AltaVista', 'Ask Jeeves', 'Lycos'), correct_index = 0 where id::text like '3ee33c23%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'Ancient Greece', 'Ancient Egypt', 'The Byzantine Empire'), correct_index = 0 where id::text like '3f4189c4%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'Malbec', 'Pinot Noir', 'Cabernet Sauvignon'), correct_index = 0 where id::text like '47aef7ac%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'Astronaut doll', 'Robot toy', 'Superhero action figure'), correct_index = 0 where id::text like '646325f5%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'Saqqara', 'Luxor', 'Aswan'), correct_index = 0 where id::text like '67158203%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'Car heists', 'Bank robbery', 'Bounty hunting'), correct_index = 0 where id::text like '68ab7028%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'Fish paste', 'Rice paste', 'Sesame paste'), correct_index = 0 where id::text like '7541871a%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'J Balvin', 'Bad Bunny', 'Ricky Martin'), correct_index = 0 where id::text like '77543ee0%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'ICQ', 'MSN Messenger', 'Yahoo! Messenger'), correct_index = 0 where id::text like '7e9145df%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'Ag', 'Gd', 'Ga'), correct_index = 0 where id::text like 'f69857bd%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'Saturn', 'Neptune', 'Uranus'), correct_index = 0 where id::text like 'dd3e05aa%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'African elephant', 'Fin whale', 'Sperm whale'), correct_index = 0 where id::text like 'dc17767e%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'MySpace', 'Friendster', 'Hi5'), correct_index = 0 where id::text like '0f1a64d2%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'Golden Globes', 'BAFTA Awards', 'Screen Actors Guild Awards'), correct_index = 0 where id::text like '2564d421%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, '5', '7', '8'), correct_index = 0 where id::text like '4450b207%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'African elephant', 'Ostrich', 'Moose'), correct_index = 0 where id::text like '51707efd%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'Quartz', 'Topaz', 'Corundum'), correct_index = 0 where id::text like '9d3e593b%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'Lungs', 'Liver', 'Aorta'), correct_index = 0 where id::text like 'b4762f4c%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'KCl', 'NaOH', 'CaCl2'), correct_index = 0 where id::text like 'c2ed9741%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, '32', '4', '-4'), correct_index = 0 where id::text like 'c4c213a5%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'BlackBerry', 'Nokia', 'Palm'), correct_index = 0 where id::text like 'cb366a9d%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'Apples', 'Plums', 'Elderberries'), correct_index = 0 where id::text like '7c87770d%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'Squash', 'Croquet', 'Badminton'), correct_index = 0 where id::text like 'e9768507%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'China', 'Korea', 'Vietnam'), correct_index = 0 where id::text like 'ff9f86d8%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'Mongolia', 'Korea', 'India'), correct_index = 0 where id::text like 'ecc090db%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'Asia', 'Australia', 'South America'), correct_index = 0 where id::text like '92932e63%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'Venus', 'Jupiter', 'Mercury'), correct_index = 0 where id::text like '85931f79%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'Greece', 'Portugal', 'Croatia'), correct_index = 0 where id::text like '1ce553e9%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'Lyon', 'Marseille', 'Bordeaux'), correct_index = 0 where id::text like 'ccc3fefe%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'United Kingdom', 'Netherlands', 'Spain'), correct_index = 0 where id::text like '12f3536c%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'Venus', 'Mars', 'Earth'), correct_index = 0 where id::text like 'a57c147b%';
+update public.questions set choices = jsonb_build_array(choices->>correct_index::int, 'Daredevil', 'Ant-Man', 'Nightcrawler'), correct_index = 0 where id::text like '84d773b2%';
+update public.questions set active = false where id::text like '10b91755%' or id::text like '14abc9ee%' or id::text like '3f0d68d7%' or id::text like '916e6d94%' or id::text like '947b6d22%' or id::text like 'c5bdb898%' or id::text like 'e03d1265%' or id::text like 'e7acabcf%' or id::text like '88676f1c%';

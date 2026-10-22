@@ -170,7 +170,7 @@ export function ShareCard(props: {
   if (!preview) return null;
   return (
     <div className="flex flex-col items-center gap-2">
-      <img src={preview} alt={shareHeadline(rank, venue)} className="w-40 rounded-xl border border-white/15 shadow-lg" />
+      <img src={preview} alt={shareHeadline(rank, venue)} className="w-56 rounded-xl border border-white/15 shadow-lg" />
       <button
         type="button"
         onClick={share}
