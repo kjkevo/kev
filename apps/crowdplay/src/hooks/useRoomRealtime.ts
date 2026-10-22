@@ -94,15 +94,39 @@ export function useRoomRealtime(code: string | null) {
         )
         .subscribe();
 
+      const refetchRoom = () =>
+        supabase
+          .from("rooms")
+          .select("*")
+          .eq("id", roomRow.id)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (!cancelled && data) setRoom(data);
+          });
+
       // Safety net for a dropped connection (phones sleep, Wi-Fi blips):
-      // re-read who's in every few seconds.
+      // re-read the game and who's in every few seconds, and right away when
+      // the phone wakes up or the page comes back into view.
       const poll = setInterval(() => {
+        refetchRoom();
         refetchPlayers();
         refetchTeams();
       }, 5000);
+      const resync = () => {
+        if (document.visibilityState !== "visible") return;
+        refetchRoom();
+        refetchPlayers();
+        refetchTeams();
+      };
+      document.addEventListener("visibilitychange", resync);
+      window.addEventListener("focus", resync);
+      window.addEventListener("online", resync);
 
       return () => {
         clearInterval(poll);
+        document.removeEventListener("visibilitychange", resync);
+        window.removeEventListener("focus", resync);
+        window.removeEventListener("online", resync);
         supabase.removeChannel(channel);
       };
     }

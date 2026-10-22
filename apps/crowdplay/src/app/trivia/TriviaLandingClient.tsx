@@ -12,7 +12,7 @@ import { LiveGameGlance } from "@/components/LiveGameGlance";
 import { LobbyRoster } from "@/components/LobbyRoster";
 import { useRoomRealtime } from "@/hooks/useRoomRealtime";
 import { useTriviaQueue, roundsToWaitLabel, currentGameProgress } from "@/hooks/useTriviaQueue";
-import type { Player, Team } from "@/lib/types";
+import { playerKey, type Player, type Team } from "@/lib/types";
 import { useSeason } from "@/hooks/useSeason";
 import { SeasonChip } from "@/components/SeasonNotice";
 
@@ -49,6 +49,19 @@ export default function TriviaLandingClient() {
   useEffect(() => {
     if (venue) supabase.rpc("trivia_fresh_start", { p_venue: venue });
   }, [venue]);
+  // Already in this game (or the next one) on this phone, e.g. the page was
+  // closed or the phone locked: straight back into it.
+  useEffect(() => {
+    for (const c of [room?.code, nextGame?.o_code]) {
+      if (!c) continue;
+      try {
+        if (localStorage.getItem(playerKey(c))) {
+          router.replace(`/play/${c}`);
+          return;
+        }
+      } catch {}
+    }
+  }, [room?.code, nextGame?.o_code, router]);
   // Someone who waited gets asked straight away how they want to play the
   // new game (solo or their own team) instead of the generic join screen.
   const [waitedForNext, setWaitedForNext] = useState(false);
@@ -112,7 +125,7 @@ export default function TriviaLandingClient() {
           onBack={() => setDeclinedCode(null)}
           timing={
             <div className="flex flex-col items-center gap-1">
-              <p className="text-2xl font-black text-amber-400">{roundsToWaitLabel(nextGame.o_rounds_to_wait)}</p>
+              <p className="text-2xl font-black text-amber-400">{roundsToWaitLabel(nextGame.o_rounds_to_wait, nextGame)}</p>
               {progress && <p className="text-xs text-indigo-300/70">{progress}</p>}
             </div>
           }
@@ -177,7 +190,7 @@ export default function TriviaLandingClient() {
           >
             {nextGame ? "Join the Next Game" : "Wait for the Next Game"}
             {nextGame && (
-              <span className="block text-xs font-semibold text-black/70">{roundsToWaitLabel(nextGame.o_rounds_to_wait)}</span>
+              <span className="block text-xs font-semibold text-black/70">{roundsToWaitLabel(nextGame.o_rounds_to_wait, nextGame)}</span>
             )}
           </button>
         )}
