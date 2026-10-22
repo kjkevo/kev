@@ -840,6 +840,9 @@ export default function PlayPage() {
             ) : (
               <h1 className="text-3xl font-black">Trivia</h1>
             )}
+            {!room.queued && room.phase === "lobby" && !room.starts_at && (
+              <p className="text-sm text-amber-400 font-bold">Join to start the countdown</p>
+            )}
             {room.queued && (
               <p className="text-sm">
                 <span className="text-amber-400 font-bold">Next game · {roundsToWaitLabel(myQueueSpot?.o_rounds_to_wait ?? 1)}</span>

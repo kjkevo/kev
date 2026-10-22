@@ -83,6 +83,10 @@ dashboard marked TEST.
 - Lock the paid characters again. All characters are unlocked for everyone while
   emotes are being made. In Supabase → SQL editor run:
   `update public.feature_flags set enabled = false where key = 'all_characters_unlocked';`
+- Autoplay is paused: a lobby has no countdown until a real player joins, and
+  test bots are off. To have games run on their own again, run:
+  `update public.feature_flags set enabled = true where key = 'trivia_autoplay';`
+  and turn test bots back on for the venue.
 - Decide on bots for each venue (dashboard → Venues, links and test bots).
   With bots on, they only fill gaps: while boarding, bots fill up to 2 teams
   (12 minus real players, at most 8), leaving a team spot for real players.
