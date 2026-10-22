@@ -327,6 +327,7 @@ export type Database = {
         Row: {
           client_token: string
           id: string
+          is_bot: boolean
           joined_at: string
           left_at: string | null
           nickname: string
@@ -340,6 +341,7 @@ export type Database = {
         Insert: {
           client_token?: string
           id?: string
+          is_bot?: boolean
           joined_at?: string
           left_at?: string | null
           nickname: string
@@ -353,6 +355,7 @@ export type Database = {
         Update: {
           client_token?: string
           id?: string
+          is_bot?: boolean
           joined_at?: string
           left_at?: string | null
           nickname?: string
@@ -481,6 +484,7 @@ export type Database = {
           code: string
           created_at: string
           current_question_index: number
+          ended_reason: string | null
           id: string
           phase: string
           phase_started_at: string
@@ -507,6 +511,7 @@ export type Database = {
           code: string
           created_at?: string
           current_question_index?: number
+          ended_reason?: string | null
           id?: string
           phase?: string
           phase_started_at?: string
@@ -526,6 +531,7 @@ export type Database = {
           code?: string
           created_at?: string
           current_question_index?: number
+          ended_reason?: string | null
           id?: string
           phase?: string
           phase_started_at?: string

@@ -41,7 +41,10 @@ export function LobbyRoster({
   collapsible?: boolean;
 }) {
   const live = useLiveTeams(players, teams);
-  const playerCount = live.reduce((n, t) => n + t.members.length, 0);
+  // Counts are real people only; test bots (when on) are listed separately.
+  const playerCount = live.reduce((n, t) => n + t.members.filter((m) => !m.is_bot).length, 0);
+  const botCount = live.reduce((n, t) => n + t.members.filter((m) => m.is_bot).length, 0);
+  const botNote = botCount > 0 ? ` + ${botCount} bot${botCount === 1 ? "" : "s"}` : "";
   const [open, setOpen] = useState(!collapsible);
 
   if (!open) {
@@ -52,7 +55,7 @@ export function LobbyRoster({
         className="w-full max-w-sm rounded-2xl bg-white/5 border border-white/10 px-4 py-3 text-sm text-slate-300 flex items-center justify-between active:scale-[0.98] transition"
       >
         <span className="flex items-center gap-2 min-w-0">
-          {avatars && playerCount > 0 && (
+          {avatars && playerCount + botCount > 0 && (
             <span className="flex -space-x-2 shrink-0">
               {live.flatMap((t) => t.members).slice(0, 6).map((p) => {
                 const a = p.avatar_id ? avatars[p.avatar_id] : undefined;
@@ -62,6 +65,7 @@ export function LobbyRoster({
           )}
           <span className="truncate">
             {live.length} team{live.length === 1 ? "" : "s"} · {playerCount} player{playerCount === 1 ? "" : "s"}
+            {botNote}
           </span>
         </span>
         <span className="text-indigo-300 text-xs font-bold">Show ▾</span>
@@ -74,7 +78,8 @@ export function LobbyRoster({
       <div className="flex items-baseline justify-between mb-3">
         <p className="text-xs uppercase tracking-widest text-indigo-300">{title}</p>
         <p className="text-xs text-slate-400">
-          {playerCount} player{playerCount === 1 ? "" : "s"} · {live.length}/{MAX_TEAMS} teams
+          {playerCount} player{playerCount === 1 ? "" : "s"}
+          {botNote} · {live.length}/{MAX_TEAMS} teams
           {collapsible && (
             <button type="button" onClick={() => setOpen(false)} className="ml-2 text-indigo-300 font-bold">
               Hide ▴

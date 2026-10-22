@@ -126,6 +126,7 @@ export function PickYourCorner({ reveal, players, teams, avatars, myId, myTeamId
   }, [playing, reveal]);
 
   const myTeamPick = reveal.picks.find((r) => r.teamId === myTeamId);
+  const myPick = reveal.picks.find((r) => r.playerId === myId);
   const size = big ? 64 : 40;
 
   return (
@@ -136,6 +137,13 @@ export function PickYourCorner({ reveal, players, teams, avatars, myId, myTeamId
         {myTeamId && myTeamPick && (
           <p className={`mt-1 font-bold ${myTeamPick.teamCorrect ? "text-emerald-300" : "text-rose-300"}`}>
             {myTeamPick.teamCorrect ? "Your team got it ✓" : "Your team missed it"}
+          </p>
+        )}
+        {myId && (
+          <p className="mt-0.5 text-sm text-slate-300">
+            {!myPick?.label
+              ? "You didn't answer this one"
+              : <>You said <span className="font-bold text-white">{capitalize(myPick.label)}</span> {myPick.correct ? "✓" : "✗"}</>}
           </p>
         )}
       </div>
@@ -167,7 +175,7 @@ export function PickYourCorner({ reveal, players, teams, avatars, myId, myTeamId
                   return (
                     <span key={p.id} className="flex flex-col items-center" style={{ width: size + 8 }}>
                       <span
-                        className={state === "right" ? "char-cheer" : state === "wrong" ? "char-drop" : "char-idle"}
+                        className={state === "right" ? "char-cheer" : state === "wrong" ? "char-slump" : "char-idle"}
                         style={{ animationDelay: state === "idle" ? undefined : `${(i % 6) * 90}ms` }}
                       >
                         <Avatar emoji={a?.emoji} imageUrl={a?.imageUrl} size={size} variant="full" />
