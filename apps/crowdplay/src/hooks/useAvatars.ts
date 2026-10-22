@@ -41,8 +41,8 @@ export function useAvatars() {
 
 /**
  * The character this phone has equipped: the one it picked last time if it
- * can still wear it, otherwise none, so the player is asked to pick one
- * (every game needs a character).
+ * can still wear it, otherwise a random one it can wear, so a first-timer
+ * can play in one tap and change it later.
  */
 export function useEquippedAvatar(avatars: AvatarOption[]) {
   const [avatarId, setAvatarId] = useState<string | null>(null);
@@ -50,7 +50,16 @@ export function useEquippedAvatar(avatars: AvatarOption[]) {
   useEffect(() => {
     if (avatarId || avatars.length === 0) return;
     const last = rememberedAvatar();
-    if (avatars.some((a) => a.id === last && a.owned)) setAvatarId(last);
+    if (avatars.some((a) => a.id === last && a.owned)) {
+      setAvatarId(last);
+      return;
+    }
+    const free = avatars.filter((a) => a.owned && a.priceCents === 0);
+    const pool = free.length > 0 ? free : avatars.filter((a) => a.owned);
+    if (pool.length === 0) return;
+    const pick = pool[Math.floor(Math.random() * pool.length)].id;
+    setAvatarId(pick);
+    rememberAvatar(pick);
   }, [avatars, avatarId]);
 
   const equip = useCallback((id: string) => {

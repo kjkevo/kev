@@ -170,13 +170,8 @@ export default function PlayPage() {
       setInvited(true);
       return;
     }
-    // ?mode= from the trivia landing wins; otherwise however they played last.
-    let last: string | null = null;
-    try {
-      last = localStorage.getItem(LAST_MODE_KEY);
-    } catch {}
-    const pick = mode ?? last;
-    if (pick === "solo" || pick === "team") setJoinMode(pick);
+    // Solo unless the trivia landing asked for a team (?mode=team).
+    if (mode === "team") setJoinMode("team");
   }, []);
 
   useEffect(() => {
@@ -939,25 +934,31 @@ export default function PlayPage() {
             )}
             {avatarNote && <p className="text-xs text-amber-300/80 -mt-2">{avatarNote}</p>}
 
-            {/* Solo or team, remembered from last time. */}
-            <div className="grid grid-cols-2 gap-1 rounded-2xl bg-white/5 border border-white/10 p-1">
-              {(["solo", "team"] as const).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => {
-                    setJoinMode(m);
-                    if (m === "solo") setSelectedTeamId(null);
-                    setJoinError(null);
-                  }}
-                  className={`rounded-xl py-2.5 text-sm font-bold transition ${
-                    joinMode === m ? "bg-white text-black" : "text-slate-300"
-                  }`}
-                >
-                  {m === "solo" ? "Solo" : "With friends"}
-                </button>
-              ))}
-            </div>
+            {/* Solo by default; a team is one tap away. */}
+            {joinMode === "solo" ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setJoinMode("team");
+                  setJoinError(null);
+                }}
+                className="text-sm font-bold text-amber-300 -mt-1"
+              >
+                Playing with friends? Make a team ›
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setJoinMode("solo");
+                  setSelectedTeamId(null);
+                  setJoinError(null);
+                }}
+                className="text-sm font-bold text-slate-300 -mt-1"
+              >
+                ‹ Play solo instead
+              </button>
+            )}
 
             {joinMode === "team" && (
               <div className="flex flex-col gap-2 rounded-2xl bg-white/5 border border-white/10 p-3 text-left">
@@ -1012,15 +1013,17 @@ export default function PlayPage() {
             {joinError && <p className="text-red-400 text-sm">{joinError}</p>}
             <button
               disabled={joining || playName.length === 0 || cantCreateTeam || (!seasonName && nameStatus === "taken")}
-              className="rounded-2xl bg-amber-400 text-black font-black text-lg py-4 shadow-lg shadow-amber-400/20 disabled:opacity-40 active:scale-95 transition"
+              className="rounded-2xl bg-amber-400 text-black font-black text-2xl py-5 shadow-lg shadow-amber-400/20 disabled:opacity-40 active:scale-95 transition"
             >
               {joining
                 ? "Joining…"
                 : !avatarId
                   ? "Pick a character to join"
-                  : `${room.phase !== "lobby" ? "Join next game" : "Join"} · ${
-                    joinMode === "solo" ? "Solo" : invitedTeam && room.phase === "lobby" ? invitedTeam.name : "New team"
-                  }`}
+                  : joinMode === "solo"
+                    ? room.phase !== "lobby" ? "Play next game" : "Play"
+                    : `${room.phase !== "lobby" ? "Play next game" : "Play"} · ${
+                        invitedTeam && room.phase === "lobby" ? invitedTeam.name : "New team"
+                      }`}
             </button>
           </form>
 
