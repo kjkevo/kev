@@ -2,6 +2,7 @@
 
 import { isOpenQuestion, questionSeconds, shuffledChoices } from "@/lib/questionMode";
 import { RoundStandings } from "@/components/RoundStandings";
+import { FunFact } from "@/components/RoundExtras";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { listenForUnlock, setVolume, soundReady, sounds, unlockSound } from "@/lib/sounds";
 import { useActiveRoom } from "@/hooks/useActiveRoom";
@@ -304,7 +305,10 @@ export default function ScreenClient() {
             </p>
             {question && <h2 className="text-3xl font-bold max-w-4xl">{question.prompt}</h2>}
             {revealClock.reached ? (
-              <RoundStandings roomId={room.id} questionIndex={room.current_question_index} big />
+              <>
+                <RoundStandings roomId={room.id} questionIndex={room.current_question_index} big />
+                <FunFact roomId={room.id} questionIndex={room.current_question_index} big />
+              </>
             ) : (
               reveal && (
                 <div className="w-full max-w-6xl">

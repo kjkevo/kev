@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { isOpenQuestion, questionSeconds, shuffledChoices } from "@/lib/questionMode";
 import { RoundStandings } from "@/components/RoundStandings";
+import { AdSlot, FunFact } from "@/components/RoundExtras";
 import { listenForUnlock, sounds } from "@/lib/sounds";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -1469,19 +1470,14 @@ export default function PlayPage() {
                   {shuffledChoices(question.choices, question.id).map((c) => {
                     const mine = myVote !== undefined && normalizeAnswer(myVote) === normalizeAnswer(c);
                     const teamVotes = teamOptions.find((o) => normalizeAnswer(o.text) === normalizeAnswer(c))?.voters.length ?? 0;
-                    const ruledOut = !!teamHint && !teamHint.includes(c);
                     return (
                       <button
                         key={c}
                         type="button"
                         onClick={() => !mine && castVote(c)}
-                        disabled={countdown.expired || sendingVote || ruledOut}
+                        disabled={countdown.expired || sendingVote}
                         className={`rounded-2xl px-4 py-4 text-xl font-black text-left transition active:scale-[0.98] border-2 ${
-                          mine
-                            ? "bg-amber-400 text-black border-amber-400"
-                            : ruledOut
-                              ? "bg-white/5 border-white/5 text-slate-500 line-through"
-                              : "bg-white/10 border-white/20 text-white"
+                          mine ? "bg-amber-400 text-black border-amber-400" : "bg-white/10 border-white/20 text-white"
                         }`}
                       >
                         {c}
@@ -1531,7 +1527,7 @@ export default function PlayPage() {
             confirmingHint ? (
               <div className="rounded-2xl bg-white/5 border border-amber-400/40 px-4 py-3 text-center">
                 <p className="text-sm text-slate-200 mb-3">
-                  Narrows it to 2 choices for your team. It takes {hintCost} points off a right answer.
+                  Get a clue about the answer for your team. It takes {hintCost} points off a right answer.
                 </p>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => setConfirmingHint(false)} className="flex-1 rounded-xl bg-white/10 py-2 font-semibold">
@@ -1641,15 +1637,19 @@ export default function PlayPage() {
         </p>
         {question && <h2 className="text-lg font-bold">{question.prompt}</h2>}
         {showStandings ? (
-          <>
+          <div className="flex-1 flex flex-col gap-3">
             <RoundStandings roomId={room.id} questionIndex={room.current_question_index} myTeamId={creds.teamId} />
             {/* A tip on the scores screen for the first two questions only. */}
             {room.current_question_index < 2 && (
-              <p className="mt-2 rounded-xl bg-sky-500/10 border border-sky-400/30 px-4 py-3 text-center text-sm text-sky-100 animate-pop-in">
+              <p className="rounded-xl bg-sky-500/10 border border-sky-400/30 px-4 py-3 text-center text-sm text-sky-100 animate-pop-in">
                 Tip: tap your answer fast. Faster right answers score more (up to 1,000).
               </p>
             )}
-          </>
+            <FunFact roomId={room.id} questionIndex={room.current_question_index} />
+            <div className="mt-auto pt-2 pb-14">
+              <AdSlot venue={venueSlug ?? "main"} questionIndex={room.current_question_index} />
+            </div>
+          </div>
         ) : reveal ? (
           <PickYourCorner
             reveal={reveal}
