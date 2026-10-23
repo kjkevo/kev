@@ -5,18 +5,9 @@ import { EmoteCharacter, type EmotePlay } from "@/components/EmoteCharacter";
 
 export type CharacterMood = "idle" | "hop" | "cheer" | "slump";
 
-const SPARKLES = [
-  { sx: "-46px", sy: "-40px", delay: "0ms" },
-  { sx: "44px", sy: "-48px", delay: "250ms" },
-  { sx: "-38px", sy: "10px", delay: "500ms" },
-  { sx: "40px", sy: "6px", delay: "750ms" },
-  { sx: "0px", sy: "-62px", delay: "1000ms" },
-];
-
 /**
- * The player's character, full body, reacting to the game: floating while
- * they think, a hop when they vote, cheering when their team locks in or
- * wins, slumping when they come last. A speech bubble says what's up.
+ * The player's character, full body, standing still. It only moves when the
+ * player plays an emote. An optional speech bubble sits above it.
  */
 export function CharacterBuddy({
   emoji,
@@ -48,25 +39,16 @@ export function CharacterBuddy({
         </div>
       )}
       <div className="relative">
-        {/* key restarts the animation each time the mood changes */}
-        <div key={mood} className={`char-${mood}`}>
+        {/* Characters stand still; they only move when the player taps the
+            emote (disco ball) button. `mood` is kept for callers but no
+            longer animates. */}
+        <div data-mood={mood}>
           {avatarId !== undefined ? (
             <EmoteCharacter avatarId={avatarId} emoji={emoji} imageUrl={imageUrl} size={size} play={play} />
           ) : (
             <Avatar emoji={emoji} imageUrl={imageUrl} size={size} variant="full" />
           )}
         </div>
-        {mood === "cheer" &&
-          SPARKLES.map((s, i) => (
-            <span
-              key={i}
-              aria-hidden="true"
-              className="char-sparkle absolute left-1/2 top-1/3 text-amber-300 text-lg pointer-events-none"
-              style={{ "--sx": s.sx, "--sy": s.sy, animationDelay: s.delay } as React.CSSProperties}
-            >
-              ✦
-            </span>
-          ))}
       </div>
     </div>
   );

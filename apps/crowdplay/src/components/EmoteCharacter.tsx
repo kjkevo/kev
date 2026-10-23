@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element -- emote animations are animated WebP */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/Avatar";
 import { emotesFor, loadEmote, nextEmote, type Emote } from "@/lib/emotes";
 
@@ -30,6 +30,9 @@ export function EmoteCharacter({
   className?: string;
 }) {
   const [running, setRunning] = useState<{ url: string; emote: Emote } | null>(null);
+  // The play request already there when this figure appears (e.g. the
+  // screen changed) is an old tap: don't replay it. Only new taps play.
+  const playAtMount = useRef(play);
 
   // Download this character's emotes ahead of time so the first tap is instant.
   useEffect(() => {
@@ -37,7 +40,7 @@ export function EmoteCharacter({
   }, [avatarId]);
 
   useEffect(() => {
-    if (!play) return;
+    if (!play || play === playAtMount.current) return;
     const emote = emotesFor(avatarId).find((e) => e.id === play.emoteId);
     if (!emote) return;
     let url: string | null = null;

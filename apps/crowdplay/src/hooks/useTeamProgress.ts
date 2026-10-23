@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { coalesce } from "@/lib/coalesce";
 
 export type TeamProgress = { id: string; name: string; locked: boolean; voted: number; members: number };
 
@@ -19,11 +20,11 @@ export function useTeamProgress(roomId: string | undefined, questionId: string |
       return;
     }
     let cancelled = false;
-    const load = () =>
-      supabase.rpc("get_team_progress", { p_room_id: roomId, p_question_id: questionId }).then(({ data }) => {
-        if (cancelled || !data) return;
-        setTeams(data.map((t) => ({ id: t.o_team_id, name: t.o_team_name, locked: t.o_locked, voted: t.o_voted, members: t.o_members })));
-      });
+    const load = coalesce(async () => {
+      const { data } = await supabase.rpc("get_team_progress", { p_room_id: roomId, p_question_id: questionId });
+      if (cancelled || !data) return;
+      setTeams(data.map((t) => ({ id: t.o_team_id, name: t.o_team_name, locked: t.o_locked, voted: t.o_voted, members: t.o_members })));
+    });
 
     load();
     const channel = supabase
@@ -33,6 +34,7 @@ export function useTeamProgress(roomId: string | undefined, questionId: string |
     const poll = setInterval(load, 3000);
     return () => {
       cancelled = true;
+      load.stop();
       clearInterval(poll);
       supabase.removeChannel(channel);
     };

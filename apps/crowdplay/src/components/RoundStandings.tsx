@@ -46,12 +46,12 @@ export function RoundStandings({
   const row = (r: Standing, i: number) => (
     <div
       key={r.teamId}
-      className={`flex items-center gap-3 rounded-xl px-3 ${big ? "py-3 text-2xl" : "py-2"} animate-pop-in ${
+      className={`flex items-center gap-3 rounded-xl px-3 ${big ? "py-3 text-2xl" : "py-3 text-xl"} animate-pop-in ${
         r.teamId === myTeamId ? "bg-amber-400/20 border border-amber-400/50" : "bg-white/5"
       }`}
       style={{ animationDelay: `${i * 120}ms`, animationFillMode: "both" }}
     >
-      <span className={big ? "text-3xl" : "text-xl"}>{medal[r.rank - 1] ?? `#${r.rank}`}</span>
+      <span className={big ? "text-3xl" : "text-2xl"}>{medal[r.rank - 1] ?? `#${r.rank}`}</span>
       <span className="flex-1 min-w-0 truncate font-bold text-left">{r.name}</span>
       {r.points > 0 && <span className="text-emerald-300 font-bold tabular-nums">+{r.points.toLocaleString()}</span>}
       <span className="font-black tabular-nums text-amber-300">{r.score.toLocaleString()}</span>
@@ -60,10 +60,10 @@ export function RoundStandings({
 
   return (
     <div className={`w-full flex flex-col gap-1.5 ${big ? "max-w-2xl" : ""}`}>
-      <p className={`uppercase tracking-widest text-slate-400 ${big ? "text-base" : "text-xs"}`}>Top 3</p>
+      <p className={`uppercase tracking-widest text-slate-400 ${big ? "text-base" : "text-sm"}`}>Top 3</p>
       {top.map((r, i) => row(r, i))}
       {mine && mine.rank > 3 && (
-        <p className={`text-slate-300 ${big ? "text-lg" : "text-sm"}`}>
+        <p className={`text-slate-300 ${big ? "text-lg" : "text-base"}`}>
           Your team: #{mine.rank} · {mine.score.toLocaleString()}
           {mine.points > 0 && <span className="text-emerald-300 font-bold"> (+{mine.points.toLocaleString()})</span>}
         </p>

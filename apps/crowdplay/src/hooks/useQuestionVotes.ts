@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { coalesce } from "@/lib/coalesce";
 import type { PlayerCredentials } from "@/lib/types";
 
 /**
@@ -26,29 +27,18 @@ export function useQuestionVotes(
 
   const fetchVotes = useCallback(async () => {
     if (!roomId || !questionId || !playerId || !clientToken) return null;
-    const { data, error } = await supabase.rpc("get_team_votes", {
-      p_room_id: roomId,
-      p_player_id: playerId,
-      p_client_token: clientToken,
-      p_question_id: questionId,
-    });
+    const args = { p_room_id: roomId, p_player_id: playerId, p_client_token: clientToken, p_question_id: questionId };
+    // All three at once rather than one after another.
+    const [{ data, error }, locked, hinted] = await Promise.all([
+      supabase.rpc("get_team_votes", args),
+      supabase.rpc("get_team_answer_lock", args),
+      supabase.rpc("get_team_hint", args),
+    ]);
+    const lockRow = locked.data?.[0];
     if (error || !data) return null;
     const next: Record<string, string> = {};
     for (const row of data) if (row.o_answer_text) next[row.o_player_id] = row.o_answer_text;
-    const locked = await supabase.rpc("get_team_answer_lock", {
-      p_room_id: roomId,
-      p_player_id: playerId,
-      p_client_token: clientToken,
-      p_question_id: questionId,
-    });
-    const row = locked.data?.[0];
-    const hinted = await supabase.rpc("get_team_hint", {
-      p_room_id: roomId,
-      p_player_id: playerId,
-      p_client_token: clientToken,
-      p_question_id: questionId,
-    });
-    return { votes: next, lock: row?.o_locked ? row.o_answer_text : null, hint: hinted.data?.[0]?.o_hint ?? null };
+    return { votes: next, lock: lockRow?.o_locked ? lockRow.o_answer_text : null, hint: hinted.data?.[0]?.o_hint ?? null };
   }, [roomId, questionId, playerId, clientToken]);
 
   const [refreshKey, setRefreshKey] = useState(0);
@@ -62,13 +52,14 @@ export function useQuestionVotes(
       return;
     }
     let cancelled = false;
-    const load = () =>
+    const load = coalesce(() =>
       fetchVotes().then((next) => {
         if (cancelled || !next) return;
         setVotes(next.votes);
         setLock(next.lock);
         setHint(next.hint);
-      });
+      })
+    );
 
     load();
     const channel = supabase
@@ -83,6 +74,7 @@ export function useQuestionVotes(
 
     return () => {
       cancelled = true;
+      load.stop();
       clearInterval(poll);
       supabase.removeChannel(channel);
     };

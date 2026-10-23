@@ -149,6 +149,7 @@ export default function PlayPage() {
   const [joining, setJoining] = useState(false);
   const [answerText, setAnswerText] = useState("");
   const [sendingVote, setSendingVote] = useState(false);
+  const [pendingVote, setPendingVote] = useState<{ questionId: string; text: string } | null>(null);
   const [voteError, setVoteError] = useState<string | null>(null);
   const [confirmingHint, setConfirmingHint] = useState(false);
   const [gettingHint, setGettingHint] = useState(false);
@@ -611,6 +612,8 @@ export default function PlayPage() {
     sounds.tap();
     setSendingVote(true);
     setVoteError(null);
+    // Show the pick right away; the server confirms it a moment later.
+    setPendingVote({ questionId: question.id, text: t });
     const { error } = await supabase.rpc("cast_team_vote", {
       p_room_id: room.id,
       p_player_id: creds.playerId,
@@ -620,6 +623,7 @@ export default function PlayPage() {
     });
     setSendingVote(false);
     if (error) {
+      setPendingVote(null);
       if (/TEAM_LOCKED_IN/.test(error.message)) {
         refreshVotes();
         return;
@@ -1387,7 +1391,7 @@ export default function PlayPage() {
   }
 
   if (room.phase === "question" && question) {
-    const myVote = questionVotes[creds.playerId];
+    const myVote = (pendingVote?.questionId === question.id ? pendingVote.text : undefined) ?? questionVotes[creds.playerId];
     const teamOptions = groupTeamVotes(teammates, questionVotes, creds.playerId);
     const myCharacter = me?.avatar_id ? avatarsById[me.avatar_id] : undefined;
     const category = room.winning_category_id ? packs[room.winning_category_id] : undefined;
@@ -1495,7 +1499,6 @@ export default function PlayPage() {
               </div>
             ) : (
             <form onSubmit={submitAnswer} className="flex flex-col gap-2">
-              <p className="text-center text-xs font-bold uppercase tracking-widest text-sky-300">Open answer · type it in</p>
               <input
                 autoFocus
                 value={answerText}
@@ -1556,10 +1559,7 @@ export default function PlayPage() {
         </div>
 
         <div className="w-full max-w-sm mx-auto">
-          <p className="text-xs uppercase tracking-widest text-amber-400 text-center">{open ? "Your team's answers" : "Your team"}</p>
-          <p className="text-[11px] text-slate-400 mb-2 text-center">
-            {open ? "Only your team sees these. Tap one to vote for it; the most votes is your team's answer." : "Only your team sees these votes."}
-          </p>
+          <p className="text-xs uppercase tracking-widest text-amber-400 text-center mb-2">{open ? "Your team's answers" : "Your team"}</p>
           {/* One slim row per teammate (bots too): face, name, answer. */}
           <div className="flex flex-col gap-1.5">
             {teammates.map((p) => {
