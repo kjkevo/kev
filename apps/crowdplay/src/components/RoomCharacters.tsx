@@ -87,8 +87,8 @@ function capitalize(s: string) {
 
 /**
  * Pick-your-corner reveal: every character stands on the answer they
- * picked. After a beat the right answer lights up, its characters cheer,
- * and everyone else drops off their corner.
+ * picked. After a beat the right answer's corner turns green and the
+ * others red. The characters stand still.
  */
 export function PickYourCorner({ reveal, players, teams, avatars, myId, myTeamId, big = false }: Props & {
   reveal: QuestionReveal;
@@ -127,7 +127,7 @@ export function PickYourCorner({ reveal, players, teams, avatars, myId, myTeamId
 
   const myTeamPick = reveal.picks.find((r) => r.teamId === myTeamId);
   const myPick = reveal.picks.find((r) => r.playerId === myId);
-  const size = big ? 64 : 40;
+  const size = big ? 96 : 80;
 
   return (
     <div className="w-full flex flex-col gap-3">
@@ -159,29 +159,25 @@ export function PickYourCorner({ reveal, players, teams, avatars, myId, myTeamId
                 state === "right"
                   ? "bg-emerald-500/20 border-emerald-400/70"
                   : state === "wrong"
-                    ? "bg-rose-500/10 border-rose-400/30"
+                    ? "bg-rose-500/20 border-rose-400/70"
                     : "bg-white/5 border-white/15"
               } ${c.correct && corners.length > 1 && !big ? "col-span-2" : ""}`}
             >
-              <p className={`font-bold truncate ${big ? "text-2xl" : "text-sm"} ${state === "wrong" && !none ? "text-rose-200/80 line-through decoration-rose-400/60" : ""}`}>
+              <p className={`font-bold truncate ${big ? "text-3xl" : "text-lg"} ${state === "wrong" && !none ? "text-rose-200" : state === "right" ? "text-emerald-200" : ""}`}>
                 {c.label}
               </p>
-              <p className={`text-slate-400 ${big ? "text-base" : "text-[11px]"}`}>
+              <p className={`text-slate-400 ${big ? "text-lg" : "text-sm"}`}>
                 {c.people.length} {c.people.length === 1 ? "pick" : "picks"}
               </p>
-              <div className={`flex flex-wrap ${big ? "gap-3 pt-8" : "gap-1.5 pt-6"} min-h-[2.5rem] overflow-hidden pb-1 -mt-4`}>
-                {c.people.map((p, i) => {
+              <div className={`flex flex-wrap ${big ? "gap-3" : "gap-2"} pt-2 pb-1`}>
+                {c.people.map((p) => {
                   const a = p.avatar_id ? avatars[p.avatar_id] : undefined;
                   return (
                     <span key={p.id} className="flex flex-col items-center" style={{ width: size + 8 }}>
+                      {/* Standing still: no cheering, slumping or tilting. */}
+                      <Avatar emoji={a?.emoji} imageUrl={a?.imageUrl} size={size} variant="full" />
                       <span
-                        className={state === "right" ? "char-cheer" : state === "wrong" ? "char-slump" : "char-idle"}
-                        style={{ animationDelay: state === "idle" ? undefined : `${(i % 6) * 90}ms` }}
-                      >
-                        <Avatar emoji={a?.emoji} imageUrl={a?.imageUrl} size={size} variant="full" />
-                      </span>
-                      <span
-                        className={`truncate w-full text-center ${big ? "text-sm" : "text-[10px]"} ${
+                        className={`truncate w-full text-center ${big ? "text-xl" : "text-base"} ${
                           p.id === myId ? "font-black text-amber-300" : p.team_id === myTeamId ? "text-amber-200/80" : "text-slate-300"
                         }`}
                       >
