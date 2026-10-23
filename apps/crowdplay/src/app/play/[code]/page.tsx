@@ -1276,7 +1276,7 @@ export default function PlayPage() {
       <Center>
         <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
           <ExitButton onClick={() => setConfirmingQuit(true)} />
-          <TeamBadge name={myTeam?.name ?? creds.teamName} />
+          <TeamBadge name={myTeam?.name ?? creds.teamName} player={me?.nickname} />
         </div>
         <GetReady title="Get ready! Question 1 is about" subtitle={categoryName ?? "Trivia"} seconds={Math.ceil(questionStart.remainingMs / 1000)} />
         {me?.avatar_id && avatarsById[me.avatar_id] && (
@@ -1285,7 +1285,6 @@ export default function PlayPage() {
               emoji={avatarsById[me.avatar_id].emoji}
               imageUrl={avatarsById[me.avatar_id].imageUrl}
               mood="hop"
-              says="Let's go!"
               size={110}
             />
           </div>
@@ -1308,7 +1307,7 @@ export default function PlayPage() {
       <main className="min-h-screen bg-slate-950 text-white flex flex-col items-center px-5 py-6 gap-5 text-center relative">
         <div className="w-full flex items-center justify-between">
           <ExitButton onClick={() => setConfirmingQuit(true)} />
-          <TeamBadge name={myTeam?.name ?? creds.teamName} />
+          <TeamBadge name={myTeam?.name ?? creds.teamName} player={me?.nickname} />
         </div>
         <div>
           <p className="text-3xl font-black text-rose-400 tracking-wide">SUDDEN DEATH</p>
@@ -1394,16 +1393,6 @@ export default function PlayPage() {
     const hintCost = question.hint_cost ?? 50;
     const open = isOpenQuestion(room.current_question_index) || (question.choices?.length ?? 0) < 2;
     const buddyMood: CharacterMood = teamLock !== null ? "cheer" : myVote !== undefined ? "hop" : "idle";
-    const buddySays =
-      teamLock !== null
-        ? "Locked in!"
-        : countdown.expired
-          ? "Time's up!"
-          : myVote !== undefined
-            ? "Sent!"
-            : countdown.fraction < 0.25
-              ? "Hurry!"
-              : "Hmm…";
     const locked = teamLock !== null;
     const urgent = countdown.fraction <= 0.2;
     const canVote =
@@ -1416,7 +1405,7 @@ export default function PlayPage() {
       <main className="min-h-screen bg-slate-950 text-white flex flex-col px-4 py-4 gap-3 relative">
         <div className="flex items-center justify-between">
           <ExitButton onClick={() => setConfirmingQuit(true)} />
-          <TeamBadge name={myTeam?.name ?? creds.teamName} />
+          <TeamBadge name={myTeam?.name ?? creds.teamName} player={me?.nickname} />
         </div>
 
         {/* One tight row: Q5/20 · Movies · 26s */}
@@ -1457,7 +1446,6 @@ export default function PlayPage() {
                 emoji={myCharacter.emoji}
                 imageUrl={myCharacter.imageUrl}
                 mood={buddyMood}
-                says={buddySays}
                 size={72}
                 avatarId={me?.avatar_id}
                 play={emotePlays[creds.playerId]}
@@ -1507,9 +1495,6 @@ export default function PlayPage() {
                     );
                   })}
                 </div>
-                <p className="text-center text-xs text-slate-400">
-                  {myVote ? "Your team's answer is the one with the most votes. Tap another to switch." : "Tap your answer. Faster right answers score more (up to 1,000)."}
-                </p>
                 {voteError && <p className="text-center text-sm text-rose-400">{voteError}</p>}
               </div>
             ) : (
@@ -1648,7 +1633,7 @@ export default function PlayPage() {
       <main className="min-h-screen bg-slate-950 text-white flex flex-col px-4 py-4 gap-3 relative">
         <div className="flex items-center justify-between">
           <ExitButton onClick={() => setConfirmingQuit(true)} />
-          <TeamBadge name={myTeam?.name ?? creds.teamName} />
+          <TeamBadge name={myTeam?.name ?? creds.teamName} player={me?.nickname} />
         </div>
         <p className="text-sm font-bold text-slate-400">
           Q{room.current_question_index + 1}
@@ -1878,10 +1863,12 @@ function ExitButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-function TeamBadge({ name }: { name: string }) {
+/** You and your team, top right during the game. */
+function TeamBadge({ name, player }: { name: string; player?: string }) {
   return (
-    <span className="rounded-full bg-amber-400/15 border border-amber-400/40 px-4 py-2 text-sm font-bold text-amber-300">
-      {name}
+    <span className="max-w-[60%] rounded-2xl bg-amber-400/15 border border-amber-400/40 px-4 py-1.5 text-right leading-tight">
+      {player && <span className="block text-sm font-black text-white truncate">{player}</span>}
+      <span className="block text-xs font-bold text-amber-300 truncate">{name}</span>
     </span>
   );
 }
