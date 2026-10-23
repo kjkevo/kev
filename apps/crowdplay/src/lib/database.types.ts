@@ -675,6 +675,10 @@ export type Database = {
           o_rank: number
         }[]
       }
+      get_round_extras: {
+        Args: { p_room: string }
+        Returns: { o_question_id: string; o_fun_fact: string | null }[]
+      }
       trivia_queue: {
         Args: { p_venue_id: string }
         Returns: {
