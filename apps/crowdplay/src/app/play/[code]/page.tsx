@@ -1641,7 +1641,15 @@ export default function PlayPage() {
         </p>
         {question && <h2 className="text-lg font-bold">{question.prompt}</h2>}
         {showStandings ? (
-          <RoundStandings roomId={room.id} questionIndex={room.current_question_index} myTeamId={creds.teamId} />
+          <>
+            <RoundStandings roomId={room.id} questionIndex={room.current_question_index} myTeamId={creds.teamId} />
+            {/* A tip on the scores screen for the first two questions only. */}
+            {room.current_question_index < 2 && (
+              <p className="mt-2 rounded-xl bg-sky-500/10 border border-sky-400/30 px-4 py-3 text-center text-sm text-sky-100 animate-pop-in">
+                Tip: tap your answer fast. Faster right answers score more (up to 1,000).
+              </p>
+            )}
+          </>
         ) : reveal ? (
           <PickYourCorner
             reveal={reveal}
