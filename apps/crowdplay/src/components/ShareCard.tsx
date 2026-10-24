@@ -11,11 +11,15 @@ function ordinal(n: number) {
   return n === 1 ? "1st" : n === 2 ? "2nd" : n === 3 ? "3rd" : `${n}th`;
 }
 
-/** The headline on the card: "I won trivia at …" or "I took 2nd at trivia at …". */
+/** The headline on the card: "I won trivia at …", "I took 2nd at trivia at …", or "I played trivia at …". */
 export function shareHeadline(rank: number, venue: string) {
   if (rank === 1) return `I won trivia at ${venue}`;
-  return `I took ${ordinal(rank)} at trivia at ${venue}`;
+  if (rank <= 3) return `I took ${ordinal(rank)} at trivia at ${venue}`;
+  return `I played trivia at ${venue}`;
 }
+
+/** A personal award shown on the card ("⚡ Fastest finger · Right answer in 2.1s"). */
+export type ShareAward = { icon: string; title: string; detail: string };
 
 function loadImage(src: string) {
   return new Promise<HTMLImageElement | null>((resolve) => {
@@ -50,6 +54,7 @@ async function drawCard(opts: {
   score: number;
   imageUrl?: string | null;
   emoji?: string | null;
+  award?: ShareAward | null;
 }) {
   const canvas = document.createElement("canvas");
   canvas.width = W;
@@ -74,7 +79,7 @@ async function drawCard(opts: {
   ctx.textAlign = "center";
   ctx.fillStyle = "#fbbf24";
   ctx.font = "900 64px system-ui, -apple-system, sans-serif";
-  ctx.fillText(opts.rank === 1 ? "🏆 CHAMPION" : `🏅 ${ordinal(opts.rank).toUpperCase()} PLACE`, W / 2, 140);
+  ctx.fillText(opts.rank === 1 ? "🏆 CHAMPION" : `${opts.rank <= 3 ? "🏅" : "🎉"} ${ordinal(opts.rank).toUpperCase()} PLACE`, W / 2, 140);
 
   ctx.fillStyle = "#ffffff";
   ctx.font = "900 76px system-ui, -apple-system, sans-serif";
@@ -84,22 +89,43 @@ async function drawCard(opts: {
   const img = opts.imageUrl ? await loadImage(opts.imageUrl) : null;
   const top = 250 + Math.min(lines.length, 3) * 88 - 20;
   if (img) {
-    const size = 560;
+    const size = 480;
     ctx.shadowColor = "rgba(0,0,0,0.5)";
     ctx.shadowBlur = 40;
     ctx.drawImage(img, (W - size) / 2, top, size, size);
     ctx.shadowBlur = 0;
   } else {
     ctx.font = "300px system-ui, sans-serif";
-    ctx.fillText(opts.emoji ?? "🙂", W / 2, top + 400);
+    ctx.fillText(opts.emoji ?? "🙂", W / 2, top + 360);
+  }
+
+  // The player's best award, as a pill under the character.
+  if (opts.award) {
+    ctx.font = "800 44px system-ui, -apple-system, sans-serif";
+    const label = `${opts.award.icon} ${opts.award.title} · ${opts.award.detail}`;
+    const tw = Math.min(ctx.measureText(label).width, W - 120);
+    const y = H - 400;
+    ctx.fillStyle = "rgba(251,191,36,0.18)";
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(W / 2 - tw / 2 - 36, y - 52, tw + 72, 76, 38);
+    else ctx.rect(W / 2 - tw / 2 - 36, y - 52, tw + 72, 76);
+    ctx.fill();
+    ctx.fillStyle = "#fde68a";
+    ctx.fillText(label, W / 2, y, W - 120);
   }
 
   ctx.fillStyle = "#ffffff";
   ctx.font = "800 60px system-ui, -apple-system, sans-serif";
-  ctx.fillText(opts.nickname, W / 2, H - 250);
+  ctx.fillText(opts.nickname, W / 2, H - 285);
   ctx.fillStyle = "#c7d2fe";
   ctx.font = "600 40px system-ui, -apple-system, sans-serif";
-  ctx.fillText(`${opts.teamName} · ${opts.score.toLocaleString()} pts`, W / 2, H - 185);
+  ctx.fillText(`${opts.teamName} · ${opts.score.toLocaleString()} pts`, W / 2, H - 225);
+
+  // Date and where to play, so every share points back to the bar and the app.
+  ctx.fillStyle = "#a5b4fc";
+  ctx.font = "600 34px system-ui, -apple-system, sans-serif";
+  const date = new Date().toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  ctx.fillText(`${date} · Play at slimpse.vercel.app`, W / 2, H - 150);
 
   ctx.font = "900 52px system-ui, -apple-system, sans-serif";
   ctx.fillStyle = "#ffffff";
@@ -115,8 +141,9 @@ async function drawCard(opts: {
 }
 
 /**
- * "I won trivia at [Venue]": a picture of the player's character with
- * their result, ready to share to stories or save to the camera roll.
+ * "I won trivia at [Venue]" (or 2nd, 3rd, "I played…"): a picture of the
+ * player's character with their result and best award, ready to share to
+ * stories or save to the camera roll. Every player gets one.
  */
 export function ShareCard(props: {
   rank: number;
@@ -126,16 +153,18 @@ export function ShareCard(props: {
   score: number;
   imageUrl?: string | null;
   emoji?: string | null;
+  award?: ShareAward | null;
 }) {
   const [blob, setBlob] = useState<Blob | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
-  const { rank, venue, nickname, teamName, score, imageUrl, emoji } = props;
+  const { rank, venue, nickname, teamName, score, imageUrl, emoji, award } = props;
+  const awardKey = award ? `${award.icon}|${award.title}|${award.detail}` : "";
 
   useEffect(() => {
     let url: string | null = null;
     let cancelled = false;
-    drawCard({ rank, venue, nickname, teamName, score, imageUrl, emoji }).then((b) => {
+    drawCard({ rank, venue, nickname, teamName, score, imageUrl, emoji, award }).then((b) => {
       if (cancelled || !b) return;
       url = URL.createObjectURL(b);
       setBlob(b);
@@ -145,7 +174,8 @@ export function ShareCard(props: {
       cancelled = true;
       if (url) URL.revokeObjectURL(url);
     };
-  }, [rank, venue, nickname, teamName, score, imageUrl, emoji]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- awardKey stands in for award
+  }, [rank, venue, nickname, teamName, score, imageUrl, emoji, awardKey]);
 
   async function share() {
     if (!blob) return;
