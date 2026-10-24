@@ -41,7 +41,7 @@ import { useQuestionReveal } from "@/hooks/useQuestionReveal";
 import { LockInStrip, PickYourCorner } from "@/components/RoomCharacters";
 import { JoinDrops } from "@/components/JoinDrops";
 import { Podium } from "@/components/Podium";
-import { ShareCard } from "@/components/ShareCard";
+import { ShareCard, type ShareAward } from "@/components/ShareCard";
 import { EmoteCharacter, EmoteButtons } from "@/components/EmoteCharacter";
 import { useRoomEmotes } from "@/hooks/useRoomEmotes";
 
@@ -157,6 +157,7 @@ export default function PlayPage() {
   const [confirmingQuit, setConfirmingQuit] = useState(false);
   const [recap, setRecap] = useState<FinalRecapRow[] | null>(null);
   const [recapOpen, setRecapOpen] = useState(false);
+  const [awards, setAwards] = useState<ShareAward[] | null>(null);
   const { votes: questionVotes, lock: teamLock, hint: teamHint, refresh: refreshVotes } = useQuestionVotes(
     room?.id,
     room?.phase === "question" ? question?.id : undefined,
@@ -259,10 +260,20 @@ export default function PlayPage() {
   useEffect(() => {
     setMyVote(null);
     setRecap(null);
+    setAwards(null);
     setRejoining(false);
     setRejoinError(null);
     setInviteOpen(null);
   }, [room?.id]);
+
+  useEffect(() => {
+    if (room?.phase !== "final" || !room.id || !creds || awards) return;
+    supabase
+      .rpc("get_player_awards", { p_room_id: room.id, p_player_id: creds.playerId, p_client_token: creds.clientToken })
+      .then(({ data }) => {
+        if (data) setAwards(data.map((a) => ({ icon: a.o_icon, title: a.o_title, detail: a.o_detail })));
+      });
+  }, [room?.phase, room?.id, creds, awards]);
 
   useEffect(() => {
     if (room?.phase !== "final" || !room.id || recap) return;
@@ -290,7 +301,13 @@ export default function PlayPage() {
     () => activePlayers.filter((p) => p.team_id === creds?.teamId),
     [activePlayers, creds]
   );
-  const sortedTeams = useMemo(() => [...teams].sort((a, b) => b.score - a.score), [teams]);
+  // Final standings: leave out empty teams with no points (everyone left
+  // before scoring), but always keep your own team.
+  const sortedTeams = useMemo(() => {
+    const ranked = [...teams].sort((a, b) => b.score - a.score);
+    const real = ranked.filter((t) => t.score > 0 || t.id === creds?.teamId);
+    return real.length > 0 ? real : ranked;
+  }, [teams, creds?.teamId]);
   const myTeamRank = creds ? sortedTeams.findIndex((t) => t.id === creds.teamId) + 1 : 0;
 
   // Kahoot-style podium reveal: 3rd, then 2nd, then a suspense beat, then
@@ -1670,18 +1687,18 @@ export default function PlayPage() {
   if (room.phase === "final") {
     const myRecap = recap?.filter((r) => r.o_team_id === creds.teamId) ?? [];
     return (
-      <Center>
-        <div className="absolute top-4 left-4 z-10">
+      <main className="min-h-screen bg-gradient-to-b from-indigo-950 via-purple-950 to-black text-white flex flex-col items-center px-6 pt-4 pb-36 text-center relative">
+        <div className="self-start">
           <ExitButton onClick={() => leaveRoom("/trivia")} />
         </div>
-        <h1 className="text-2xl font-bold mb-6 mt-16">Final Results</h1>
+        <h1 className="text-2xl font-bold mt-2 mb-4">Final Results</h1>
         {room.ended_reason === "idle" && (
-          <p className="-mt-4 mb-4 rounded-full bg-white/10 px-4 py-1 text-sm text-slate-300">
+          <p className="mb-4 rounded-full bg-white/10 px-4 py-1 text-sm text-slate-300">
             Game ended early: nobody answered for 3 questions
           </p>
         )}
         {room.sd_winner_team_id && (
-          <p className="-mt-4 mb-4 rounded-full bg-rose-500/20 border border-rose-400/50 px-4 py-1 text-sm font-bold text-rose-200">
+          <p className="mb-4 rounded-full bg-rose-500/20 border border-rose-400/50 px-4 py-1 text-sm font-bold text-rose-200">
             {teams.find((t) => t.id === room.sd_winner_team_id)?.name} won in sudden death (+100)
           </p>
         )}
@@ -1707,16 +1724,23 @@ export default function PlayPage() {
 
         {showRest && (
           <div className="w-full max-w-xs flex flex-col gap-4 mt-6 animate-pop-in">
-            {/* Your result first, then the card to share it. */}
-            {myTeamRank > 0 && (
-              <div className="rounded-2xl bg-amber-400/15 border border-amber-400/40 px-4 py-3 text-center">
-                <p className="text-xs uppercase tracking-widest text-amber-300">Your team</p>
-                <p className="text-2xl font-black">
-                  {ordinal(myTeamRank)} of {sortedTeams.length} · {(myTeam?.score ?? 0).toLocaleString()} pts
-                </p>
-                <p className="text-sm text-slate-300">{resultLine(myTeamRank, sortedTeams.length)}</p>
+            {/* Your place is on the card below (Champion, 2nd, ...), so no separate result box. */}
+            {/* Personal awards: something for every player, even on a losing team. */}
+            {awards && awards.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <p className="text-xs uppercase tracking-widest text-amber-300">Your awards</p>
+                {awards.slice(0, 2).map((a) => (
+                  <div key={a.title} className="flex items-center gap-3 rounded-xl bg-amber-400/10 border border-amber-400/30 px-4 py-2.5 text-left">
+                    <span className="text-2xl">{a.icon}</span>
+                    <span className="min-w-0">
+                      <span className="block font-black">{a.title}</span>
+                      <span className="block text-sm text-slate-300">{a.detail}</span>
+                    </span>
+                  </div>
+                ))}
               </div>
             )}
+
             {myTeamRank > 0 && me && (
               <ShareCard
                 rank={myTeamRank}
@@ -1726,6 +1750,7 @@ export default function PlayPage() {
                 score={myTeam?.score ?? 0}
                 imageUrl={me.avatar_id ? avatarsById[me.avatar_id]?.imageUrl : null}
                 emoji={me.avatar_id ? avatarsById[me.avatar_id]?.emoji : null}
+                award={awards?.[0] ?? null}
               />
             )}
 
@@ -1785,23 +1810,27 @@ export default function PlayPage() {
               </div>
             )}
 
-            <button
-              onClick={playNextSameTeam}
-              disabled={rejoining}
-              className="rounded-2xl bg-amber-400 text-black font-black text-lg py-4 shadow-lg shadow-amber-400/20 disabled:opacity-50 active:scale-95 transition"
-            >
-              {rejoining ? "Getting you in…" : "Play again"}
-              <span className="block text-xs font-semibold text-black/70">
-                Same team · next game in about 2 min
-              </span>
-            </button>
-            {rejoinError && <p className="text-sm text-amber-300/90">{rejoinError}</p>}
             <button onClick={() => leaveRoom("/")} className="text-sm text-slate-400 underline">
               Back to Games
             </button>
           </div>
         )}
-      </Center>
+
+        {/* Play again stays pinned to the bottom so it's never hidden below the fold. */}
+        {showRest && (
+          <div className="fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black via-black/90 to-transparent pt-6 pb-[max(1rem,env(safe-area-inset-bottom))] pl-4 pr-16">
+            <button
+              onClick={playNextSameTeam}
+              disabled={rejoining}
+              className="w-full max-w-xs mx-auto block rounded-2xl bg-amber-400 text-black font-black text-lg py-3 shadow-lg shadow-amber-400/20 disabled:opacity-50 active:scale-95 transition"
+            >
+              {rejoining ? "Getting you in…" : "Play again"}
+              <span className="block text-xs font-semibold text-black/70">Same team · next game in about 2 min</span>
+            </button>
+            {rejoinError && <p className="mt-1 text-center text-sm text-amber-300/90">{rejoinError}</p>}
+          </div>
+        )}
+      </main>
     );
   }
 
@@ -1918,20 +1947,6 @@ type TeamVoteOption = { text: string; voters: string[]; mine: boolean };
 // everyone can see what's leading. The server groups more loosely -- by
 // meaning, so "mint" and "mint leaves" count together -- this is just the
 // at-a-glance view.
-/** How the character takes the final result. */
-function ordinal(n: number) {
-  const s = ["th", "st", "nd", "rd"];
-  const v = n % 100;
-  return n + (s[(v - 20) % 10] || s[v] || s[0]);
-}
-
-function resultLine(rank: number, teamCount: number) {
-  if (rank === 1) return "You won! 🏆";
-  if (rank <= 3 && teamCount > 3) return "On the podium!";
-  if (teamCount > 2 && rank === teamCount) return "Next time is yours.";
-  return "Good game!";
-}
-
 function groupTeamVotes(
   teammates: { id: string; nickname: string }[],
   votes: Record<string, string>,

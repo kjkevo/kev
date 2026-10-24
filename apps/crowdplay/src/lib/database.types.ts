@@ -675,6 +675,10 @@ export type Database = {
           o_rank: number
         }[]
       }
+      get_player_awards: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string }
+        Returns: { o_icon: string; o_title: string; o_detail: string }[]
+      }
       get_round_extras: {
         Args: { p_room: string }
         Returns: { o_question_id: string; o_fun_fact: string | null }[]
