@@ -691,6 +691,10 @@ export type Database = {
           o_rank: number
         }[]
       }
+      get_monthly_champion: {
+        Args: { p_venue: string }
+        Returns: { o_nickname: string; o_avatar_id: string | null; o_emoji: string | null; o_image_url: string | null; o_wins: number; o_games: number; o_month: string }[]
+      }
       throw_fog: {
         Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_target_team_id: string }
         Returns: { o_fogged_until: string }[]
