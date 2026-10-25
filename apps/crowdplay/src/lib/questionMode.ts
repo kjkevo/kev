@@ -12,6 +12,19 @@ export function questionSeconds(orderIndex: number) {
   return isOpenQuestion(orderIndex) ? 35 : 20;
 }
 
+/** This question's setup in the game, as loaded by useCurrentQuestion. */
+type Setup = { seconds?: number | null; is_open?: boolean | null } | null | undefined;
+
+/** Seconds on the clock for this question in this game (twists change it: lightning is 8). */
+export function secondsFor(q: Setup, orderIndex: number) {
+  return q?.seconds ?? questionSeconds(orderIndex);
+}
+
+/** Typed answer? Twist questions are always multiple choice. */
+export function isOpenFor(q: Setup, orderIndex: number) {
+  return q?.is_open ?? isOpenQuestion(orderIndex);
+}
+
 /**
  * The choices in a fixed, scrambled order: the same for everyone in the
  * game (seeded by the question id), but the right answer isn't always in
