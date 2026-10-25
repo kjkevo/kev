@@ -31,7 +31,7 @@ export function useCurrentQuestion(
 
     supabase
       .from("room_questions")
-      .select("question_id")
+      .select("question_id, twist, twist_seq, seconds, is_open, twist_teams, captains")
       .eq("room_id", roomId)
       .eq("order_index", orderIndex)
       .maybeSingle()
@@ -46,7 +46,20 @@ export function useCurrentQuestion(
           .eq("id", mapping.question_id)
           .maybeSingle()
           .then(({ data }) => {
-            if (!cancelled) setQuestion(data as PublicQuestion | null);
+            if (cancelled) return;
+            setQuestion(
+              data
+                ? ({
+                    ...(data as PublicQuestion),
+                    twist: mapping.twist,
+                    twist_seq: mapping.twist_seq,
+                    seconds: mapping.seconds,
+                    is_open: mapping.is_open,
+                    twist_teams: mapping.twist_teams,
+                    captains: mapping.captains as Record<string, string> | null,
+                  } as PublicQuestion)
+                : null
+            );
           });
       });
 

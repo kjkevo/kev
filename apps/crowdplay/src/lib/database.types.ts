@@ -553,9 +553,25 @@ export type Database = {
         Relationships: []
       }
       room_questions: {
-        Row: { room_id: string; order_index: number; question_id: string }
+        Row: {
+          room_id: string
+          order_index: number
+          question_id: string
+          twist: string | null
+          twist_seq: number | null
+          seconds: number | null
+          is_open: boolean | null
+          twist_teams: string[] | null
+          captains: Json | null
+        }
         Insert: { room_id: string; order_index: number; question_id: string }
         Update: { room_id?: string; order_index?: number; question_id?: string }
+        Relationships: []
+      }
+      trivia_fogs: {
+        Row: { id: string; room_id: string; question_id: string; from_team: string; to_team: string; thrown_by: string | null; thrown_at: string }
+        Insert: { room_id: string; question_id: string; from_team: string; to_team: string; thrown_by?: string | null; thrown_at?: string }
+        Update: { thrown_at?: string }
         Relationships: []
       }
     }
@@ -674,6 +690,10 @@ export type Database = {
           o_points: number
           o_rank: number
         }[]
+      }
+      throw_fog: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_target_team_id: string }
+        Returns: { o_fogged_until: string }[]
       }
       get_player_awards: {
         Args: { p_room_id: string; p_player_id: string; p_client_token: string }

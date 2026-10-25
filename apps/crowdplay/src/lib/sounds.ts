@@ -137,6 +137,11 @@ export const sounds = {
     tone(220, 0, 0.35, "sawtooth", 0.12, 140);
     tone(233, 0.02, 0.35, "sawtooth", 0.08, 147);
   },
+  /** A game twist is coming: a whoosh and a rising run. */
+  twist: () => {
+    noise(0, 0.5, 0.12, 1800);
+    [392, 523, 659, 784, 1047].forEach((f, i) => tone(f, 0.15 + i * 0.08, 0.22, "square", 0.1));
+  },
   /** The top 3 slide in. */
   standings: () => {
     [523, 659, 784].forEach((f, i) => tone(f, i * 0.12, 0.2, "sine", 0.22));

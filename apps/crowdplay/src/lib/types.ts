@@ -17,11 +17,20 @@ export type PublicQuestion = {
   choices: string[];
   time_limit_seconds: number;
   hint_cost: number; // points a hint takes off a right answer (50-150)
+  // This question's setup in the game (room_questions): its twist, if any,
+  // time on the clock, and whether it's typed or multiple choice. Null for
+  // games that started before twists; the old rules apply then.
+  twist?: string | null;
+  twist_seq?: number | null;
+  seconds?: number | null;
+  is_open?: boolean | null;
+  twist_teams?: string[] | null;
+  captains?: Record<string, string> | null;
 };
 export type QuestionPack = Database["public"]["Tables"]["question_packs"]["Row"];
 export type CategoryVote = Database["public"]["Tables"]["category_votes"]["Row"];
 
-export type Phase = "lobby" | "question" | "reveal" | "leaderboard" | "final";
+export type Phase = "lobby" | "question" | "reveal" | "leaderboard" | "final" | "twist_intro";
 
 export type HostCredentials = { roomId: string; hostSecret: string };
 export type PlayerCredentials = {

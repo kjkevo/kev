@@ -1,6 +1,9 @@
 "use client";
 
-import { isOpenQuestion, questionSeconds, shuffledChoices } from "@/lib/questionMode";
+import { isOpenFor, secondsFor, shuffledChoices } from "@/lib/questionMode";
+import { isTwist, twistBanner, twistDescription, type TwistContext } from "@/lib/twists";
+import { TwistBanner, TwistIntro } from "@/components/TwistIntro";
+import { useFogs } from "@/hooks/useFogs";
 import { RoundStandings } from "@/components/RoundStandings";
 import { FunFact } from "@/components/RoundExtras";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -47,7 +50,19 @@ export default function ScreenClient() {
   const code = activeRoom?.code ?? null;
   const { room, players, teams } = useRoomRealtime(code);
   const question = useCurrentQuestion(room?.id, room?.current_question_index, room?.phase);
-  const countdown = useCountdown(room?.question_started_at ?? null, questionSeconds(room?.current_question_index ?? 0));
+  const countdown = useCountdown(room?.question_started_at ?? null, secondsFor(question, room?.current_question_index ?? 0));
+  // Game twists: names for the intro and banner; a live feed of fogs on sabotage.
+  const twist = isTwist(question?.twist) ? question.twist : null;
+  const twistCtx: TwistContext = {
+    teamName: (id) => teams.find((t) => t.id === id)?.name ?? "A team",
+    playerName: (id) => players.find((p) => p.id === id)?.nickname ?? "a player",
+    twistTeams: question?.twist_teams,
+    captains: question?.captains,
+  };
+  const fogs = useFogs(
+    room?.phase === "question" && twist === "sabotage" ? room.id : undefined,
+    twist === "sabotage" ? question?.id : undefined
+  );
   const scheduledCountdown = useCountdownTo(room?.starts_at ?? null);
   const totalQuestions = useTotalQuestions(room?.id, room?.phase);
   const answeredIds = useAnsweredPlayers(room?.phase === "question" ? question?.id : undefined);
@@ -98,6 +113,10 @@ export default function ScreenClient() {
   useEffect(() => {
     if (room?.phase === "reveal" && revealClock.reached) sounds.standings();
   }, [room?.phase, revealClock.reached]);
+  useEffect(() => {
+    if (room?.phase === "twist_intro") sounds.twist();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per intro
+  }, [room?.phase, room?.current_question_index]);
   useEffect(() => {
     if (room?.phase !== "final") return;
     sounds.drumroll(2);
@@ -279,8 +298,26 @@ export default function ScreenClient() {
             <p className="text-lg text-slate-400">
               Question {room.current_question_index + 1} of {totalQuestions || "?"} · {countdown.remainingSeconds}s
             </p>
+            {twist && <TwistBanner big twist={twist} text={twistBanner(twist, question.twist_seq, twistCtx)} />}
+            {twist === "captain" && question.captains && (
+              <p className="text-xl text-fuchsia-200 max-w-4xl">
+                👑 Captains:{" "}
+                {Object.entries(question.captains)
+                  .map(([teamId, playerId]) => `${twistCtx.playerName(playerId)} (${twistCtx.teamName(teamId)})`)
+                  .join(" · ")}
+              </p>
+            )}
             <h2 className="text-4xl font-bold max-w-3xl">{question.prompt}</h2>
-            {!isOpenQuestion(room.current_question_index) && question.choices?.length >= 2 ? (
+            {twist === "sabotage" && fogs.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-2 max-w-4xl">
+                {fogs.map((f) => (
+                  <span key={f.id} className="rounded-full bg-sky-500/20 border border-sky-400/50 px-4 py-1 text-lg font-bold text-sky-100 animate-pop-in">
+                    🌫️ {twistCtx.teamName(f.from_team)} fogged {twistCtx.teamName(f.to_team)}!
+                  </span>
+                ))}
+              </div>
+            )}
+            {!isOpenFor(question, room.current_question_index) && question.choices?.length >= 2 ? (
               <div className="grid grid-cols-2 gap-3 w-full max-w-3xl">
                 {shuffledChoices(question.choices, question.id).map((c, i) => (
                   <div key={c} className="rounded-2xl bg-white/10 border border-white/20 px-5 py-4 text-2xl font-bold text-left">
@@ -298,11 +335,22 @@ export default function ScreenClient() {
           </>
         )}
 
+        {room.phase === "twist_intro" && twist && (
+          <TwistIntro
+            big
+            key={room.current_question_index}
+            twist={twist}
+            description={twistDescription(twist, twistCtx)}
+            startedAt={room.phase_started_at}
+          />
+        )}
+
         {room.phase === "reveal" && (
           <>
             <p className="text-lg text-slate-400">
               Question {room.current_question_index + 1} of {totalQuestions || "?"} · Who picked what
             </p>
+            {twist && <TwistBanner big twist={twist} text={twistBanner(twist, question?.twist_seq, twistCtx)} />}
             {question && <h2 className="text-3xl font-bold max-w-4xl">{question.prompt}</h2>}
             {revealClock.reached ? (
               <>

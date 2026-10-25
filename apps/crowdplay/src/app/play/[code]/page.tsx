@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { isOpenQuestion, questionSeconds, shuffledChoices } from "@/lib/questionMode";
+import { isOpenFor, secondsFor, shuffledChoices } from "@/lib/questionMode";
+import { fogUntil, isTwist, twistBanner, twistDescription, twistPersonalLine, type TwistContext } from "@/lib/twists";
+import { TwistBanner, TwistIntro } from "@/components/TwistIntro";
+import { useFogs } from "@/hooks/useFogs";
 import { RoundStandings } from "@/components/RoundStandings";
 import { AdSlot, FunFact } from "@/components/RoundExtras";
 import { listenForUnlock, sounds } from "@/lib/sounds";
@@ -80,7 +83,7 @@ export default function PlayPage() {
   const code = params.code?.toUpperCase();
   const { room, players, teams, loading, notFound } = useRoomRealtime(code ?? null);
   const question = useCurrentQuestion(room?.id, room?.current_question_index, room?.phase);
-  const countdown = useCountdown(room?.question_started_at ?? null, questionSeconds(room?.current_question_index ?? 0));
+  const countdown = useCountdown(room?.question_started_at ?? null, secondsFor(question, room?.current_question_index ?? 0));
   const scheduledCountdown = useCountdownTo(room?.starts_at ?? null);
   // Question 1 opens with a few seconds of "Get ready" before its clock starts.
   const questionStart = useCountdownTo(room?.phase === "question" ? room.question_started_at : null);
@@ -170,6 +173,43 @@ export default function PlayPage() {
   );
   const showStandings = room?.phase === "reveal" && revealClock.reached;
 
+  // Game twists: names for the intro and banner, and live fogs on a sabotage question.
+  const twist = isTwist(question?.twist) ? question.twist : null;
+  const twistCtx: TwistContext = {
+    teamName: (id) => teams.find((t) => t.id === id)?.name ?? "A team",
+    playerName: (id) => players.find((p) => p.id === id)?.nickname ?? "a teammate",
+    myTeamId: creds?.teamId,
+    myPlayerId: creds?.playerId,
+    twistTeams: question?.twist_teams,
+    captains: question?.captains,
+  };
+  const fogs = useFogs(
+    room?.phase === "question" && twist === "sabotage" ? room.id : undefined,
+    twist === "sabotage" ? question?.id : undefined
+  );
+  const myFogEnd = fogUntil(fogs, creds?.teamId);
+  const fogClock = useCountdownTo(myFogEnd > 0 ? new Date(myFogEnd).toISOString() : null);
+  const fogged = myFogEnd > 0 && fogClock.remainingMs > 0;
+  const [throwingFog, setThrowingFog] = useState(false);
+  const myCaptain = twist === "captain" && creds?.teamId ? question?.captains?.[creds.teamId] : undefined;
+  // On a captain question everyone else on the team watches (unless the captain left).
+  const notMyCall =
+    !!myCaptain && myCaptain !== creds?.playerId && players.some((p) => p.id === myCaptain && !p.left_at);
+
+  async function throwFog(targetTeamId: string) {
+    if (!room || !creds || throwingFog) return;
+    setThrowingFog(true);
+    haptics.tap();
+    const { error } = await supabase.rpc("throw_fog", {
+      p_room_id: room.id,
+      p_player_id: creds.playerId,
+      p_client_token: creds.clientToken,
+      p_target_team_id: targetTeamId,
+    });
+    setThrowingFog(false);
+    if (error && !/ALREADY_THROWN/.test(error.message)) setVoteError("Couldn't throw the fog. Try again.");
+  }
+
   // ---- Sounds ----
   useEffect(() => listenForUnlock(), []);
   // Get-ready beeps (3, 2, 1) and the last-5-seconds tick.
@@ -205,6 +245,11 @@ export default function PlayPage() {
   useEffect(() => {
     if (showStandings) sounds.standings();
   }, [showStandings]);
+
+  useEffect(() => {
+    if (room?.phase === "twist_intro") sounds.twist();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per intro
+  }, [room?.phase, room?.current_question_index]);
   // Someone new joined the lobby.
   const lobbyCount = room?.phase === "lobby" ? players.filter((p) => !p.left_at).length : 0;
   const prevLobbyCount = useRef(lobbyCount);
@@ -648,7 +693,11 @@ export default function PlayPage() {
       setVoteError(
         /TIME_EXPIRED|NOT_ACCEPTING_ANSWERS|STALE_QUESTION/.test(error.message)
           ? "Too late. Time ran out."
-          : "Didn't go through. Try again."
+          : /FOGGED/.test(error.message)
+            ? "You're fogged! Wait a second and try again."
+            : /NOT_CAPTAIN/.test(error.message)
+              ? "Only your captain can answer this one."
+              : "Didn't go through. Try again."
       );
       return;
     }
@@ -1413,7 +1462,10 @@ export default function PlayPage() {
     const myCharacter = me?.avatar_id ? avatarsById[me.avatar_id] : undefined;
     const category = room.winning_category_id ? packs[room.winning_category_id] : undefined;
     const hintCost = question.hint_cost ?? 50;
-    const open = isOpenQuestion(room.current_question_index) || (question.choices?.length ?? 0) < 2;
+    const open = isOpenFor(question, room.current_question_index) || (question.choices?.length ?? 0) < 2;
+    const myFogThrown = fogs.some((f) => f.from_team === creds.teamId);
+    const fogTargets = liveTeams.map((t) => t.team).filter((t) => t.id !== creds.teamId);
+    const blocked = fogged || notMyCall;
     const buddyMood: CharacterMood = teamLock !== null ? "cheer" : myVote !== undefined ? "hop" : "idle";
     const locked = teamLock !== null;
     const urgent = countdown.fraction <= 0.2;
@@ -1459,6 +1511,7 @@ export default function PlayPage() {
             style={{ width: `${countdown.fraction * 100}%` }}
           />
         </div>
+        {twist && <TwistBanner twist={twist} text={twistBanner(twist, question.twist_seq, twistCtx)} />}
 
         {/* The character beside the question. */}
         <div className="flex items-center gap-2">
@@ -1486,7 +1539,19 @@ export default function PlayPage() {
             </div>
           ) : (
             !open ? (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2 relative">
+                {fogged && (
+                  <div className="absolute inset-0 z-10 rounded-2xl bg-slate-400/30 backdrop-blur-md flex flex-col items-center justify-center text-center">
+                    <span className="text-6xl">🌫️</span>
+                    <span className="text-2xl font-black">Fogged!</span>
+                    <span className="text-lg font-bold tabular-nums">{Math.ceil(fogClock.remainingMs / 1000)}…</span>
+                  </div>
+                )}
+                {notMyCall && myCaptain && (
+                  <p className="rounded-xl bg-fuchsia-500/15 border border-fuchsia-400/40 px-4 py-2 text-center font-bold text-fuchsia-200">
+                    👑 {twistCtx.playerName(myCaptain)} is answering for your team
+                  </p>
+                )}
                 <div className="grid grid-cols-1 gap-2">
                   {shuffledChoices(question.choices, question.id).map((c) => {
                     const mine = myVote !== undefined && normalizeAnswer(myVote) === normalizeAnswer(c);
@@ -1496,10 +1561,10 @@ export default function PlayPage() {
                         key={c}
                         type="button"
                         onClick={() => !mine && castVote(c)}
-                        disabled={countdown.expired || sendingVote}
+                        disabled={countdown.expired || sendingVote || blocked}
                         className={`rounded-2xl px-4 py-4 text-xl font-black text-left transition active:scale-[0.98] border-2 ${
                           mine ? "bg-amber-400 text-black border-amber-400" : "bg-white/10 border-white/20 text-white"
-                        }`}
+                        } ${notMyCall && !mine ? "opacity-40" : ""}`}
                       >
                         {c}
                         {teamVotes > 0 && (
@@ -1513,6 +1578,33 @@ export default function PlayPage() {
                   })}
                 </div>
                 {voteError && <p className="text-center text-sm text-rose-400">{voteError}</p>}
+                {/* Sabotage: throw your team's one fog. */}
+                {twist === "sabotage" && !countdown.expired && (
+                  <div className="rounded-2xl bg-sky-500/10 border border-sky-400/40 px-3 py-3 text-center">
+                    {myFogThrown ? (
+                      <p className="font-bold text-sky-200">
+                        🌫️ Your team fogged {twistCtx.teamName(fogs.find((f) => f.from_team === creds.teamId)!.to_team)}
+                      </p>
+                    ) : (
+                      <>
+                        <p className="text-xs uppercase tracking-widest text-sky-300 mb-2">🌫️ Throw your fog at</p>
+                        <div className="flex flex-wrap justify-center gap-2">
+                          {fogTargets.map((t) => (
+                            <button
+                              key={t.id}
+                              type="button"
+                              onClick={() => throwFog(t.id)}
+                              disabled={throwingFog}
+                              className="rounded-full bg-sky-400 text-black font-black px-3 py-1.5 text-sm active:scale-95 transition disabled:opacity-50"
+                            >
+                              {t.name}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
             <form onSubmit={submitAnswer} className="flex flex-col gap-2">
@@ -1543,7 +1635,7 @@ export default function PlayPage() {
               </p>
               <p className="font-semibold">{teamHint}</p>
             </div>
-          ) : !locked && !countdown.expired ? (
+          ) : !locked && !countdown.expired && !notMyCall && twist !== "lightning" ? (
             confirmingHint ? (
               <div className="rounded-2xl bg-white/5 border border-amber-400/40 px-4 py-3 text-center">
                 <p className="text-sm text-slate-200 mb-3">
@@ -1592,7 +1684,7 @@ export default function PlayPage() {
                   key={p.id}
                   type="button"
                   onClick={() => v && !sameAsMine && castVote(v)}
-                  disabled={!v || isMe || sameAsMine || locked || countdown.expired || sendingVote}
+                  disabled={!v || isMe || sameAsMine || locked || countdown.expired || sendingVote || blocked}
                   className={`flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-left transition active:scale-[0.98] ${
                     sameAsMine ? "bg-amber-400/20 border border-amber-400/50" : "bg-white/5 border border-white/10 hover:border-white/30"
                   }`}
@@ -1641,6 +1733,30 @@ export default function PlayPage() {
     );
   }
 
+  // A game twist is next: 7 seconds saying what it is, then it fades into the question.
+  if (room.phase === "twist_intro") {
+    return (
+      <main className="min-h-screen bg-slate-950 text-white flex flex-col px-4 py-4 gap-3 relative">
+        <div className="flex items-center justify-between">
+          <ExitButton onClick={() => setConfirmingQuit(true)} />
+          <TeamBadge name={myTeam?.name ?? creds.teamName} player={me?.nickname} />
+        </div>
+        {twist ? (
+          <TwistIntro
+            key={room.current_question_index}
+            twist={twist}
+            description={twistDescription(twist, twistCtx)}
+            personal={twistPersonalLine(twist, twistCtx)}
+            startedAt={room.phase_started_at}
+          />
+        ) : (
+          <p className="flex-1 flex items-center justify-center text-2xl font-black text-amber-300">Game twist coming up…</p>
+        )}
+        {confirmingQuit && <QuitConfirm onCancel={() => setConfirmingQuit(false)} onConfirm={() => leaveRoom("/trivia")} />}
+      </main>
+    );
+  }
+
   if (room.phase === "reveal") {
     return (
       <main className="min-h-screen bg-slate-950 text-white flex flex-col px-4 py-4 gap-3 relative">
@@ -1652,6 +1768,7 @@ export default function PlayPage() {
           Q{room.current_question_index + 1}
           {totalQuestions ? `/${totalQuestions}` : ""} · {showStandings ? "Scores" : "Who picked what"}
         </p>
+        {twist && <TwistBanner twist={twist} text={twistBanner(twist, question?.twist_seq, twistCtx)} />}
         {question && <h2 className="text-lg font-bold">{question.prompt}</h2>}
         {showStandings ? (
           <div className="flex-1 flex flex-col gap-3">
