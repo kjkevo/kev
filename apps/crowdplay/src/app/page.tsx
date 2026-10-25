@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element -- small static game icon */
 import Link from "next/link";
 import { MyCharacterButton } from "@/components/CharacterLocker";
+import { MonthlyChampion } from "@/components/MonthlyChampion";
 
 const GAMES = [
   {
@@ -65,6 +66,8 @@ export default function Home() {
           </div>
           <span className="text-2xl font-black">›</span>
         </Link>
+
+        <MonthlyChampion />
 
         {/* Coming soon: a small row underneath. */}
         <div className="grid grid-cols-3 gap-2">
