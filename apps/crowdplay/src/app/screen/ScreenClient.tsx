@@ -9,7 +9,7 @@ import { PowerFeed } from "@/components/PowerFeed";
 import { RoundStandings } from "@/components/RoundStandings";
 import { FunFact } from "@/components/RoundExtras";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { listenForUnlock, setVolume, soundReady, sounds, unlockSound } from "@/lib/sounds";
+import { listenForUnlock, setVolume, sounds } from "@/lib/sounds";
 import { useActiveRoom } from "@/hooks/useActiveRoom";
 import { useRoomRealtime } from "@/hooks/useRoomRealtime";
 import { useCurrentQuestion } from "@/hooks/useCurrentQuestion";
@@ -17,12 +17,10 @@ import { useCountdown } from "@/hooks/useCountdown";
 import { useCountdownTo } from "@/hooks/useCountdownTo";
 import { useTotalQuestions } from "@/hooks/useTotalQuestions";
 import { useAllPacks } from "@/hooks/useAllPacks";
-import { useCategoryVoteTally } from "@/hooks/useCategoryVoteTally";
 import { JoinQRCode } from "@/components/JoinQRCode";
 import { useTriviaQueue, roundsToWaitLabel } from "@/hooks/useTriviaQueue";
 import { ScreenAgent } from "@/components/ScreenAgent";
 import { useScreenVenue, useVenueId } from "@/lib/venue";
-import { CategoryIcon } from "@/components/CategoryIcon";
 import { supabase } from "@/lib/supabase";
 import type { Team, FinalRecapRow, SuddenDeathResult } from "@/lib/types";
 import { GetReady } from "@/components/GetReady";
@@ -86,7 +84,6 @@ export default function ScreenClient() {
   const answeredIds = useAnsweredPlayers(room?.phase === "question" ? question?.id : undefined);
   const reveal = useQuestionReveal(room?.id, room?.phase, room?.current_question_index);
   const packs = useAllPacks();
-  const voteTally = useCategoryVoteTally(room?.phase === "lobby" ? room?.id : undefined);
   const [recap, setRecap] = useState<FinalRecapRow[] | null>(null);
   const questionStart = useCountdownTo(room?.phase === "question" ? room.question_started_at : null);
   // Reveal: who picked what for 6 seconds, then the top 3 (12-second reveal).
@@ -108,13 +105,10 @@ export default function ScreenClient() {
   const activePlayers = useMemo(() => players.filter((p) => !p.left_at), [players]);
   const sortedTeams = useMemo(() => [...teams].sort((a, b) => b.score - a.score), [teams]);
 
-  // ---- Sounds (louder on the TV; a tap turns them on, see the button below) ----
-  const [soundOn, setSoundOn] = useState(false);
+  // ---- Sounds (louder on the TV; any tap or key press on the TV turns them on) ----
   useEffect(() => {
     setVolume(0.9);
     listenForUnlock();
-    const t = setInterval(() => setSoundOn(soundReady()), 1000);
-    return () => clearInterval(t);
   }, []);
   const getReadySecs = room?.phase === "question" ? Math.ceil(questionStart.remainingMs / 1000) : 0;
   useEffect(() => {
@@ -170,19 +164,6 @@ export default function ScreenClient() {
   return (
     <main className="min-h-screen bg-slate-950 text-white flex flex-col">
       <ScreenAgent venue={venue} page="/screen" />
-      {!soundOn && (
-        <button
-          type="button"
-          onClick={async () => {
-            await unlockSound();
-            sounds.standings();
-            setSoundOn(soundReady());
-          }}
-          className="fixed top-4 right-4 z-20 rounded-full bg-amber-400 text-black font-black px-5 py-2 shadow-lg"
-        >
-          Turn on sound
-        </button>
-      )}
       {nextGame && (room.phase !== "lobby" || activePlayers.length >= 40) && (
         <div className="fixed bottom-6 right-6 z-10 flex items-center gap-4 rounded-2xl bg-slate-900/95 border border-amber-400/40 p-3 pr-5 shadow-2xl">
           <JoinQRCode code={nextGame.o_code} venue={venue} size={110} />
@@ -222,21 +203,6 @@ export default function ScreenClient() {
             <div className="w-full max-w-5xl">
               <ReadyLineup players={players} avatars={avatarsById} big />
             </div>
-            {room.category_options && room.category_options.length > 0 && (
-              <div className="w-full max-w-md">
-                <p className="text-sm text-slate-400 mb-2">Voting on the category:</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {room.category_options.map((packId) => (
-                    <VoteOption
-                      key={packId}
-                      name={packs[packId]?.name}
-                      icon={packs[packId]?.icon}
-                      count={voteTally[packId] ?? 0}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
             {teams.length > 0 && (
               <div className="w-full max-w-4xl">
                 <p className="text-sm uppercase tracking-widest text-slate-400 mb-3">
@@ -415,24 +381,6 @@ export default function ScreenClient() {
         )}
       </div>
     </main>
-  );
-}
-
-function VoteOption({
-  name,
-  icon,
-  count,
-}: {
-  name: string | undefined;
-  icon: string | null | undefined;
-  count: number;
-}) {
-  return (
-    <div className="rounded-xl bg-white/5 border border-white/10 px-4 py-3">
-      <CategoryIcon slug={icon} className="w-5 h-5 mb-1 text-amber-400" />
-      <div className="font-semibold">{name ?? "…"}</div>
-      <div className="text-amber-400 font-bold text-lg">{count}</div>
-    </div>
   );
 }
 
