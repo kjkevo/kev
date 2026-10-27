@@ -25,19 +25,19 @@ import { playerKey, type PlayerCredentials, type FinalRecapRow, type SuddenDeath
 import { randomFunName, funNameBatch } from "@/lib/funNames";
 import { haptics } from "@/lib/haptics";
 import { CategoryIcon } from "@/components/CategoryIcon";
-import { LobbyRoster, useLiveTeams, MAX_TEAMS, MAX_TEAM_SIZE, MIN_TEAM_SIZE } from "@/components/LobbyRoster";
+import { LobbyRoster, useLiveTeams, MAX_TEAM_SIZE } from "@/components/LobbyRoster";
 import { useTriviaQueue, roundsToWaitLabel, currentGameProgress } from "@/hooks/useTriviaQueue";
 import { useAvatars, useEquippedAvatar, type AvatarOption } from "@/hooks/useAvatars";
-import { CharacterGate } from "@/components/CharacterGate";
+import { JoinSteps, JOINED_BEFORE_KEY } from "@/components/JoinSteps";
 import { CharacterBuddy, type CharacterMood } from "@/components/CharacterBuddy";
 import { AvatarPicker } from "@/components/AvatarPicker";
 import { Shoutouts } from "@/components/Shoutouts";
 import { deviceKey } from "@/lib/device";
 import { BuySheet } from "@/components/BuySheet";
-import { SquadInvite } from "@/components/SquadInvite";
+import { JoinQRCode } from "@/components/JoinQRCode";
+import { ReadyLineup } from "@/components/ReadyLineup";
 import { usePlayerVenue, useVenueName } from "@/lib/venue";
 import { useSeason } from "@/hooks/useSeason";
-import { SeasonChip } from "@/components/SeasonNotice";
 import { Avatar } from "@/components/Avatar";
 import { GetReady } from "@/components/GetReady";
 import { SuddenDeathResultList } from "@/components/SuddenDeath";
@@ -130,20 +130,29 @@ export default function PlayPage() {
   // Monthly season: one username per phone per month, reset on the 1st.
   const { season, refresh: refreshSeason } = useSeason(venueSlug);
   const seasonName = season?.username ?? null;
+  const [seasonTimedOut, setSeasonTimedOut] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setSeasonTimedOut(true), 4000);
+    return () => clearTimeout(t);
+  }, []);
+  const seasonLoaded = season !== null || seasonTimedOut;
+  const [playedBefore, setPlayedBefore] = useState(false);
+  useEffect(() => {
+    try {
+      setPlayedBefore(localStorage.getItem(JOINED_BEFORE_KEY) === "1");
+    } catch {}
+  }, []);
   const { avatarId, equip: equipAvatar } = useEquippedAvatar(avatars);
   const [avatarNote, setAvatarNote] = useState<string | null>(null);
   const [nickname, setNickname] = useState("");
   // Free (untaken) generated usernames, used up one per Reroll.
   const [freeNames, setFreeNames] = useState<string[]>([]);
   // Scanned a team's QR code: name, then character, then straight onto that team.
-  const [invited, setInvited] = useState(false);
-  const [inviteStep, setInviteStep] = useState<"name" | "character">("name");
   const [autoJoinTried, setAutoJoinTried] = useState(false);
   // How they want to play: pick on the join screen, or arrive with
   // ?mode=solo / ?mode=team from the "wait for the next game" screen.
   const [joinMode, setJoinMode] = useState<"solo" | "team">("solo");
   // null = default (open for a first-timer, closed for a returning player).
-  const [avatarOpen, setAvatarOpen] = useState<boolean | null>(null);
   // null: follow the default (shown while you're alone on a team you made).
   const [inviteOpen, setInviteOpen] = useState<boolean | null>(null);
   const [lobbyAvatarOpen, setLobbyAvatarOpen] = useState(false);
@@ -304,7 +313,6 @@ export default function PlayPage() {
     if (invitedTeam) {
       setJoinMode("team");
       setSelectedTeamId(invitedTeam);
-      setInvited(true);
       return;
     }
     // Solo unless the trivia landing asked for a team (?mode=team).
@@ -354,16 +362,7 @@ export default function PlayPage() {
 
   const activePlayers = useMemo(() => players.filter((p) => !p.left_at), [players]);
 
-  const joinableTeams = useMemo(
-    () =>
-      teams
-        .filter((t) => t.kind === "self" && !t.locked)
-        .map((t) => ({ ...t, memberCount: activePlayers.filter((p) => p.team_id === t.id).length }))
-        .filter((t) => t.memberCount > 0 && t.memberCount < MAX_TEAM_SIZE),
-    [teams, activePlayers]
-  );
   const liveTeams = useLiveTeams(players, teams);
-  const teamSpotsLeft = MAX_TEAMS - liveTeams.length;
 
   const me = useMemo(() => players.find((p) => p.id === creds?.playerId), [players, creds]);
   const myTeam = useMemo(() => teams.find((t) => t.id === creds?.teamId), [teams, creds]);
@@ -534,11 +533,6 @@ export default function PlayPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [season?.username, season?.month]);
 
-  async function join(e: React.FormEvent) {
-    e.preventDefault();
-    await joinWith(avatarId);
-  }
-
   // The next game with room at this venue: the first queued lobby, or the
   // open lobby if the game before it has already ended.
   async function nextGameCode(): Promise<string | null> {
@@ -577,7 +571,6 @@ export default function PlayPage() {
     if (!code || typedName.length === 0) return;
     if (!characterId) {
       // Every game needs a character: open the picker.
-      setAvatarOpen(true);
       setJoinError(friendlyError("AVATAR_REQUIRED"));
       return;
     }
@@ -597,7 +590,6 @@ export default function PlayPage() {
         // Taken a moment ago by someone else: offer a fresh free name.
         if (claim.error?.message.includes("USERNAME_TAKEN")) {
           rerollName();
-          setInvited(false);
         }
         return;
       }
@@ -645,8 +637,6 @@ export default function PlayPage() {
     setJoining(false);
     if (error || !data?.[0]) {
       setJoinError(friendlyError(error?.message ?? ""));
-      // The invite didn't work (team full or gone): show the regular join screen.
-      setInvited(false);
       return;
     }
     const c: PlayerCredentials = {
@@ -659,6 +649,7 @@ export default function PlayPage() {
     localStorage.setItem(playerKey(target), JSON.stringify(c));
     try {
       localStorage.setItem(LAST_MODE_KEY, joinMode);
+      localStorage.setItem(JOINED_BEFORE_KEY, "1");
     } catch {}
     if (target !== code) {
       // Joined the next game: go to its lobby (it loads these credentials).
@@ -683,6 +674,21 @@ export default function PlayPage() {
       p_client_token: c.clientToken,
       p_device_key: deviceKey(),
     });
+  }
+
+  // "I'm ready" in the lobby: when every real player is, the game starts in 5 seconds.
+  const [settingReady, setSettingReady] = useState(false);
+  async function setReady(ready: boolean) {
+    if (!room || !creds || settingReady) return;
+    setSettingReady(true);
+    haptics.tap();
+    await supabase.rpc("set_player_ready", {
+      p_room_id: room.id,
+      p_player_id: creds.playerId,
+      p_client_token: creds.clientToken,
+      p_ready: ready,
+    });
+    setSettingReady(false);
   }
 
   async function vote(packId: string) {
@@ -877,14 +883,14 @@ export default function PlayPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldForward, venueSlug, forwardTry]);
 
-  // Scanned a team QR and already has this month's name and a character:
-  // straight onto that team, nothing to tap.
+  // A phone that already has this month's name and a character (it has
+  // played here before): straight into the game, nothing to tap.
   useEffect(() => {
-    if (!invited || autoJoinTried || creds || !room || room.phase !== "lobby" || !seasonName || !avatarId) return;
+    if (autoJoinTried || creds || !credsChecked || shouldForward || !room || !seasonName || !avatarId) return;
     setAutoJoinTried(true);
     joinWith(avatarId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [invited, autoJoinTried, creds, room?.phase, seasonName, avatarId]);
+  }, [autoJoinTried, creds, credsChecked, shouldForward, room?.id, seasonName, avatarId]);
 
   if (loading) return <Center text="Loading room…" />;
   if (notFound)
@@ -917,318 +923,69 @@ export default function PlayPage() {
   }
 
   if (!creds) {
-    const myAvatar = avatarId ? avatarsById[avatarId] : undefined;
     const invitedTeam = selectedTeamId ? teams.find((t) => t.id === selectedTeamId) : undefined;
-    const playName = seasonName ?? nickname.trim();
-    const cantCreateTeam = joinMode === "team" && !selectedTeamId && teamSpotsLeft <= 0;
-    // The character picker stays out of the way until they tap Edit (or
-    // try to join without a character, which every game needs).
-    const pickerOpen = avatarOpen ?? false;
-    const needsCharacter = avatars.length > 0 && !avatarId;
-
-    // Scanned a teammate's QR code: name → character → on the team.
-    if (invited && room.phase === "lobby") {
-      const teamLabel = invitedTeam?.name ?? "your friend's team";
-      const step = seasonName ? "character" : inviteStep;
+    const lobbyOpen = room.phase === "lobby";
+    const timing = room.queued ? (
+      <p className="text-sm font-bold text-sky-200">Next game · {roundsToWaitLabel(myQueueSpot?.o_rounds_to_wait ?? 1, myQueueSpot)}</p>
+    ) : !lobbyOpen ? (
+      <p className="text-sm text-sky-200">A game is playing right now. You&apos;ll be in the next one.</p>
+    ) : room.starts_at && !scheduledCountdown.reached ? (
+      <p className="text-sm text-slate-300">
+        Starts in <span className="font-bold text-amber-400 tabular-nums">{scheduledCountdown.label}</span>
+      </p>
+    ) : (
+      <p className="text-sm text-slate-300">The countdown starts when the first player joins.</p>
+    );
+    // A phone with this month's name and a character joins on its own.
+    if (!seasonLoaded || (seasonName && avatarId)) {
+      const myAvatar = avatarId ? avatarsById[avatarId] : undefined;
       return (
         <Center>
           <BackButton onClick={() => leaveRoom("/")} />
-          {buySheet}
-          <div className="w-full max-w-sm flex flex-col gap-4 pt-16 pb-8">
-            <div className="flex flex-col items-center gap-1">
-              <p className="text-xs uppercase tracking-widest text-slate-400">Joining</p>
-              <h1 className="text-2xl font-black text-amber-300">{teamLabel}</h1>
-              {!room.queued && room.starts_at && !scheduledCountdown.reached && (
-                <p className="text-sm text-slate-400">
-                  Starts in <span className="font-bold text-amber-400 tabular-nums">{scheduledCountdown.label}</span>
-                </p>
+          {!seasonLoaded ? (
+            <p className="text-slate-400">Loading…</p>
+          ) : (
+            <div className="flex flex-col items-center gap-3">
+              <Avatar emoji={myAvatar?.emoji} imageUrl={myAvatar?.imageUrl} size={140} variant="full" />
+              <p className="text-xl font-black">Joining as {seasonName}…</p>
+              {timing}
+              {joinError && (
+                <>
+                  <p className="text-sm text-rose-300">{joinError}</p>
+                  <button
+                    type="button"
+                    onClick={() => joinWith(avatarId)}
+                    className="rounded-2xl bg-amber-400 text-black font-black px-6 py-3 active:scale-95 transition"
+                  >
+                    Try again
+                  </button>
+                </>
               )}
             </div>
-
-            {joining || (seasonName && avatarId) ? (
-              <p className="text-lg font-bold text-amber-300">Joining {teamLabel}…</p>
-            ) : step === "name" ? (
-              <div className="rounded-2xl bg-white/5 border border-white/10 p-4 flex flex-col gap-3">
-                <p className="text-sm font-bold">Your name for {season?.month ?? "this month"}</p>
-                <input
-                  value={nickname}
-                  onChange={(e) => setNickname(e.target.value)}
-                  maxLength={20}
-                  aria-label="Username"
-                  className="w-full text-center text-2xl font-black bg-white/10 border border-white/20 rounded-xl px-3 py-3 outline-none focus:border-amber-400"
-                />
-                {nameStatus === "taken" ? (
-                  <p className="text-xs font-bold text-rose-300">
-                    Taken.{" "}
-                    <button type="button" onClick={rerollName} className="underline text-amber-300">
-                      Give me another
-                    </button>
-                  </p>
-                ) : nameStatus === "free" ? (
-                  <p className="text-xs font-bold text-emerald-300">✓ Available</p>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={rerollName}
-                  className="rounded-xl bg-white/10 py-2.5 text-sm font-bold active:scale-95 transition"
-                >
-                  New name
-                </button>
-                <button
-                  type="button"
-                  disabled={nickname.trim().length < 2 || nameStatus === "taken" || nameStatus === "checking"}
-                  onClick={() => {
-                    setJoinError(null);
-                    setInviteStep("character");
-                  }}
-                  className="rounded-2xl bg-amber-400 text-black font-black text-lg py-4 disabled:opacity-40 active:scale-95 transition"
-                >
-                  Use this name
-                </button>
-              </div>
-            ) : (
-              <>
-                {!seasonName && (
-                  <button type="button" onClick={() => setInviteStep("name")} className="text-sm text-slate-300">
-                    Playing as <span className="font-bold text-white">{nickname.trim()}</span> · <span className="text-amber-300">Change</span>
-                  </button>
-                )}
-                {avatars.some((a) => a.owned && a.priceCents > 0) ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <p className="text-lg font-black">Pick your character</p>
-                    <AvatarPicker
-                      avatars={avatars}
-                      selectedId={avatarId}
-                      onSelect={(id) => {
-                        changeAvatar(id);
-                        joinWith(id);
-                      }}
-                      onBuy={buyAvatar}
-                    />
-                  </div>
-                ) : (
-                  <CharacterGate
-                    avatars={avatars}
-                    onPick={(id) => {
-                      changeAvatar(id);
-                      joinWith(id);
-                    }}
-                    onBuy={buyAvatar}
-                  />
-                )}
-              </>
-            )}
-            {joinError && <p className="text-red-400 text-sm">{joinError}</p>}
-          </div>
+          )}
         </Center>
       );
     }
-
     return (
       <Center>
         <BackButton onClick={() => leaveRoom("/")} />
-        {buySheet}
-        <div className="w-full max-w-sm flex flex-col gap-4 pt-16 pb-8">
-          <div className="flex flex-col items-center gap-1">
-            {!room.queued && room.phase === "lobby" && room.starts_at && !scheduledCountdown.reached ? (
-              <p className="text-6xl font-black text-amber-400 tabular-nums leading-none">{scheduledCountdown.label}</p>
-            ) : (
-              <h1 className="text-3xl font-black">Trivia</h1>
-            )}
-            {!room.queued && room.phase === "lobby" && !room.starts_at && (
-              <p className="text-sm text-amber-400 font-bold">Join to start the countdown</p>
-            )}
-            {room.queued && (
-              <p className="text-sm">
-                <span className="text-amber-400 font-bold">Next game · {roundsToWaitLabel(myQueueSpot?.o_rounds_to_wait ?? 1, myQueueSpot)}</span>
-                {queueProgress && <span className="block text-xs text-slate-400 mt-0.5">{queueProgress}</span>}
-              </p>
-            )}
-            <SeasonChip season={season} />
-          </div>
-
-          <form onSubmit={join} className="flex flex-col gap-4">
-            {/* Player card: this month's username and avatar. */}
-            <div className="rounded-2xl bg-white/5 border border-white/10 p-3 flex items-center gap-3 text-left">
-              <button
-                type="button"
-                onClick={() => setAvatarOpen(!pickerOpen)}
-                aria-label={needsCharacter ? "Pick your character" : "Edit your character"}
-                className="relative shrink-0 active:scale-95 transition"
-              >
-                {needsCharacter ? (
-                  <span className="w-14 h-14 rounded-full bg-amber-400/20 ring-2 ring-amber-400 flex items-center justify-center text-2xl font-black text-amber-300">
-                    ?
-                  </span>
-                ) : (
-                  <Avatar emoji={myAvatar?.emoji} imageUrl={myAvatar?.imageUrl} size={56} />
-                )}
-              </button>
-              <div className="flex-1 min-w-0">
-                {seasonName ? (
-                  <p className="text-lg font-bold truncate">{seasonName}</p>
-                ) : (
-                  <>
-                    <label htmlFor="username" className="text-[11px] text-slate-400">
-                      Username for {season?.month ?? "the month"}
-                    </label>
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        id="username"
-                        value={nickname}
-                        onChange={(e) => setNickname(e.target.value)}
-                        maxLength={20}
-                        placeholder="Username"
-                        className="flex-1 min-w-0 text-base font-bold bg-white/10 border border-white/20 rounded-xl px-2.5 py-1.5 outline-none focus:border-amber-400"
-                      />
-                      <button
-                        type="button"
-                        onClick={rerollName}
-                        aria-label="Reroll username"
-                        className="shrink-0 h-9 px-2.5 rounded-xl bg-white/10 text-xs font-bold active:scale-90 transition"
-                      >
-                        New name
-                      </button>
-                    </div>
-                    <div className="mt-1 min-h-[1rem]">
-                      {nameStatus === "taken" ? (
-                        <p className="text-xs font-bold text-rose-300">
-                          Taken.{" "}
-                          <button type="button" onClick={rerollName} className="underline text-amber-300">
-                            Give me another
-                          </button>
-                        </p>
-                      ) : nameStatus === "free" ? (
-                        <p className="text-xs font-bold text-emerald-300">✓ Available</p>
-                      ) : null}
-                    </div>
-                  </>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => setAvatarOpen(!pickerOpen)}
-                className={`shrink-0 self-start rounded-full px-3 py-1 text-xs font-bold active:scale-95 transition ${
-                  needsCharacter && !pickerOpen ? "bg-amber-400 text-black" : "bg-white/10 text-amber-300"
-                }`}
-              >
-                {pickerOpen ? "Done" : needsCharacter ? "Pick" : "Edit"}
-              </button>
-            </div>
-            {needsCharacter ? (
-              pickerOpen && (
-                <CharacterGate
-                  avatars={avatars}
-                  onPick={(id) => {
-                    changeAvatar(id);
-                    setAvatarOpen(false);
-                    setJoinError(null);
-                  }}
-                  onBuy={buyAvatar}
-                />
-              )
-            ) : pickerOpen && (
-              <div>
-                <AvatarPicker avatars={avatars} selectedId={avatarId} onSelect={changeAvatar} onBuy={buyAvatar} />
-              </div>
-            )}
-            {avatarNote && <p className="text-xs text-amber-300/80 -mt-2">{avatarNote}</p>}
-
-            {/* Solo by default; a team is one tap away. */}
-            {joinMode === "solo" ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setJoinMode("team");
-                  setJoinError(null);
-                }}
-                className="text-sm font-bold text-amber-300 -mt-1"
-              >
-                Playing with friends? Make a team ›
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  setJoinMode("solo");
-                  setSelectedTeamId(null);
-                  setJoinError(null);
-                }}
-                className="text-sm font-bold text-slate-300 -mt-1"
-              >
-                ‹ Play solo instead
-              </button>
-            )}
-
-            {joinMode === "team" && (
-              <div className="flex flex-col gap-2 rounded-2xl bg-white/5 border border-white/10 p-3 text-left">
-                {invitedTeam ? (
-                  <p className="text-sm">
-                    Joining <span className="font-bold text-amber-300">{invitedTeam.name}</span>
-                  </p>
-                ) : teamSpotsLeft > 0 ? (
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[11px] text-slate-400">Your new team</p>
-                      <p className="font-bold text-amber-300 truncate">{newTeamName}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setNewTeamName(`Team ${randomFunName()}`)}
-                      aria-label="Pick another team name"
-                      className="text-xs font-bold px-3 h-8 rounded-lg bg-white/10 hover:bg-white/20 active:scale-90 transition"
-                    >
-                      Reroll
-                    </button>
-                  </div>
-                ) : (
-                  <p className="text-xs text-amber-300/80">All {MAX_TEAMS} teams taken. Join one below or go solo.</p>
-                )}
-                {joinableTeams.length > 0 && (
-                  <>
-                    <p className="text-[11px] text-slate-400 mt-1">Or join a friend&apos;s team</p>
-                    <div className="flex flex-wrap gap-2">
-                      {joinableTeams.map((t) => (
-                        <button
-                          key={t.id}
-                          type="button"
-                          onClick={() => setSelectedTeamId(selectedTeamId === t.id ? null : t.id)}
-                          className={`rounded-full px-3 py-1.5 text-sm font-semibold transition ${
-                            selectedTeamId === t.id ? "bg-amber-400 text-black" : "bg-white/10 text-slate-200"
-                          }`}
-                        >
-                          {t.name} ({t.memberCount}/{MAX_TEAM_SIZE})
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
-                <p className="text-[11px] text-slate-500">Friends scan your QR after you join.</p>
-              </div>
-            )}
-
-            {room.phase !== "lobby" && !joinError && (
-              <p className="text-sm text-sky-200">This game is already playing. Join now for the next one.</p>
-            )}
-            {joinError && <p className="text-red-400 text-sm">{joinError}</p>}
-            <button
-              disabled={joining || playName.length === 0 || cantCreateTeam || (!seasonName && nameStatus === "taken")}
-              className="rounded-2xl bg-amber-400 text-black font-black text-2xl py-5 shadow-lg shadow-amber-400/20 disabled:opacity-40 active:scale-95 transition"
-            >
-              {joining
-                ? "Joining…"
-                : !avatarId
-                  ? "Pick a character to join"
-                  : joinMode === "solo"
-                    ? room.phase !== "lobby" ? "Play next game" : "Play"
-                    : `${room.phase !== "lobby" ? "Play next game" : "Play"} · ${
-                        invitedTeam && room.phase === "lobby" ? invitedTeam.name : "New team"
-                      }`}
-            </button>
-          </form>
-
-          <LobbyRoster players={players} teams={teams} avatars={avatarsById} title="Who's in" collapsible />
-        </div>
+        <JoinSteps
+          heading={invitedTeam && lobbyOpen ? `Join ${invitedTeam.name}` : "Join trivia"}
+          timing={timing}
+          month={season?.month ?? "this month"}
+          nickname={nickname}
+          setNickname={setNickname}
+          nameStatus={nameStatus}
+          rerollName={rerollName}
+          avatars={avatars}
+          avatarId={avatarId}
+          onPickAvatar={changeAvatar}
+          playedBefore={playedBefore}
+          joining={joining}
+          joinError={joinError}
+          joinLabel={lobbyOpen ? "Join the game" : "Join the next game"}
+          onJoin={() => joinWith(avatarId)}
+        />
       </Center>
     );
   }
@@ -1236,8 +993,7 @@ export default function PlayPage() {
   if (room.phase === "lobby") {
     const showCountdown = room.starts_at && !scheduledCountdown.reached;
     const teamName = myTeam?.name ?? creds.teamName;
-    const inviteShown = inviteOpen ?? (myTeam?.kind === "self" && teammates.length < MAX_TEAM_SIZE - 1);
-    const canInvite = myTeam?.kind === "self" && teammates.length < MAX_TEAM_SIZE;
+    const inviteShown = inviteOpen ?? false;
     const myCharacter = me?.avatar_id ? avatarsById[me.avatar_id] : avatarId ? avatarsById[avatarId] : undefined;
     return (
       <Center>
@@ -1297,7 +1053,7 @@ export default function PlayPage() {
                     </div>
                   );
                 })}
-              {Array.from({ length: Math.max(0, MAX_TEAM_SIZE - teammates.length) }, (_, i) => (
+              {Array.from({ length: teammates.length > 1 ? Math.max(0, MAX_TEAM_SIZE - teammates.length) : 0 }, (_, i) => (
                 <div key={`open-${i}`} className="flex flex-col items-center min-w-0">
                   <span className="text-[11px] text-slate-500">Open</span>
                   <span className="mt-1 w-10 h-[62px] rounded-t-full rounded-b-lg border-2 border-dashed border-white/25" />
@@ -1309,30 +1065,37 @@ export default function PlayPage() {
                 <EmoteButtons avatarId={me?.avatar_id} onPlay={sendEmote} />
               </div>
             </div>
-            {teammates.length < MIN_TEAM_SIZE && (
-              <p className="mt-1 text-[11px] text-slate-400">Open spots fill when the game starts.</p>
-            )}
-            {canInvite && inviteShown && myTeam && (
-              <div className="mt-3 flex justify-center">
-                <SquadInvite
-                  compact
-                  code={room.code}
-                  teamId={myTeam.id}
-                  teamName={myTeam.name}
-                  venue={venueSlug ?? "main"}
-                  spotsLeft={MAX_TEAM_SIZE - teammates.length}
-                />
+            <p className="mt-1 text-[11px] text-slate-400">
+              {teammates.length <= 1
+                ? "Every player for themselves until 4 people join. Then everyone is put on teams."
+                : "Open spots fill when the game starts."}
+            </p>
+            {/* Friends scan this to get into the same game (same steps as any QR). */}
+            {inviteShown && (
+              <div className="mt-3 flex flex-col items-center gap-2 text-center">
+                <JoinQRCode code={room.code} venue={venueSlug ?? "main"} size={170} />
+                <p className="text-xs text-slate-300 max-w-[16rem]">
+                  Friends scan this with their phone camera to join this game. With 4 or more real players, it turns into team play.
+                </p>
               </div>
             )}
-            {canInvite && (
-              <button
-                type="button"
-                onClick={() => setInviteOpen(!inviteShown)}
-                className="mt-2 text-xs font-bold text-amber-300"
-              >
-                {inviteShown ? "Hide QR" : "Invite friends"}
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => setInviteOpen(!inviteShown)}
+              className="mt-2 w-full rounded-xl bg-white/10 py-2 text-sm font-bold text-amber-300 active:scale-95 transition"
+            >
+              {inviteShown ? "Hide the QR code" : "Invite friends to this game"}
+            </button>
+          </div>
+
+          <div className="rounded-2xl bg-white/5 border border-white/10 p-3">
+            <ReadyLineup
+              players={players}
+              avatars={avatarsById}
+              myId={creds.playerId}
+              onToggleReady={setReady}
+              busy={settingReady}
+            />
           </div>
 
           {lobbyAvatarOpen && (
