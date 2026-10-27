@@ -32,6 +32,7 @@ import { useAnsweredPlayers } from "@/hooks/useAnsweredPlayers";
 import { useQuestionReveal } from "@/hooks/useQuestionReveal";
 import { LockInStrip, PickYourCorner } from "@/components/RoomCharacters";
 import { JoinDrops } from "@/components/JoinDrops";
+import Link from "next/link";
 import { ScanCards } from "@/components/ScanCards";
 import { ReadyLineup } from "@/components/ReadyLineup";
 import { Podium } from "@/components/Podium";
@@ -193,6 +194,18 @@ export default function ScreenClient() {
             <JoinDrops players={players} teams={teams} avatars={avatarsById} big />
             <p className="text-4xl font-black">Scan with your phone camera to play</p>
             <ScanCards venue={venue} triviaCode={room.code} big />
+            {/* Showing this screen on your own phone or laptop: join the same game without scanning. */}
+            <div className="flex flex-col items-center gap-2">
+              <Link
+                href={`/play/${room.code}?venue=${encodeURIComponent(venue)}`}
+                className="rounded-2xl bg-amber-400 text-black font-black text-2xl px-8 py-4 active:scale-95 transition"
+              >
+                Join this game on this device
+              </Link>
+              <p className="text-lg text-slate-400">
+                Or type the code <span className="font-black tracking-widest text-amber-300">{room.code}</span> at slimpse.vercel.app/trivia
+              </p>
+            </div>
             {room.starts_at && !scheduledCountdown.reached ? (
               <p className="text-2xl text-slate-300">
                 Trivia starts in <span className="text-amber-400 font-black tabular-nums">{scheduledCountdown.label}</span>
