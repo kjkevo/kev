@@ -574,6 +574,15 @@ export type Database = {
         Update: { thrown_at?: string }
         Relationships: []
       }
+      trivia_powers: {
+        Row: {
+          id: string; room_id: string; question_id: string; team_id: string; player_id: string
+          power: string; amount: number; target_team_id: string | null; created_at: string
+        }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
     }
     Views: {
       questions_public: {
@@ -787,6 +796,17 @@ export type Database = {
       cast_team_vote: {
         Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_question_id: string; p_answer_text: string }
         Returns: { o_recorded: boolean }[]
+      }
+      use_power: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_question_id: string }
+        Returns: { o_power: string; o_result: Json }[]
+      }
+      get_team_powers: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_question_id: string }
+        Returns: {
+          o_my_power: string | null; o_my_used_question: string | null
+          o_team_power: string | null; o_team_player: string | null; o_team_data: Json | null
+        }[]
       }
       use_team_hint: {
         Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_question_id: string }
