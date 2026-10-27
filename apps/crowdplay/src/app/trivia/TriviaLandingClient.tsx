@@ -15,6 +15,7 @@ import { useTriviaQueue, roundsToWaitLabel, currentGameProgress } from "@/hooks/
 import { playerKey, type Player, type Team } from "@/lib/types";
 import { useSeason } from "@/hooks/useSeason";
 import { SeasonChip } from "@/components/SeasonNotice";
+import { JoinByCode } from "@/components/JoinByCode";
 
 /**
  * The entry point for anyone who lands here without a specific room code
@@ -218,6 +219,11 @@ export default function TriviaLandingClient() {
           <LobbyRoster players={players} teams={teams} />
         </>
       )}
+
+      <div className="flex flex-col items-center gap-2 mt-2">
+        <p className="text-xs uppercase tracking-widest text-indigo-300/70">Have a game code?</p>
+        <JoinByCode />
+      </div>
     </Shell>
   );
 }

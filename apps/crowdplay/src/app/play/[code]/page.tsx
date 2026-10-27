@@ -1077,6 +1077,9 @@ export default function PlayPage() {
                 <p className="text-xs text-slate-300 max-w-[16rem]">
                   Friends scan this with their phone camera to join this game. With 4 or more real players, it turns into team play.
                 </p>
+                <p className="text-xs text-slate-400">
+                  Or type the code <span className="font-black tracking-widest text-amber-300">{room.code}</span> at slimpse.vercel.app/trivia
+                </p>
               </div>
             )}
             <button
