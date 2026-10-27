@@ -140,7 +140,7 @@ export function JoinSteps({
               </HowItem>
             )}
             <HowItem n={power ? 4 : 3}>Under 4 players it&apos;s every player for themselves. With 4 or more, you&apos;re put on teams.</HowItem>
-            <HowItem n={power ? 5 : 4}>In the lobby, tap <span className="font-bold text-emerald-300">I&apos;m ready</span>. The game starts when everyone is.</HowItem>
+            <HowItem n={power ? 5 : 4}>In the lobby, vote on a category and tap <span className="font-bold text-emerald-300">I&apos;m ready</span>. When everyone has, the game starts. Missing players are filled in with bots.</HowItem>
           </ol>
         </div>
       )}
