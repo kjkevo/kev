@@ -5,7 +5,7 @@ import { isOpenFor, secondsFor, shuffledChoices } from "@/lib/questionMode";
 import { fogUntil, isTwist, twistBanner, twistDescription, twistPersonalLine, type TwistContext } from "@/lib/twists";
 import { TwistBanner, TwistIntro } from "@/components/TwistIntro";
 import { useFogs } from "@/hooks/useFogs";
-import { usePowers } from "@/hooks/usePowers";
+import { usePowers, useRoomPowers } from "@/hooks/usePowers";
 import { PowerPanel } from "@/components/PowerPanel";
 import { powerErrorText } from "@/lib/powers";
 import { RoundStandings } from "@/components/RoundStandings";
@@ -201,6 +201,12 @@ export default function PlayPage() {
 
   // Character powers: yours this game, and the one your team used on this question.
   const powers = usePowers(room?.id, room?.phase === "question" ? question?.id : undefined, creds);
+  // Every team's powers on this question: a Void Rift aimed at your team, and the tags on the scores.
+  const roomPowers = useRoomPowers(
+    room?.phase === "question" || room?.phase === "reveal" ? room.id : undefined,
+    question?.id
+  );
+  const riftOnMe = roomPowers.find((p) => p.power === "rift" && p.target_team_id === creds?.teamId);
   async function activatePower(): Promise<string | null> {
     if (!room || !creds || !question) return null;
     haptics.tap();
@@ -1547,6 +1553,11 @@ export default function PlayPage() {
           />
         </div>
         {twist && <TwistBanner twist={twist} text={twistBanner(twist, question.twist_seq, twistCtx)} />}
+        {riftOnMe && (
+          <p className="rounded-xl bg-rose-500/15 border border-rose-400/50 px-4 py-2 text-center font-bold text-rose-100 animate-pop-in">
+            🌀 {twistCtx.teamName(riftOnMe.team_id)} used Void Rift and stole {riftOnMe.amount} points from your team!
+          </p>
+        )}
 
         {/* The character beside the question. */}
         <div className="flex items-center gap-2">
@@ -1822,7 +1833,7 @@ export default function PlayPage() {
         {question && <h2 className="text-lg font-bold">{question.prompt}</h2>}
         {showStandings ? (
           <div className="flex-1 flex flex-col gap-3">
-            <RoundStandings roomId={room.id} questionIndex={room.current_question_index} myTeamId={creds.teamId} />
+            <RoundStandings roomId={room.id} questionIndex={room.current_question_index} myTeamId={creds.teamId} powers={roomPowers} />
             {/* A tip on the scores screen for the first two questions only. */}
             {room.current_question_index < 2 && (
               <p className="rounded-xl bg-sky-500/10 border border-sky-400/30 px-4 py-3 text-center text-sm text-sky-100 animate-pop-in">

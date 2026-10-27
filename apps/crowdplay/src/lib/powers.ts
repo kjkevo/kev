@@ -103,6 +103,51 @@ export function powerResultLine(key: string, data: PowerData | null | undefined)
   }
 }
 
+/** What everyone in the room is told a power did (the TV feed). */
+export function powerPublicLine(key: string, amount: number, targetName?: string): string {
+  switch (key) {
+    case "trailblaze":
+      return "cleared 2 wrong answers";
+    case "shield":
+      return "is shielded: 300 even if wrong";
+    case "probe":
+      return "peeked at everyone's votes";
+    case "patience":
+      return "gets full speed points";
+    case "bloom":
+      return "+300 if they get it right";
+    case "riddle":
+      return "got a free clue";
+    case "rift":
+      return `stole ${amount} from ${targetName ?? "the leader"}`;
+    case "overclock":
+      return "double points if right";
+    case "second_wind":
+      return "checked their answer";
+    default:
+      return "";
+  }
+}
+
+/** The short tag next to a team's points after a question, so a big (or
+ * missing) score explains itself. The team that lost points to a Void Rift
+ * gets its own tag. */
+export function powerScoreTag(key: string, amount: number, stolenFrom: boolean): string {
+  if (key === "rift") return stolenFrom ? `🌀 −${amount} stolen` : `🌀 +${amount} stolen`;
+  const p = powerByKey(key);
+  const what: Record<string, string> = {
+    trailblaze: "Trailblaze",
+    shield: "Shield",
+    probe: "Mind Probe",
+    patience: "Full speed",
+    bloom: "+300 Bloom",
+    riddle: "Free clue",
+    overclock: "Overclock",
+    second_wind: "Second Wind",
+  };
+  return `${p?.icon ?? "⚡"} ${what[key] ?? p?.name ?? ""}`;
+}
+
 /** Server errors from use_power, in plain words. */
 export function powerErrorText(message: string): string {
   if (/POWER_USED/.test(message)) return "You've already used your power this game.";
