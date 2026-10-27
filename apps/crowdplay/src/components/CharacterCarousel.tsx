@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/Avatar";
+import { PowerCard } from "@/components/PowerCard";
 import type { AvatarOption } from "@/hooks/useAvatars";
 
 /**
@@ -77,6 +78,7 @@ export function CharacterCarousel({
         </button>
       </div>
       <p className="text-lg font-black">{a.name}</p>
+      <PowerCard key={a.id} avatarId={a.id} className="max-w-xs animate-[fade-in_0.2s_ease-out]" />
       <button
         type="button"
         onClick={() => onButton(a)}
