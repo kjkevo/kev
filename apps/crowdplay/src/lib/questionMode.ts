@@ -6,18 +6,18 @@ export function isOpenQuestion(orderIndex: number) {
   return orderIndex % 3 === 2;
 }
 
-/** Seconds on the clock: 20 for multiple choice, 35 for an open answer
+/** Seconds on the clock: 20 for multiple choice and for an open answer
  * (matches trivia_question_seconds() in the database). */
-export function questionSeconds(orderIndex: number) {
-  return isOpenQuestion(orderIndex) ? 35 : 20;
+export function questionSeconds() {
+  return 20;
 }
 
 /** This question's setup in the game, as loaded by useCurrentQuestion. */
 type Setup = { seconds?: number | null; is_open?: boolean | null } | null | undefined;
 
 /** Seconds on the clock for this question in this game (twists change it: lightning is 8). */
-export function secondsFor(q: Setup, orderIndex: number) {
-  return q?.seconds ?? questionSeconds(orderIndex);
+export function secondsFor(q: Setup) {
+  return q?.seconds ?? questionSeconds();
 }
 
 /** Typed answer? Twist questions are always multiple choice. */

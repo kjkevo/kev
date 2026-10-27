@@ -86,7 +86,7 @@ export default function PlayPage() {
   const code = params.code?.toUpperCase();
   const { room, players, teams, loading, notFound } = useRoomRealtime(code ?? null);
   const question = useCurrentQuestion(room?.id, room?.current_question_index, room?.phase);
-  const countdown = useCountdown(room?.question_started_at ?? null, secondsFor(question, room?.current_question_index ?? 0));
+  const countdown = useCountdown(room?.question_started_at ?? null, secondsFor(question));
   const scheduledCountdown = useCountdownTo(room?.starts_at ?? null);
   // Question 1 opens with a few seconds of "Get ready" before its clock starts.
   const questionStart = useCountdownTo(room?.phase === "question" ? room.question_started_at : null);
@@ -367,6 +367,18 @@ export default function PlayPage() {
 
   const me = useMemo(() => players.find((p) => p.id === creds?.playerId), [players, creds]);
   const myTeam = useMemo(() => teams.find((t) => t.id === creds?.teamId), [teams, creds]);
+  // The lobby can move you to another team (solo play under 4 real players,
+  // teams of 4 from then on): follow the server so your team is always right.
+  useEffect(() => {
+    if (!code || !creds || !me?.team_id || me.team_id === creds.teamId) return;
+    const next = { ...creds, teamId: me.team_id, teamName: teams.find((t) => t.id === me.team_id)?.name ?? creds.teamName };
+    setCreds(next);
+    try {
+      localStorage.setItem(playerKey(code), JSON.stringify(next));
+    } catch {
+      // storage blocked: the in-memory creds are enough for this visit
+    }
+  }, [code, creds, me?.team_id, teams]);
   const teammates = useMemo(
     () => activePlayers.filter((p) => p.team_id === creds?.teamId),
     [activePlayers, creds]
@@ -960,7 +972,7 @@ export default function PlayPage() {
                   onClick={rerollName}
                   className="rounded-xl bg-white/10 py-2.5 text-sm font-bold active:scale-95 transition"
                 >
-                  🎲 Reroll
+                  New name
                 </button>
                 <button
                   type="button"
@@ -1073,9 +1085,9 @@ export default function PlayPage() {
                         type="button"
                         onClick={rerollName}
                         aria-label="Reroll username"
-                        className="shrink-0 w-9 h-9 rounded-xl bg-white/10 text-lg active:scale-90 transition"
+                        className="shrink-0 h-9 px-2.5 rounded-xl bg-white/10 text-xs font-bold active:scale-90 transition"
                       >
-                        🎲
+                        New name
                       </button>
                     </div>
                     <div className="mt-1 min-h-[1rem]">
@@ -1555,7 +1567,7 @@ export default function PlayPage() {
         {twist && <TwistBanner twist={twist} text={twistBanner(twist, question.twist_seq, twistCtx)} />}
         {riftOnMe && (
           <p className="rounded-xl bg-rose-500/15 border border-rose-400/50 px-4 py-2 text-center font-bold text-rose-100 animate-pop-in">
-            🌀 {twistCtx.teamName(riftOnMe.team_id)} used Void Rift and stole {riftOnMe.amount} points from your team!
+            {twistCtx.teamName(riftOnMe.team_id)} used Void Rift and stole {riftOnMe.amount} points from your team!
           </p>
         )}
 
@@ -1588,14 +1600,13 @@ export default function PlayPage() {
               <div className="flex flex-col gap-2 relative">
                 {fogged && (
                   <div className="absolute inset-0 z-10 rounded-2xl bg-slate-400/30 backdrop-blur-md flex flex-col items-center justify-center text-center">
-                    <span className="text-6xl">🌫️</span>
-                    <span className="text-2xl font-black">Fogged!</span>
+                                        <span className="text-2xl font-black">Fogged!</span>
                     <span className="text-lg font-bold tabular-nums">{Math.ceil(fogClock.remainingMs / 1000)}…</span>
                   </div>
                 )}
                 {notMyCall && myCaptain && (
                   <p className="rounded-xl bg-fuchsia-500/15 border border-fuchsia-400/40 px-4 py-2 text-center font-bold text-fuchsia-200">
-                    👑 {twistCtx.playerName(myCaptain)} is answering for your team
+                    {twistCtx.playerName(myCaptain)} is answering for your team
                   </p>
                 )}
                 <div className="grid grid-cols-1 gap-2">
@@ -1630,11 +1641,11 @@ export default function PlayPage() {
                   <div className="rounded-2xl bg-sky-500/10 border border-sky-400/40 px-3 py-3 text-center">
                     {myFogThrown ? (
                       <p className="font-bold text-sky-200">
-                        🌫️ Your team fogged {twistCtx.teamName(fogs.find((f) => f.from_team === creds.teamId)!.to_team)}
+                        Your team fogged {twistCtx.teamName(fogs.find((f) => f.from_team === creds.teamId)!.to_team)}
                       </p>
                     ) : (
                       <>
-                        <p className="text-xs uppercase tracking-widest text-sky-300 mb-2">🌫️ Throw your fog at</p>
+                        <p className="text-xs uppercase tracking-widest text-sky-300 mb-2">Throw your fog at</p>
                         <div className="flex flex-wrap justify-center gap-2">
                           {fogTargets.map((t) => (
                             <button
@@ -1909,7 +1920,6 @@ export default function PlayPage() {
                 <p className="text-xs uppercase tracking-widest text-amber-300">Your awards</p>
                 {awards.slice(0, 2).map((a) => (
                   <div key={a.title} className="flex items-center gap-3 rounded-xl bg-amber-400/10 border border-amber-400/30 px-4 py-2.5 text-left">
-                    <span className="text-2xl">{a.icon}</span>
                     <span className="min-w-0">
                       <span className="block font-black">{a.title}</span>
                       <span className="block text-sm text-slate-300">{a.detail}</span>

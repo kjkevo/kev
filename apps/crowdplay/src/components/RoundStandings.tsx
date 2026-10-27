@@ -47,7 +47,7 @@ export function RoundStandings({
   if (!rows || rows.length === 0) return null;
   const top = rows.slice(0, 3);
   const mine = myTeamId ? rows.find((r) => r.teamId === myTeamId) : undefined;
-  const medal = ["🥇", "🥈", "🥉"];
+  const place = ["1st", "2nd", "3rd"];
   const tagsFor = (teamId: string) => [
     ...powers.filter((p) => p.team_id === teamId).map((p) => powerScoreTag(p.power, p.amount, false)),
     ...powers.filter((p) => p.power === "rift" && p.target_team_id === teamId).map((p) => powerScoreTag(p.power, p.amount, true)),
@@ -61,7 +61,7 @@ export function RoundStandings({
       }`}
       style={{ animationDelay: `${i * 120}ms`, animationFillMode: "both" }}
     >
-      <span className={big ? "text-3xl" : "text-2xl"}>{medal[r.rank - 1] ?? `#${r.rank}`}</span>
+      <span className={`shrink-0 rounded-lg bg-amber-400/20 text-amber-300 font-black text-center ${big ? "text-xl w-14 py-1" : "text-sm w-10 py-0.5"}`}>{place[r.rank - 1] ?? `#${r.rank}`}</span>
       <span className="flex-1 min-w-0 truncate font-bold text-left">{r.name}</span>
       {tagsFor(r.teamId).map((tag) => (
         <span

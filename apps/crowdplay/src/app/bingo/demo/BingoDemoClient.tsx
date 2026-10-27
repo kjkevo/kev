@@ -142,7 +142,7 @@ export default function BingoDemoClient() {
             onClick={() => setPaused((p) => !p)}
             className="rounded-full bg-white/10 border border-white/20 px-4 py-1.5 text-sm font-bold"
           >
-            {paused ? "▶ Resume" : "⏸ Pause"}
+            {paused ? "Resume" : "Pause"}
           </button>
         </header>
 
@@ -175,7 +175,7 @@ export default function BingoDemoClient() {
                       ) : (
                         <span className="text-xs text-slate-500 tabular-nums w-14 text-right">{away} to go</span>
                       )}
-                      {p.wins > 0 && <span className="text-xs">🏆{p.wins > 1 ? `×${p.wins}` : ""}</span>}
+                      {p.wins > 0 && <span className="text-[11px] font-bold text-amber-300">{p.wins} {p.wins === 1 ? "win" : "wins"}</span>}
                     </div>
                   ))}
                 </div>
@@ -240,7 +240,7 @@ export default function BingoDemoClient() {
                           : "bg-white/10 text-slate-200 hover:bg-white/15"
                     }`}
                   >
-                    {free ? "★ FREE" : text}
+                    {free ? "FREE" : text}
                   </button>
                 );
               })}

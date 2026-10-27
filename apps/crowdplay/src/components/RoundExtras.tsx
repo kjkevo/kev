@@ -31,7 +31,7 @@ export function FunFact({ roomId, questionIndex, big = false }: { roomId: string
       }`}
       style={{ animationDelay: "400ms", animationFillMode: "both" }}
     >
-      <p className={`uppercase tracking-widest text-violet-300 mb-1 ${big ? "text-base" : "text-xs"}`}>💡 Fun fact</p>
+      <p className={`uppercase tracking-widest text-violet-300 mb-1 ${big ? "text-base" : "text-xs"}`}>Fun fact</p>
       <p className={`font-semibold text-slate-100 ${big ? "text-2xl" : "text-lg"}`}>{fact}</p>
     </div>
   );

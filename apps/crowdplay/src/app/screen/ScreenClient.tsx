@@ -52,7 +52,7 @@ export default function ScreenClient() {
   const code = activeRoom?.code ?? null;
   const { room, players, teams } = useRoomRealtime(code);
   const question = useCurrentQuestion(room?.id, room?.current_question_index, room?.phase);
-  const countdown = useCountdown(room?.question_started_at ?? null, secondsFor(question, room?.current_question_index ?? 0));
+  const countdown = useCountdown(room?.question_started_at ?? null, secondsFor(question));
   // Game twists: names for the intro and banner; a live feed of fogs on sabotage.
   const twist = isTwist(question?.twist) ? question.twist : null;
   const twistCtx: TwistContext = {
@@ -178,7 +178,7 @@ export default function ScreenClient() {
           }}
           className="fixed top-4 right-4 z-20 rounded-full bg-amber-400 text-black font-black px-5 py-2 shadow-lg"
         >
-          🔊 Turn on sound
+          Turn on sound
         </button>
       )}
       {nextGame && (room.phase !== "lobby" || activePlayers.length >= 40) && (
@@ -317,7 +317,7 @@ export default function ScreenClient() {
             {twist && <TwistBanner big twist={twist} text={twistBanner(twist, question.twist_seq, twistCtx)} />}
             {twist === "captain" && question.captains && (
               <p className="text-xl text-fuchsia-200 max-w-4xl">
-                👑 Captains:{" "}
+                Captains:{" "}
                 {Object.entries(question.captains)
                   .map(([teamId, playerId]) => `${twistCtx.playerName(playerId)} (${twistCtx.teamName(teamId)})`)
                   .join(" · ")}
@@ -328,7 +328,7 @@ export default function ScreenClient() {
               <div className="flex flex-wrap justify-center gap-2 max-w-4xl">
                 {fogs.map((f) => (
                   <span key={f.id} className="rounded-full bg-sky-500/20 border border-sky-400/50 px-4 py-1 text-lg font-bold text-sky-100 animate-pop-in">
-                    🌫️ {twistCtx.teamName(f.from_team)} fogged {twistCtx.teamName(f.to_team)}!
+                    {twistCtx.teamName(f.from_team)} fogged {twistCtx.teamName(f.to_team)}!
                   </span>
                 ))}
               </div>

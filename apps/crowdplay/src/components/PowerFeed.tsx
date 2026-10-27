@@ -20,7 +20,7 @@ export function PowerFeed({ powers, who, big = false }: { powers: RoomPower[]; w
   if (powers.length === 0) return null;
   return (
     <div className={`flex flex-col gap-2 ${big ? "w-[22rem]" : "w-full"}`}>
-      <p className={`uppercase tracking-widest text-violet-300 font-bold ${big ? "text-sm" : "text-[11px]"}`}>⚡ Powers this question</p>
+      <p className={`uppercase tracking-widest text-violet-300 font-bold ${big ? "text-sm" : "text-[11px]"}`}>Powers this question</p>
       {powers.map((p) => {
         const power = powerByKey(p.power);
         if (!power) return null;
@@ -39,7 +39,7 @@ export function PowerFeed({ powers, who, big = false }: { powers: RoomPower[]; w
               </p>
               <p className={`text-violet-100 ${big ? "text-base" : "text-xs"}`}>
                 <span className="font-black">
-                  {power.icon} {power.name}:
+                  {power.name}:
                 </span>{" "}
                 {powerPublicLine(p.power, p.amount, p.target_team_id ? who.teamName(p.target_team_id) : undefined)}
               </p>
