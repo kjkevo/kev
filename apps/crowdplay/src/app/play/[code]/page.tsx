@@ -695,13 +695,20 @@ export default function PlayPage() {
     setVoteError(null);
     // Show the pick right away; the server confirms it a moment later.
     setPendingVote({ questionId: question.id, text: t });
-    const { error } = await supabase.rpc("cast_team_vote", {
+    const args = {
       p_room_id: room.id,
       p_player_id: creds.playerId,
       p_client_token: creds.clientToken,
       p_question_id: question.id,
       p_answer_text: t,
-    });
+    };
+    let { error } = await supabase.rpc("cast_team_vote", args);
+    // A busy moment on the server (a timeout or a dropped request): try again
+    // rather than lose the vote.
+    for (let i = 0; i < 2 && error && /statement timeout|fetch|network|Failed to/i.test(error.message); i++) {
+      await new Promise((r) => setTimeout(r, 400));
+      ({ error } = await supabase.rpc("cast_team_vote", args));
+    }
     setSendingVote(false);
     if (error) {
       setPendingVote(null);
