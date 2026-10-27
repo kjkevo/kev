@@ -1701,6 +1701,7 @@ export default function PlayPage() {
             teamPower={teamPower}
             usedByName={teamPower?.playerId === creds.playerId ? "You" : twistCtx.playerName(teamPower?.playerId ?? "")}
             locked={locked}
+            answeredSolo={teammates.length <= 1 && myVote !== undefined}
             open={open}
             expired={countdown.expired}
             fogged={fogged}
