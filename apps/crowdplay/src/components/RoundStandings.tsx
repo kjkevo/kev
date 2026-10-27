@@ -2,22 +2,28 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { powerScoreTag } from "@/lib/powers";
+import type { RoomPower } from "@/hooks/usePowers";
 
 type Standing = { teamId: string; name: string; score: number; points: number; rank: number };
 
 /**
  * The scores after each question: the top 3 teams, with what each just
- * scored, and your team's place if it isn't in the top 3.
+ * scored, and your team's place if it isn't in the top 3. A power used on
+ * the question shows as a tag beside the points, so a doubled (or stolen)
+ * score explains itself.
  */
 export function RoundStandings({
   roomId,
   questionIndex,
   myTeamId,
+  powers = [],
   big = false,
 }: {
   roomId: string;
   questionIndex: number;
   myTeamId?: string | null;
+  powers?: RoomPower[];
   big?: boolean;
 }) {
   const [rows, setRows] = useState<Standing[] | null>(null);
@@ -42,6 +48,10 @@ export function RoundStandings({
   const top = rows.slice(0, 3);
   const mine = myTeamId ? rows.find((r) => r.teamId === myTeamId) : undefined;
   const medal = ["🥇", "🥈", "🥉"];
+  const tagsFor = (teamId: string) => [
+    ...powers.filter((p) => p.team_id === teamId).map((p) => powerScoreTag(p.power, p.amount, false)),
+    ...powers.filter((p) => p.power === "rift" && p.target_team_id === teamId).map((p) => powerScoreTag(p.power, p.amount, true)),
+  ];
 
   const row = (r: Standing, i: number) => (
     <div
@@ -53,6 +63,14 @@ export function RoundStandings({
     >
       <span className={big ? "text-3xl" : "text-2xl"}>{medal[r.rank - 1] ?? `#${r.rank}`}</span>
       <span className="flex-1 min-w-0 truncate font-bold text-left">{r.name}</span>
+      {tagsFor(r.teamId).map((tag) => (
+        <span
+          key={tag}
+          className={`shrink-0 rounded-full bg-violet-500/20 border border-violet-400/50 text-violet-100 font-bold ${big ? "text-base px-3 py-0.5" : "text-xs px-2 py-0.5"}`}
+        >
+          {tag}
+        </span>
+      ))}
       {r.points > 0 && <span className="text-emerald-300 font-bold tabular-nums">+{r.points.toLocaleString()}</span>}
       <span className="font-black tabular-nums text-amber-300">{r.score.toLocaleString()}</span>
     </div>

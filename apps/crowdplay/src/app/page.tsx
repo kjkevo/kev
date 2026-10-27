@@ -13,20 +13,13 @@ const GAMES = [
     live: true,
   },
   {
-    name: "Family Feud",
-    initial: "F",
-    icon: "/games/feud.png",
-    tagline: "Top answers, buzzer battles",
-    href: "/feud",
-    live: false,
-  },
-  {
     name: "Social Bingo",
     initial: "B",
     icon: "/games/bingo.png",
     tagline: "Meet people, mark your card",
-    href: "/bingo",
+    href: "/bingo/demo",
     live: false,
+    demo: true,
   },
   {
     name: "Sports Predictions",
@@ -70,19 +63,36 @@ export default function Home() {
         <MonthlyChampion />
 
         {/* Coming soon: a small row underneath. */}
-        <div className="grid grid-cols-3 gap-2">
-          {soon.map((game) => (
-            <div
-              key={game.name}
-              className="rounded-2xl bg-white/[0.03] border border-white/5 px-2 py-3 flex flex-col items-center gap-1 opacity-60"
-            >
-              <div className="w-12 h-12 rounded-xl bg-black overflow-hidden">
-                <img src={game.icon} alt="" className="w-full h-full object-cover" />
+        <div className="grid grid-cols-2 gap-2">
+          {soon.map((game) => {
+            const tile = (
+              <>
+                <div className="w-12 h-12 rounded-xl bg-black overflow-hidden">
+                  <img src={game.icon} alt="" className="w-full h-full object-cover" />
+                </div>
+                <div className="font-bold text-xs leading-tight">{game.name}</div>
+                <div className={`text-[10px] uppercase tracking-wider ${"demo" in game ? "text-amber-300 font-bold" : "text-slate-500"}`}>
+                  {"demo" in game ? "Watch the demo ›" : "Coming soon"}
+                </div>
+              </>
+            );
+            return "demo" in game ? (
+              <Link
+                key={game.name}
+                href={game.href}
+                className="rounded-2xl bg-white/[0.06] border border-amber-400/30 px-2 py-3 flex flex-col items-center gap-1 transition active:scale-95"
+              >
+                {tile}
+              </Link>
+            ) : (
+              <div
+                key={game.name}
+                className="rounded-2xl bg-white/[0.03] border border-white/5 px-2 py-3 flex flex-col items-center gap-1 opacity-60"
+              >
+                {tile}
               </div>
-              <div className="font-bold text-xs leading-tight">{game.name}</div>
-              <div className="text-[10px] uppercase tracking-wider text-slate-500">Coming soon</div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </main>
