@@ -18,7 +18,7 @@ export function shareHeadline(rank: number, venue: string) {
   return `I played trivia at ${venue}`;
 }
 
-/** A personal award shown on the card ("⚡ Fastest finger · Right answer in 2.1s"). */
+/** A personal award shown on the card ("Fastest finger · Right answer in 2.1s"). */
 export type ShareAward = { icon: string; title: string; detail: string };
 
 function loadImage(src: string) {
@@ -79,7 +79,7 @@ async function drawCard(opts: {
   ctx.textAlign = "center";
   ctx.fillStyle = "#fbbf24";
   ctx.font = "900 64px system-ui, -apple-system, sans-serif";
-  ctx.fillText(opts.rank === 1 ? "🏆 CHAMPION" : `${opts.rank <= 3 ? "🏅" : "🎉"} ${ordinal(opts.rank).toUpperCase()} PLACE`, W / 2, 140);
+  ctx.fillText(opts.rank === 1 ? "CHAMPION" : `${ordinal(opts.rank).toUpperCase()} PLACE`, W / 2, 140);
 
   ctx.fillStyle = "#ffffff";
   ctx.font = "900 76px system-ui, -apple-system, sans-serif";
@@ -94,15 +94,12 @@ async function drawCard(opts: {
     ctx.shadowBlur = 40;
     ctx.drawImage(img, (W - size) / 2, top, size, size);
     ctx.shadowBlur = 0;
-  } else {
-    ctx.font = "300px system-ui, sans-serif";
-    ctx.fillText(opts.emoji ?? "🙂", W / 2, top + 360);
   }
 
   // The player's best award, as a pill under the character.
   if (opts.award) {
     ctx.font = "800 44px system-ui, -apple-system, sans-serif";
-    const label = `${opts.award.icon} ${opts.award.title} · ${opts.award.detail}`;
+    const label = `${opts.award.title} · ${opts.award.detail}`;
     const tw = Math.min(ctx.measureText(label).width, W - 120);
     const y = H - 400;
     ctx.fillStyle = "rgba(251,191,36,0.18)";

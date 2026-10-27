@@ -7,7 +7,7 @@ export function PowerCard({ avatarId, className = "" }: { avatarId: string; clas
   return (
     <div className={`w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-left ${className}`}>
       <div className="flex items-center gap-2">
-        <span className="text-lg" aria-hidden="true">{power.icon}</span>
+        
         <span className="text-sm font-black text-amber-300">{power.name}</span>
         <span className="ml-auto text-[10px] font-bold uppercase tracking-wide text-white/50">
           {POWERS_LIVE ? "Once per game" : "Coming soon"}

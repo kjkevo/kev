@@ -42,7 +42,7 @@ export function MonthlyChampion() {
             <Avatar emoji={champ.emoji} imageUrl={champ.imageUrl} size={64} variant="full" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-amber-300">🏆 {month} Champion</p>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-amber-300">{month} Champion</p>
             <p className="text-xl font-black truncate">{champ.nickname}</p>
             <p className="text-sm text-slate-300">
               {champ.wins} trivia {champ.wins === 1 ? "win" : "wins"} this month
@@ -51,7 +51,7 @@ export function MonthlyChampion() {
         </>
       ) : (
         <div className="flex-1 text-center">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-amber-300">🏆 {month} Champion</p>
+          <p className="text-[11px] font-bold uppercase tracking-widest text-amber-300">{month} Champion</p>
           <p className="text-base font-black">Nobody yet. Win a game to take the crown!</p>
         </div>
       )}

@@ -4,7 +4,7 @@ import { Avatar } from "@/components/Avatar";
 import type { AvatarOption } from "@/hooks/useAvatars";
 import type { Player, Team } from "@/lib/types";
 
-const MEDAL: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
+const PLACE: Record<number, string> = { 1: "1st", 2: "2nd", 3: "3rd" };
 const BLOCK: Record<number, string> = {
   1: "bg-gradient-to-b from-amber-300 to-amber-500 text-black",
   2: "bg-gradient-to-b from-slate-200 to-slate-400 text-black",
@@ -63,7 +63,7 @@ export function Podium({
                 HEIGHT[rank][big ? 1 : 0]
               } ${spot ? "" : "opacity-40"} ${mine ? "ring-4 ring-white/70" : ""}`}
             >
-              <span className={big ? "text-5xl" : "text-2xl"}>{MEDAL[rank]}</span>
+              <span className={`font-black ${big ? "text-4xl" : "text-xl"}`}>{PLACE[rank]}</span>
               {spot && (
                 <>
                   <span className={`font-black text-center leading-tight line-clamp-2 break-words max-w-full ${big ? "text-2xl" : "text-xs"}`}>

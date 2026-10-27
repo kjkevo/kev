@@ -22,7 +22,6 @@ export type PowerTiming = "before" | "after" | "any";
 
 export type Power = {
   key: PowerKey;
-  icon: string;
   name: string;
   /** How it works, for the character picker. */
   how: string;
@@ -32,23 +31,23 @@ export type Power = {
 };
 
 export const POWERS: Record<string, Power> = {
-  "jungle-scout": { key: "trailblaze", icon: "🌿", name: "Trailblaze", timing: "before", choicesOnly: true,
+  "jungle-scout": { key: "trailblaze", name: "Trailblaze", timing: "before", choicesOnly: true,
     how: "Clears two wrong answers off your team's choices." },
-  "crystal-titan": { key: "shield", icon: "💎", name: "Crystal Shield", timing: "before",
+  "crystal-titan": { key: "shield", name: "Crystal Shield", timing: "before",
     how: "If your team gets the question wrong, you still score 300." },
-  "alien-buddy": { key: "probe", icon: "🛸", name: "Mind Probe", timing: "before", choicesOnly: true,
+  "alien-buddy": { key: "probe", name: "Mind Probe", timing: "before", choicesOnly: true,
     how: "See how the other teams are voting. They might be wrong!" },
-  "forest-guardian": { key: "patience", icon: "🛡️", name: "Patience", timing: "before",
+  "forest-guardian": { key: "patience", name: "Patience", timing: "before",
     how: "Full speed points on the question, however long your team takes." },
-  "sylvan-entity": { key: "bloom", icon: "🌸", name: "Bloom", timing: "before",
+  "sylvan-entity": { key: "bloom", name: "Bloom", timing: "before",
     how: "+300 bonus points if your team gets the question right." },
-  "geo-sphinx": { key: "riddle", icon: "🔮", name: "Riddle Sight", timing: "before",
+  "geo-sphinx": { key: "riddle", name: "Riddle Sight", timing: "before",
     how: "Get the question's clue for free. No points taken off." },
-  "void-walker": { key: "rift", icon: "🌀", name: "Void Rift", timing: "any",
+  "void-walker": { key: "rift", name: "Void Rift", timing: "any",
     how: "Steal 300 points from the team in first place (2nd place if that's you)." },
-  "model-z": { key: "overclock", icon: "⚡", name: "Overclock", timing: "before",
+  "model-z": { key: "overclock", name: "Overclock", timing: "before",
     how: "Double points if your team gets it right (×4 on a ×3 Golden question)." },
-  "stone-golem": { key: "second_wind", icon: "🪨", name: "Second Wind", timing: "after",
+  "stone-golem": { key: "second_wind", name: "Second Wind", timing: "after",
     how: "After your team locks in, check the answer. If it's wrong, you get one more try for half points." },
 };
 
@@ -56,6 +55,12 @@ const BY_KEY = Object.fromEntries(Object.values(POWERS).map((p) => [p.key, p])) 
 
 export function powerFor(avatarId: string | null | undefined): Power | null {
   return avatarId ? POWERS[avatarId] ?? null : null;
+}
+
+/** The face of the character a power belongs to (shown instead of an icon). */
+export function powerFace(key: string | null | undefined): string | null {
+  const id = Object.keys(POWERS).find((a) => POWERS[a].key === key);
+  return id ? `/avatars/${id}-256.png` : null;
 }
 
 export function powerByKey(key: string | null | undefined): Power | null {
@@ -133,7 +138,7 @@ export function powerPublicLine(key: string, amount: number, targetName?: string
  * missing) score explains itself. The team that lost points to a Void Rift
  * gets its own tag. */
 export function powerScoreTag(key: string, amount: number, stolenFrom: boolean): string {
-  if (key === "rift") return stolenFrom ? `🌀 −${amount} stolen` : `🌀 +${amount} stolen`;
+  if (key === "rift") return stolenFrom ? `−${amount} stolen` : `+${amount} stolen`;
   const p = powerByKey(key);
   const what: Record<string, string> = {
     trailblaze: "Trailblaze",
@@ -145,7 +150,7 @@ export function powerScoreTag(key: string, amount: number, stolenFrom: boolean):
     overclock: "Overclock",
     second_wind: "Second Wind",
   };
-  return `${p?.icon ?? "⚡"} ${what[key] ?? p?.name ?? ""}`;
+  return what[key] ?? p?.name ?? "";
 }
 
 /** Server errors from use_power, in plain words. */

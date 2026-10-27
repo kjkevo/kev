@@ -9,13 +9,13 @@ export const TWIST_INTRO_SECONDS = 7;
 /** Seconds a fog blocks a team from answering (matches trivia_fog_until()). */
 export const FOG_SECONDS = 3;
 
-export const TWISTS: Record<Twist, { icon: string; title: string; color: string; glow: string }> = {
-  lightning: { icon: "⚡", title: "Lightning Round", color: "text-yellow-300", glow: "rgba(250,204,21,0.28)" },
-  comeback: { icon: "🔼", title: "Comeback Bonus", color: "text-emerald-300", glow: "rgba(52,211,153,0.25)" },
-  bounty: { icon: "💰", title: "Bounty", color: "text-amber-300", glow: "rgba(251,191,36,0.28)" },
-  golden: { icon: "🌟", title: "Golden Question", color: "text-amber-200", glow: "rgba(252,211,77,0.35)" },
-  captain: { icon: "👑", title: "Team Captain's Call", color: "text-fuchsia-300", glow: "rgba(232,121,249,0.25)" },
-  sabotage: { icon: "🌫️", title: "Sabotage", color: "text-sky-300", glow: "rgba(56,189,248,0.25)" },
+export const TWISTS: Record<Twist, { title: string; color: string; glow: string }> = {
+  lightning: { title: "Lightning Round", color: "text-yellow-300", glow: "rgba(250,204,21,0.28)" },
+  comeback: { title: "Comeback Bonus", color: "text-emerald-300", glow: "rgba(52,211,153,0.25)" },
+  bounty: { title: "Bounty", color: "text-amber-300", glow: "rgba(251,191,36,0.28)" },
+  golden: { title: "Golden Question", color: "text-amber-200", glow: "rgba(252,211,77,0.35)" },
+  captain: { title: "Team Captain's Call", color: "text-fuchsia-300", glow: "rgba(232,121,249,0.25)" },
+  sabotage: { title: "Sabotage", color: "text-sky-300", glow: "rgba(56,189,248,0.25)" },
 };
 
 export function isTwist(t: string | null | undefined): t is Twist {
@@ -75,23 +75,22 @@ export function twistPersonalLine(twist: Twist, ctx: TwistContext): string | nul
 
 /** The short banner during the question and the reveal. */
 export function twistBanner(twist: Twist, seq: number | null | undefined, ctx: TwistContext): string {
-  const t = TWISTS[twist];
   const targets = (ctx.twistTeams ?? []).map(ctx.teamName);
   switch (twist) {
     case "lightning":
-      return `${t.icon} Lightning ${seq ?? 1}/3 · 2× points`;
+      return `Lightning ${seq ?? 1}/3 · 2× points`;
     case "comeback":
-      return `${t.icon} Comeback · ${targets.length > 0 ? list(targets) : "last place"} 1.5×`;
+      return `Comeback · ${targets.length > 0 ? list(targets) : "last place"} 1.5×`;
     case "bounty":
-      return `${t.icon} Bounty on ${targets[0] ?? "1st place"} · +500`;
+      return `Bounty on ${targets[0] ?? "1st place"} · +500`;
     case "golden":
-      return `${t.icon} Golden question · 3× points`;
+      return `Golden question · 3× points`;
     case "captain": {
       const cap = ctx.myTeamId ? ctx.captains?.[ctx.myTeamId] : undefined;
-      return `${t.icon} Captain's call${cap ? ` · ${cap === ctx.myPlayerId ? "You're the captain" : `Captain: ${ctx.playerName(cap)}`}` : ""}`;
+      return `Captain's call${cap ? ` · ${cap === ctx.myPlayerId ? "You're the captain" : `Captain: ${ctx.playerName(cap)}`}` : ""}`;
     }
     case "sabotage":
-      return `${t.icon} Sabotage · fog another team`;
+      return `Sabotage · fog another team`;
   }
 }
 

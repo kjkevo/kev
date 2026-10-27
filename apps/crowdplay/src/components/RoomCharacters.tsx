@@ -25,8 +25,10 @@ function usePlaying(players: Player[], teams?: Team[]) {
 }
 
 /**
- * Lock-in pop: every player's character, greyed out while they think, and
- * popping in the moment they lock in an answer (the answer stays hidden).
+ * Who has locked in. Your own team shows each teammate's character (greyed
+ * while they think, popping in when they lock in); every other team is just
+ * its name, with a spinner until all of it has answered. The TV has no team
+ * of its own, so it shows every team that way.
  */
 export function LockInStrip({ players, teams, avatars, answered, myId, myTeamId, big = false }: Props & {
   teams?: Team[];
@@ -34,47 +36,77 @@ export function LockInStrip({ players, teams, avatars, answered, myId, myTeamId,
 }) {
   const playing = usePlaying(players, teams);
   if (playing.length === 0) return null;
-  const done = playing.filter((p) => answered.has(p.id)).length;
+  const mates = myTeamId ? playing.filter((p) => p.team_id === myTeamId) : [];
+  const otherTeams = (teams ?? [])
+    .filter((t) => t.id !== myTeamId)
+    .map((t) => {
+      const members = playing.filter((p) => p.team_id === t.id);
+      return { team: t, members, done: members.length > 0 && members.every((p) => answered.has(p.id)) };
+    })
+    .filter((t) => t.members.length > 0);
   const size = big ? 56 : 30;
+  const label = `uppercase tracking-widest font-bold text-slate-400 ${big ? "text-lg" : "text-[11px]"}`;
+
   return (
-    <div className="w-full">
-      <p className={`text-center font-bold uppercase tracking-widest text-slate-400 mb-2 ${big ? "text-lg" : "text-[11px]"}`}>
-        Locked in <span className="text-emerald-300">{done}</span>/{playing.length}
-      </p>
-      <div className={`flex flex-wrap justify-center ${big ? "gap-3" : "gap-1.5"}`}>
-        {playing.map((p) => {
-          const a = p.avatar_id ? avatars[p.avatar_id] : undefined;
-          const isIn = answered.has(p.id);
-          const mine = p.team_id === myTeamId;
-          return (
-            <span key={p.id} className="relative flex flex-col items-center" title={p.nickname}>
-              {/* key flips when they lock in, so the landing animation plays */}
+    <div className="w-full flex flex-col gap-3">
+      {mates.length > 0 && (
+        <div>
+          <p className={`text-center mb-2 ${label}`}>
+            {mates.length === 1 ? "You" : "Your team"}{" "}
+            <span className="text-emerald-300">{mates.filter((p) => answered.has(p.id)).length}</span>/{mates.length}
+          </p>
+          <div className="flex flex-wrap justify-center gap-1.5">
+            {mates.map((p) => {
+              const a = p.avatar_id ? avatars[p.avatar_id] : undefined;
+              const isIn = answered.has(p.id);
+              return (
+                <span key={p.id} className="relative flex flex-col items-center" title={p.nickname}>
+                  {/* key flips when they lock in, so the landing animation plays */}
+                  <span key={isIn ? "in" : "out"} className={`rounded-full ${isIn ? "char-land" : "opacity-35 grayscale"}`}>
+                    <Avatar emoji={a?.emoji} imageUrl={a?.imageUrl} size={size} />
+                  </span>
+                  {isIn && (
+                    <span className="absolute -top-0.5 -right-0.5 rounded-full bg-emerald-400 text-black font-black w-3.5 h-3.5 text-[8px] flex items-center justify-center">
+                      ✓
+                    </span>
+                  )}
+                  <span className="truncate text-center text-slate-300 text-[9px] w-10">{p.id === myId ? "You" : p.nickname}</span>
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      {otherTeams.length > 0 && (
+        <div>
+          <p className={`text-center mb-2 ${label}`}>
+            {myTeamId ? "Other teams" : "Locked in"}{" "}
+            <span className="text-emerald-300">{otherTeams.filter((t) => t.done).length}</span>/{otherTeams.length}
+          </p>
+          <div className={`flex flex-wrap justify-center ${big ? "gap-3" : "gap-1.5"}`}>
+            {otherTeams.map(({ team, done }) => (
               <span
-                key={isIn ? "in" : "out"}
-                className={`rounded-full ${isIn ? "char-land" : "opacity-35 grayscale"} ${
-                  mine ? "ring-2 ring-amber-400" : ""
-                }`}
+                key={team.id}
+                className={`flex items-center gap-2 rounded-full border font-bold ${
+                  big ? "px-4 py-2 text-xl" : "px-3 py-1 text-xs"
+                } ${done ? "bg-emerald-500/15 border-emerald-400/50 text-emerald-100" : "bg-white/5 border-white/15 text-slate-300"}`}
               >
-                <Avatar emoji={a?.emoji} imageUrl={a?.imageUrl} size={size} />
+                {done ? (
+                  <span className={`rounded-full bg-emerald-400 text-black font-black flex items-center justify-center ${big ? "w-6 h-6 text-sm" : "w-4 h-4 text-[9px]"}`}>
+                    ✓
+                  </span>
+                ) : (
+                  <span
+                    aria-hidden="true"
+                    className={`rounded-full border-2 border-slate-500 border-t-amber-400 animate-spin ${big ? "w-5 h-5" : "w-3 h-3"}`}
+                  />
+                )}
+                <span className="truncate max-w-[12rem]">{team.name}</span>
               </span>
-              {isIn && (
-                <span
-                  className={`absolute -bottom-0.5 -right-0.5 rounded-full bg-emerald-400 text-black font-black flex items-center justify-center ${
-                    big ? "w-5 h-5 text-xs" : "w-3.5 h-3.5 text-[8px]"
-                  }`}
-                >
-                  ✓
-                </span>
-              )}
-              {(big || p.id === myId) && (
-                <span className={`truncate text-center text-slate-300 ${big ? "text-sm w-16" : "text-[9px] w-8"}`}>
-                  {p.id === myId ? "You" : p.nickname}
-                </span>
-              )}
-            </span>
-          );
-        })}
-      </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

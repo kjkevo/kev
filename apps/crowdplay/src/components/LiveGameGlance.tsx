@@ -14,7 +14,7 @@ import type { Player, Room, Team } from "@/lib/types";
 /** A compact, read-only live view of a room's progress — used wherever someone is watching without playing. */
 export function LiveGameGlance({ room, players, teams }: { room: Room; players: Player[]; teams: Team[] }) {
   const question = useCurrentQuestion(room.id, room.current_question_index, room.phase);
-  const countdown = useCountdown(room.question_started_at, questionSeconds(room.current_question_index));
+  const countdown = useCountdown(room.question_started_at, questionSeconds());
   const scheduledCountdown = useCountdownTo(room.starts_at);
   const totalQuestions = useTotalQuestions(room.id, room.phase);
   const packs = useAllPacks();

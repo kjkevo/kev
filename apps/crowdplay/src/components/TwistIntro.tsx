@@ -40,7 +40,6 @@ export function TwistIntro({
       style={{ backgroundImage: `radial-gradient(circle at 50% 40%, ${t.glow}, transparent 65%)` }}
     >
       <p className={`uppercase tracking-[0.3em] font-bold text-slate-400 ${big ? "text-2xl" : "text-xs"}`}>Game twist</p>
-      <div className={big ? "text-[10rem] leading-none" : "text-8xl leading-none"}>{t.icon}</div>
       <h1 className={`font-black ${t.color} ${big ? "text-7xl" : "text-4xl"}`}>{t.title}</h1>
       <p className={`max-w-xl font-semibold text-slate-100 ${big ? "text-3xl" : "text-lg"}`}>{description}</p>
       {personal && (

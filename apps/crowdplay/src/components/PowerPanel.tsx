@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { powerByKey, powerResultLine, type PowerData } from "@/lib/powers";
+import { Avatar } from "@/components/Avatar";
+import { powerByKey, powerFace, powerResultLine, type PowerData } from "@/lib/powers";
 
 /**
  * Your character's power on the question screen: a button while you can use
@@ -50,7 +51,7 @@ export function PowerPanel({
     return (
       <div className="rounded-2xl bg-violet-500/15 border border-violet-400/50 px-4 py-2.5 text-center">
         <p className="text-xs uppercase tracking-widest text-violet-300 mb-1">
-          {p.icon} {usedByName} used {p.name}
+          {usedByName} used {p.name}
         </p>
         <p className="font-semibold">{powerResultLine(teamPower.power, teamPower.data)}</p>
         {teamPower.power === "probe" && counts && total > 0 && (
@@ -79,7 +80,7 @@ export function PowerPanel({
   if (myUsedQuestion) {
     return (
       <p className="text-center text-xs text-slate-500">
-        {mine.icon} {mine.name} used{myUsedQuestion === questionId ? "" : " earlier this game"}
+        {mine.name} used{myUsedQuestion === questionId ? "" : " earlier this game"}
       </p>
     );
   }
@@ -110,7 +111,7 @@ export function PowerPanel({
       {confirming && !reason ? (
         <>
           <p className="text-sm text-slate-200 mb-2">
-            {mine.icon} <span className="font-bold">{mine.name}:</span> {mine.how} You only get it once per game.
+            <span className="font-bold">{mine.name}:</span> {mine.how} You only get it once per game.
           </p>
           <div className="flex gap-2">
             <button type="button" onClick={() => setConfirming(false)} className="flex-1 rounded-xl bg-white/10 py-2 font-semibold">
@@ -133,10 +134,10 @@ export function PowerPanel({
           disabled={!!reason}
           className="w-full flex items-center gap-2 text-left disabled:opacity-50 active:scale-[0.98] transition"
         >
-          <span className="text-2xl" aria-hidden="true">{mine.icon}</span>
+          <Avatar imageUrl={powerFace(mine.key)} size={36} />
           <span className="flex-1 min-w-0">
             <span className="block text-sm font-black text-violet-200">Power: {mine.name}</span>
-            <span className="block text-xs text-slate-300 truncate">{reason ?? mine.how}</span>
+            <span className="block text-xs text-slate-300 leading-snug">{reason ?? mine.how}</span>
           </span>
           {!reason && <span className="rounded-full bg-violet-400 text-black text-xs font-black px-3 py-1">Use</span>}
         </button>
