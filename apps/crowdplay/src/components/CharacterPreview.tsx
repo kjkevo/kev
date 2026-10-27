@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { EmoteCharacter, EmoteButtons, type EmotePlay } from "@/components/EmoteCharacter";
 import { formatPrice } from "@/components/AvatarPicker";
+import { PowerCard } from "@/components/PowerCard";
 import { emotesFor } from "@/lib/emotes";
 import type { AvatarOption } from "@/hooks/useAvatars";
 
@@ -42,6 +43,7 @@ export function CharacterPreview({
           play={play}
         />
         <EmoteButtons avatarId={avatar.id} onPlay={(id) => setPlay((p) => ({ emoteId: id, n: (p?.n ?? 0) + 1 }))} />
+        <PowerCard avatarId={avatar.id} />
         <div className="flex gap-2 w-full mt-1">
           <button type="button" onClick={onClose} className="flex-1 rounded-2xl bg-white/10 py-3 font-bold active:scale-95 transition">
             Back
