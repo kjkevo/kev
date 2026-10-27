@@ -15,6 +15,7 @@ export function PowerPanel({
   teamPower,
   usedByName,
   locked,
+  answeredSolo,
   open,
   expired,
   fogged,
@@ -27,6 +28,8 @@ export function PowerPanel({
   teamPower: { power: string; playerId: string; data: PowerData } | null;
   usedByName: string;
   locked: boolean;
+  /** Playing alone with an answer in: it counts as locked for Second Wind. */
+  answeredSolo: boolean;
   open: boolean;
   expired: boolean;
   fogged: boolean;
@@ -87,7 +90,7 @@ export function PowerPanel({
       ? "Works on multiple-choice questions only"
       : mine.timing === "before" && locked
         ? "Use it before your team locks in"
-        : mine.timing === "after" && !locked
+        : mine.timing === "after" && !locked && !answeredSolo
           ? "Lock in an answer first, then use it"
           : fogged
             ? "You're fogged!"
