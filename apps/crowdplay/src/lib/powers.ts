@@ -47,7 +47,7 @@ export const POWERS: Record<string, Power> = {
   "void-walker": { key: "rift", icon: "🌀", name: "Void Rift", timing: "any",
     how: "Steal 300 points from the team in first place (2nd place if that's you)." },
   "model-z": { key: "overclock", icon: "⚡", name: "Overclock", timing: "before",
-    how: "Double points on the question if your team gets it right." },
+    how: "Double points if your team gets it right (×4 on a ×3 Golden question)." },
   "stone-golem": { key: "second_wind", icon: "🪨", name: "Second Wind", timing: "after",
     how: "After your team locks in, check the answer. If it's wrong, you get one more try for half points." },
 };
@@ -93,7 +93,7 @@ export function powerResultLine(key: string, data: PowerData | null | undefined)
     case "rift":
       return `Stole ${d.amount ?? 300} points from ${d.target_name ?? "the leader"}!`;
     case "overclock":
-      return "Double points if your team gets it right.";
+      return "Double points if your team gets it right (×4 on Golden).";
     case "second_wind":
       return d.result === "right"
         ? `Your answer is right! Nothing to fix.`
