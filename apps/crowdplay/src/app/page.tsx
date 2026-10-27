@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { MyCharacterButton } from "@/components/CharacterLocker";
 import { MonthlyChampion } from "@/components/MonthlyChampion";
+import { ScanCards } from "@/components/ScanCards";
 
 const GAMES = [
   {
@@ -94,6 +95,12 @@ export default function Home() {
             );
           })}
         </div>
+      </div>
+
+      {/* On a laptop or TV: codes people can scan with their phones. */}
+      <div className="hidden md:flex flex-col items-center gap-3 mt-4">
+        <p className="text-sm uppercase tracking-widest text-indigo-200">Or scan with your phone camera</p>
+        <ScanCards venue="main" />
       </div>
     </main>
   );

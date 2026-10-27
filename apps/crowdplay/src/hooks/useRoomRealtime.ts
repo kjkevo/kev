@@ -18,7 +18,7 @@ import type { Player, Room, Team } from "@/lib/types";
  */
 // Everything but the secret columns (client_token, device_key), which the
 // database doesn't let phones read.
-const PLAYER_COLUMNS = "id, room_id, nickname, score, joined_at, team_members, left_at, team_id, avatar_id, is_bot";
+const PLAYER_COLUMNS = "id, room_id, nickname, score, joined_at, team_members, left_at, team_id, avatar_id, is_bot, ready";
 
 export function useRoomRealtime(code: string | null) {
   const [room, setRoom] = useState<Room | null>(null);

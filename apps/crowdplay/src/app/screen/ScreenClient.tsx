@@ -34,6 +34,8 @@ import { useAnsweredPlayers } from "@/hooks/useAnsweredPlayers";
 import { useQuestionReveal } from "@/hooks/useQuestionReveal";
 import { LockInStrip, PickYourCorner } from "@/components/RoomCharacters";
 import { JoinDrops } from "@/components/JoinDrops";
+import { ScanCards } from "@/components/ScanCards";
+import { ReadyLineup } from "@/components/ReadyLineup";
 import { Podium } from "@/components/Podium";
 
 /**
@@ -208,14 +210,18 @@ export default function ScreenClient() {
         {room.phase === "lobby" && (
           <>
             <JoinDrops players={players} teams={teams} avatars={avatarsById} big />
-            <p className="text-2xl text-slate-300">Join at</p>
-            <p className="text-5xl font-black tracking-widest text-amber-400">{room.code}</p>
-            <JoinQRCode code={room.code} venue={venue} />
-            {room.starts_at && !scheduledCountdown.reached && (
-              <p className="text-lg text-slate-300">
-                Starting in <span className="text-amber-400 font-bold tabular-nums">{scheduledCountdown.label}</span>
+            <p className="text-4xl font-black">Scan with your phone camera to play</p>
+            <ScanCards venue={venue} triviaCode={room.code} big />
+            {room.starts_at && !scheduledCountdown.reached ? (
+              <p className="text-2xl text-slate-300">
+                Trivia starts in <span className="text-amber-400 font-black tabular-nums">{scheduledCountdown.label}</span>
               </p>
+            ) : (
+              <p className="text-2xl text-slate-300">Trivia starts when the first player joins</p>
             )}
+            <div className="w-full max-w-5xl">
+              <ReadyLineup players={players} avatars={avatarsById} big />
+            </div>
             {room.category_options && room.category_options.length > 0 && (
               <div className="w-full max-w-md">
                 <p className="text-sm text-slate-400 mb-2">Voting on the category:</p>

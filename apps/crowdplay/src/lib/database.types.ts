@@ -328,6 +328,7 @@ export type Database = {
           client_token: string
           id: string
           is_bot: boolean
+          ready: boolean
           joined_at: string
           left_at: string | null
           nickname: string
@@ -796,6 +797,10 @@ export type Database = {
       cast_team_vote: {
         Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_question_id: string; p_answer_text: string }
         Returns: { o_recorded: boolean }[]
+      }
+      set_player_ready: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_ready: boolean }
+        Returns: undefined
       }
       use_power: {
         Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_question_id: string }
