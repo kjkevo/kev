@@ -4,6 +4,8 @@ import { isOpenFor, secondsFor, shuffledChoices } from "@/lib/questionMode";
 import { isTwist, twistBanner, twistDescription, type TwistContext } from "@/lib/twists";
 import { TwistBanner, TwistIntro } from "@/components/TwistIntro";
 import { useFogs } from "@/hooks/useFogs";
+import { useRoomPowers } from "@/hooks/usePowers";
+import { powerByKey } from "@/lib/powers";
 import { RoundStandings } from "@/components/RoundStandings";
 import { FunFact } from "@/components/RoundExtras";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -63,6 +65,8 @@ export default function ScreenClient() {
     room?.phase === "question" && twist === "sabotage" ? room.id : undefined,
     twist === "sabotage" ? question?.id : undefined
   );
+  // Character powers used on this question, for the feed under the prompt.
+  const roomPowers = useRoomPowers(room?.phase === "question" ? room.id : undefined, question?.id);
   const scheduledCountdown = useCountdownTo(room?.starts_at ?? null);
   const totalQuestions = useTotalQuestions(room?.id, room?.phase);
   const answeredIds = useAnsweredPlayers(room?.phase === "question" ? question?.id : undefined);
@@ -315,6 +319,22 @@ export default function ScreenClient() {
                     🌫️ {twistCtx.teamName(f.from_team)} fogged {twistCtx.teamName(f.to_team)}!
                   </span>
                 ))}
+              </div>
+            )}
+            {roomPowers.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-2 max-w-4xl">
+                {roomPowers.map((p) => {
+                  const power = powerByKey(p.power);
+                  if (!power) return null;
+                  return (
+                    <span key={p.id} className="rounded-full bg-violet-500/20 border border-violet-400/50 px-4 py-1 text-lg font-bold text-violet-100 animate-pop-in">
+                      {power.icon} {twistCtx.playerName(p.player_id)} ({twistCtx.teamName(p.team_id)})
+                      {p.power === "rift" && p.target_team_id
+                        ? ` stole ${p.amount} from ${twistCtx.teamName(p.target_team_id)}!`
+                        : ` used ${power.name}!`}
+                    </span>
+                  );
+                })}
               </div>
             )}
             {!isOpenFor(question, room.current_question_index) && question.choices?.length >= 2 ? (

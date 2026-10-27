@@ -5,6 +5,9 @@ import { isOpenFor, secondsFor, shuffledChoices } from "@/lib/questionMode";
 import { fogUntil, isTwist, twistBanner, twistDescription, twistPersonalLine, type TwistContext } from "@/lib/twists";
 import { TwistBanner, TwistIntro } from "@/components/TwistIntro";
 import { useFogs } from "@/hooks/useFogs";
+import { usePowers } from "@/hooks/usePowers";
+import { PowerPanel } from "@/components/PowerPanel";
+import { powerErrorText } from "@/lib/powers";
 import { RoundStandings } from "@/components/RoundStandings";
 import { AdSlot, FunFact } from "@/components/RoundExtras";
 import { listenForUnlock, sounds } from "@/lib/sounds";
@@ -195,6 +198,22 @@ export default function PlayPage() {
   // On a captain question everyone else on the team watches (unless the captain left).
   const notMyCall =
     !!myCaptain && myCaptain !== creds?.playerId && players.some((p) => p.id === myCaptain && !p.left_at);
+
+  // Character powers: yours this game, and the one your team used on this question.
+  const powers = usePowers(room?.id, room?.phase === "question" ? question?.id : undefined, creds);
+  async function activatePower(): Promise<string | null> {
+    if (!room || !creds || !question) return null;
+    haptics.tap();
+    const { error } = await supabase.rpc("use_power", {
+      p_room_id: room.id,
+      p_player_id: creds.playerId,
+      p_client_token: creds.clientToken,
+      p_question_id: question.id,
+    });
+    powers.refresh();
+    refreshVotes();
+    return error ? powerErrorText(error.message) : null;
+  }
 
   async function throwFog(targetTeamId: string) {
     if (!room || !creds || throwingFog) return;
@@ -1469,6 +1488,15 @@ export default function PlayPage() {
     const buddyMood: CharacterMood = teamLock !== null ? "cheer" : myVote !== undefined ? "hop" : "idle";
     const locked = teamLock !== null;
     const urgent = countdown.fraction <= 0.2;
+    const teamPower = powers.teamPower;
+    // Trailblaze clears two wrong choices; Second Wind crosses out the wrong first answer.
+    const struck = new Set(
+      [
+        ...(teamPower?.power === "trailblaze" ? teamPower.data.removed ?? [] : []),
+        ...(teamPower?.power === "second_wind" && teamPower.data.result === "wrong" && teamPower.data.answer ? [teamPower.data.answer] : []),
+      ].map(normalizeAnswer)
+    );
+    const choiceOrder = open ? [] : shuffledChoices(question.choices, question.id);
     const canVote =
       !locked &&
       !countdown.expired &&
@@ -1553,18 +1581,19 @@ export default function PlayPage() {
                   </p>
                 )}
                 <div className="grid grid-cols-1 gap-2">
-                  {shuffledChoices(question.choices, question.id).map((c) => {
+                  {choiceOrder.map((c) => {
                     const mine = myVote !== undefined && normalizeAnswer(myVote) === normalizeAnswer(c);
+                    const gone = struck.has(normalizeAnswer(c));
                     const teamVotes = teamOptions.find((o) => normalizeAnswer(o.text) === normalizeAnswer(c))?.voters.length ?? 0;
                     return (
                       <button
                         key={c}
                         type="button"
-                        onClick={() => !mine && castVote(c)}
-                        disabled={countdown.expired || sendingVote || blocked}
+                        onClick={() => !mine && !gone && castVote(c)}
+                        disabled={countdown.expired || sendingVote || blocked || gone}
                         className={`rounded-2xl px-4 py-4 text-xl font-black text-left transition active:scale-[0.98] border-2 ${
                           mine ? "bg-amber-400 text-black border-amber-400" : "bg-white/10 border-white/20 text-white"
-                        } ${notMyCall && !mine ? "opacity-40" : ""}`}
+                        } ${notMyCall && !mine ? "opacity-40" : ""} ${gone ? "opacity-25 line-through" : ""}`}
                       >
                         {c}
                         {teamVotes > 0 && (
@@ -1631,7 +1660,7 @@ export default function PlayPage() {
           {teamHint ? (
             <div className="rounded-2xl bg-sky-500/10 border border-sky-400/40 px-4 py-2.5 text-center">
               <p className="text-xs uppercase tracking-widest text-sky-300 mb-1">
-                Hint used · −{hintCost} points if right
+                {teamPower?.power === "riddle" ? "Free clue · Riddle Sight" : `Hint used · −${hintCost} points if right`}
               </p>
               <p className="font-semibold">{teamHint}</p>
             </div>
@@ -1665,6 +1694,19 @@ export default function PlayPage() {
               </button>
             )
           ) : null}
+          <PowerPanel
+            myPower={powers.myPower}
+            myUsedQuestion={powers.myUsedQuestion}
+            questionId={question.id}
+            teamPower={teamPower}
+            usedByName={teamPower?.playerId === creds.playerId ? "You" : twistCtx.playerName(teamPower?.playerId ?? "")}
+            locked={locked}
+            open={open}
+            expired={countdown.expired}
+            fogged={fogged}
+            choices={choiceOrder}
+            onUse={activatePower}
+          />
         </div>
 
         <div className="w-full max-w-sm mx-auto">
