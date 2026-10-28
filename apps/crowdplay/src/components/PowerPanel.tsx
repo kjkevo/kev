@@ -54,11 +54,12 @@ export function PowerPanel({
           {usedByName} used {p.name}
         </p>
         <p className="font-semibold">{powerResultLine(teamPower.power, teamPower.data)}</p>
-        {teamPower.power === "probe" && counts && total > 0 && (
+        {/* Mind Probe: everyone else's votes, filling in live until time is up. */}
+        {teamPower.power === "probe" && counts && (
           <div className="mt-2 flex flex-col gap-1 text-left">
             {choices.map((c) => {
               const n = counts[c] ?? 0;
-              const pct = Math.round((n / total) * 100);
+              const pct = total > 0 ? Math.round((n / total) * 100) : 0;
               return (
                 <div key={c} className="relative rounded-lg bg-white/5 overflow-hidden">
                   <div className="absolute inset-y-0 left-0 bg-violet-400/40" style={{ width: `${pct}%` }} />
@@ -69,7 +70,9 @@ export function PowerPanel({
                 </div>
               );
             })}
-            <p className="text-[11px] text-slate-400 text-center">{total} {total === 1 ? "vote" : "votes"} from other teams so far</p>
+            <p className="text-[11px] text-slate-400 text-center">
+              {total === 0 ? "Waiting for votes… they appear here live" : `${total} ${total === 1 ? "vote" : "votes"} so far · updates live`}
+            </p>
           </div>
         )}
       </div>
@@ -88,13 +91,13 @@ export function PowerPanel({
 
   const reason =
     mine.choicesOnly && open
-      ? "Works on multiple-choice questions only"
+      ? "Multiple choice only"
       : mine.timing === "before" && locked
-        ? "Use it before your team locks in"
+        ? "Use it before you answer"
         : mine.timing === "after" && !locked && !answeredSolo
-          ? "Lock in an answer first, then use it"
+          ? "Answer first, then use it"
           : fogged
-            ? "You're fogged!"
+            ? "Fogged!"
             : null;
 
   async function use() {
@@ -111,7 +114,7 @@ export function PowerPanel({
       {confirming && !reason ? (
         <>
           <p className="text-sm text-slate-200 mb-2">
-            <span className="font-bold">{mine.name}:</span> {mine.how} You only get it once per game.
+            <span className="font-bold">{mine.name}:</span> {mine.how}. Once per game.
           </p>
           <div className="flex gap-2">
             <button type="button" onClick={() => setConfirming(false)} className="flex-1 rounded-xl bg-white/10 py-2 font-semibold">
