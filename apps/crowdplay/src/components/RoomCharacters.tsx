@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Avatar } from "@/components/Avatar";
+import { Icon } from "@/components/Icon";
 import type { AvatarOption } from "@/hooks/useAvatars";
 import type { QuestionReveal } from "@/hooks/useQuestionReveal";
 import type { Player, Team } from "@/lib/types";
@@ -113,6 +114,49 @@ export function LockInStrip({ players, teams, avatars, answered, myId, myTeamId,
 
 const SETTLE_MS = 1400;
 
+/**
+ * The phone's big right-or-wrong card after a question: a green check and
+ * the points, a red X, or "No answer", with the right answer underneath.
+ * Big enough to read at a glance from across the table.
+ */
+export function RevealVerdict({
+  reveal,
+  myId,
+  myTeamId,
+  myPoints,
+  compact = false,
+}: {
+  reveal: QuestionReveal;
+  myId: string;
+  myTeamId?: string | null;
+  myPoints?: number | null;
+  compact?: boolean;
+}) {
+  const myPick = reveal.picks.find((r) => r.playerId === myId);
+  const myTeamPick = reveal.picks.find((r) => r.teamId === myTeamId);
+  const answered = !!myPick?.label;
+  const right = answered && (myTeamPick?.teamCorrect ?? myPick.correct);
+  const icon = compact ? 40 : 72;
+  return (
+    <div
+      className={`rounded-3xl flex flex-col items-center text-center animate-pop-in ${compact ? "px-4 py-3" : "px-4 py-5"} ${
+        !answered ? "bg-slate-600 text-white" : right ? "bg-emerald-500 text-black" : "bg-rose-600 text-white"
+      }`}
+    >
+      <div className={`flex items-center gap-2 ${compact ? "" : "flex-col"}`}>
+        <Icon name={!answered ? "clock" : right ? "check" : "x"} size={icon} strokeWidth={3} />
+        <p className={`font-black ${compact ? "text-3xl" : "text-5xl mt-1"}`}>{!answered ? "No answer" : right ? "RIGHT!" : "WRONG"}</p>
+        {myPoints != null && myPoints > 0 && (
+          <p className={`font-black ${compact ? "text-2xl ml-1" : "text-3xl mt-1"}`}>+{myPoints.toLocaleString()}</p>
+        )}
+      </div>
+      <p className={`font-bold opacity-90 ${compact ? "text-base mt-1" : "text-lg mt-2"}`}>
+        Answer: <span className="font-black">{reveal.correctAnswer}</span>
+      </p>
+    </div>
+  );
+}
+
 function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
@@ -122,9 +166,11 @@ function capitalize(s: string) {
  * picked. After a beat the right answer's corner turns green and the
  * others red. The characters stand still.
  */
-export function PickYourCorner({ reveal, players, teams, avatars, myId, myTeamId, big = false }: Props & {
+export function PickYourCorner({ reveal, players, teams, avatars, myId, myTeamId, myPoints, big = false }: Props & {
   reveal: QuestionReveal;
   teams: Team[];
+  /** What your team just scored (the phone's big right/wrong card). */
+  myPoints?: number | null;
 }) {
   const playing = usePlaying(players, teams);
   const [settled, setSettled] = useState(false);
@@ -163,7 +209,10 @@ export function PickYourCorner({ reveal, players, teams, avatars, myId, myTeamId
 
   return (
     <div className="w-full flex flex-col gap-3">
-      <div className={`text-center transition-opacity duration-500 ${settled ? "opacity-100" : "opacity-0"}`}>
+      {/* On a phone: one big, unmissable verdict first. */}
+      {myId && settled && <RevealVerdict reveal={reveal} myId={myId} myTeamId={myTeamId} myPoints={myPoints} />}
+
+      <div className={`text-center transition-opacity duration-500 ${settled ? "opacity-100" : "opacity-0"} ${myId ? "hidden" : ""}`}>
         <p className={`uppercase tracking-widest text-slate-400 ${big ? "text-lg" : "text-xs"}`}>Answer</p>
         <p className={`font-black text-emerald-300 break-words ${big ? "text-5xl" : "text-3xl"}`}>{reveal.correctAnswer}</p>
         {myTeamId && myTeamPick && (

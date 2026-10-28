@@ -25,7 +25,7 @@ import { playerKey, type PlayerCredentials, type FinalRecapRow, type SuddenDeath
 import { randomFunName, funNameBatch } from "@/lib/funNames";
 import { haptics } from "@/lib/haptics";
 import { CategoryIcon } from "@/components/CategoryIcon";
-import { LobbyRoster, useLiveTeams, MAX_TEAM_SIZE } from "@/components/LobbyRoster";
+import { useLiveTeams } from "@/components/LobbyRoster";
 import { useTriviaQueue, roundsToWaitLabel, currentGameProgress } from "@/hooks/useTriviaQueue";
 import { useAvatars, useEquippedAvatar, type AvatarOption } from "@/hooks/useAvatars";
 import { JoinSteps, JOINED_BEFORE_KEY } from "@/components/JoinSteps";
@@ -36,6 +36,7 @@ import { deviceKey } from "@/lib/device";
 import { BuySheet } from "@/components/BuySheet";
 import { JoinQRCode } from "@/components/JoinQRCode";
 import { ReadyLineup } from "@/components/ReadyLineup";
+import { Icon } from "@/components/Icon";
 import { usePlayerVenue, useVenueName } from "@/lib/venue";
 import { useSeason } from "@/hooks/useSeason";
 import { Avatar } from "@/components/Avatar";
@@ -44,7 +45,7 @@ import { SuddenDeathResultList } from "@/components/SuddenDeath";
 import { useQuestionById } from "@/hooks/useQuestionById";
 import { useAnsweredPlayers } from "@/hooks/useAnsweredPlayers";
 import { useQuestionReveal } from "@/hooks/useQuestionReveal";
-import { LockInStrip, PickYourCorner } from "@/components/RoomCharacters";
+import { LockInStrip, PickYourCorner, RevealVerdict } from "@/components/RoomCharacters";
 import { JoinDrops } from "@/components/JoinDrops";
 import { Podium } from "@/components/Podium";
 import { ShareCard, type ShareAward } from "@/components/ShareCard";
@@ -676,6 +677,22 @@ export default function PlayPage() {
     });
   }
 
+  // What your team just scored, for the big right/wrong card at the reveal
+  // (scores land a moment after the question closes, so read twice).
+  const [myRoundPoints, setMyRoundPoints] = useState<number | null>(null);
+  useEffect(() => {
+    setMyRoundPoints(null);
+    if (room?.phase !== "reveal" || !room.id || !creds?.teamId) return;
+    const load = () =>
+      supabase.rpc("get_round_standings", { p_room_id: room.id }).then(({ data }) => {
+        const mine = data?.find((r) => r.o_team_id === creds.teamId);
+        if (mine) setMyRoundPoints(mine.o_points);
+      });
+    load();
+    const t = setTimeout(load, 1200);
+    return () => clearTimeout(t);
+  }, [room?.phase, room?.id, room?.current_question_index, creds?.teamId]);
+
   // "I'm ready" in the lobby: when every real player is, the game starts in 5 seconds.
   const [settingReady, setSettingReady] = useState(false);
   async function setReady(ready: boolean) {
@@ -972,7 +989,6 @@ export default function PlayPage() {
         <JoinSteps
           heading={invitedTeam && lobbyOpen ? `Join ${invitedTeam.name}` : "Join trivia"}
           timing={timing}
-          month={season?.month ?? "this month"}
           nickname={nickname}
           setNickname={setNickname}
           nameStatus={nameStatus}
@@ -995,110 +1011,77 @@ export default function PlayPage() {
     const teamName = myTeam?.name ?? creds.teamName;
     const inviteShown = inviteOpen ?? false;
     const myCharacter = me?.avatar_id ? avatarsById[me.avatar_id] : avatarId ? avatarsById[avatarId] : undefined;
+    const solo = teammates.length <= 1;
     return (
       <Center>
         <BackButton onClick={() => leaveRoom("/")} />
         {buySheet}
         <JoinDrops players={players} teams={teams} avatars={avatarsById} excludeId={creds.playerId} />
         <div className="w-full max-w-sm flex flex-col gap-3 pt-16 pb-8">
-          {/* Pinned: you, your team and teammates, the countdown, and the invite QR. */}
-          <div className="rounded-2xl bg-indigo-950/90 border border-white/15 p-3 shadow-lg text-left">
+          {/* You: your character, the clock, and your Ready button. */}
+          <div className="rounded-3xl bg-indigo-950/90 border border-white/15 p-3 shadow-lg">
             <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setLobbyAvatarOpen(!lobbyAvatarOpen)}
-                aria-label="Change your character"
-                className="relative shrink-0 active:scale-95 transition"
-              >
-                <Avatar emoji={myCharacter?.emoji} imageUrl={myCharacter?.imageUrl} size={48} />
-                <span className="absolute -bottom-1 -right-1 rounded-full bg-amber-400 text-black text-[9px] font-black px-1.5 py-0.5">
-                  {lobbyAvatarOpen ? "Done" : "Edit"}
+              <div className="flex flex-col items-center shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setLobbyAvatarOpen(!lobbyAvatarOpen)}
+                  aria-label="Change your character"
+                  className="active:scale-95 transition"
+                >
+                  <EmoteCharacter
+                    avatarId={me?.avatar_id}
+                    emoji={myCharacter?.emoji}
+                    imageUrl={myCharacter?.imageUrl}
+                    size={112}
+                    play={emotePlays[creds.playerId]}
+                  />
+                </button>
+                <EmoteButtons avatarId={me?.avatar_id} onPlay={sendEmote} small />
+              </div>
+              <div className="flex-1 min-w-0 flex flex-col items-center gap-2 text-center">
+                <p className="text-lg font-black truncate max-w-full">{me?.nickname}</p>
+                <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-bold text-slate-200">
+                  <Icon name={solo ? "user" : "users"} size={14} />
+                  {solo ? "Solo" : teamName}
                 </span>
-              </button>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-slate-400 truncate">{me?.nickname}</p>
-                <p className="font-bold truncate">{teamName}</p>
-              </div>
-              <div className="text-right shrink-0">
-                {room.queued ? (
-                  <p className="text-sm font-bold text-sky-300">Next game</p>
-                ) : showCountdown ? (
-                  <p className="text-3xl font-black text-amber-400 tabular-nums leading-none">{scheduledCountdown.label}</p>
-                ) : (
-                  <p className="text-sm font-bold text-amber-400">Starting…</p>
-                )}
-              </div>
-            </div>
-
-            {/* Your character big, with its emote, then teammates and open spots beside it. */}
-            <div className="mt-3 grid grid-cols-[1.6fr_1fr_1fr_1fr] items-end gap-1">
-              <div className="flex flex-col items-center min-w-0">
-                <span className="text-xs font-bold text-white truncate w-full text-center">You</span>
-                <EmoteCharacter
-                  avatarId={me?.avatar_id}
-                  emoji={myCharacter?.emoji}
-                  imageUrl={myCharacter?.imageUrl}
-                  size={124}
-                  play={emotePlays[creds.playerId]}
-                />
-              </div>
-              {teammates
-                .filter((p) => p.id !== creds.playerId)
-                .map((p) => {
-                  const a = p.avatar_id ? avatarsById[p.avatar_id] : undefined;
-                  return (
-                    <div key={p.id} className="flex flex-col items-center min-w-0">
-                      <span className="text-[11px] font-semibold text-slate-200 truncate w-full text-center">{p.nickname}</span>
-                      <EmoteCharacter avatarId={p.avatar_id} emoji={a?.emoji} imageUrl={a?.imageUrl} size={72} play={emotePlays[p.id]} />
-                    </div>
-                  );
-                })}
-              {Array.from({ length: teammates.length > 1 ? Math.max(0, MAX_TEAM_SIZE - teammates.length) : 0 }, (_, i) => (
-                <div key={`open-${i}`} className="flex flex-col items-center min-w-0">
-                  <span className="text-[11px] text-slate-500">Open</span>
-                  <span className="mt-1 w-10 h-[62px] rounded-t-full rounded-b-lg border-2 border-dashed border-white/25" />
+                <div className="flex items-center gap-1.5 text-amber-400">
+                  <Icon name="clock" size={22} />
+                  {room.queued ? (
+                    <span className="text-sm font-bold text-sky-300">Next game</span>
+                  ) : showCountdown ? (
+                    <span className="text-3xl font-black tabular-nums leading-none">{scheduledCountdown.label}</span>
+                  ) : (
+                    <span className="text-sm font-bold">Starting…</span>
+                  )}
                 </div>
-              ))}
-            </div>
-            <div className="mt-2 grid grid-cols-[1.6fr_1fr_1fr_1fr] gap-1">
-              <div className="flex justify-center">
-                <EmoteButtons avatarId={me?.avatar_id} onPlay={sendEmote} />
+                <button
+                  type="button"
+                  onClick={() => setReady(!me?.ready)}
+                  disabled={settingReady}
+                  className={`w-full rounded-2xl py-3 font-black text-lg flex items-center justify-center gap-2 transition active:scale-95 disabled:opacity-60 ${
+                    me?.ready ? "bg-emerald-400 text-black" : "bg-amber-400 text-black animate-pulse"
+                  }`}
+                >
+                  <Icon name={me?.ready ? "check" : "hand"} size={22} strokeWidth={2.6} />
+                  {me?.ready ? "Ready" : "I'm ready"}
+                </button>
               </div>
             </div>
-            <p className="mt-1 text-[11px] text-slate-400">
-              {teammates.length <= 1
-                ? "Every player for themselves until 4 people join. Then everyone is put on teams."
-                : "Open spots fill when the game starts."}
-            </p>
-            {/* Friends scan this to get into the same game (same steps as any QR). */}
-            {inviteShown && (
-              <div className="mt-3 flex flex-col items-center gap-2 text-center">
-                <JoinQRCode code={room.code} venue={venueSlug ?? "main"} size={170} />
-                <p className="text-xs text-slate-300 max-w-[16rem]">
-                  Friends scan this with their phone camera to join this game. With 4 or more real players, it turns into team play.
-                </p>
-                <p className="text-xs text-slate-400">
-                  Or type the code <span className="font-black tracking-widest text-amber-300">{room.code}</span> at slimpse.vercel.app/trivia
-                </p>
+            {!solo && teammates.length > 1 && (
+              <div className="mt-3 flex justify-center gap-3">
+                {teammates
+                  .filter((p) => p.id !== creds.playerId)
+                  .map((p) => {
+                    const a = p.avatar_id ? avatarsById[p.avatar_id] : undefined;
+                    return (
+                      <div key={p.id} className="flex flex-col items-center w-16">
+                        <EmoteCharacter avatarId={p.avatar_id} emoji={a?.emoji} imageUrl={a?.imageUrl} size={56} play={emotePlays[p.id]} />
+                        <span className="text-[11px] text-slate-200 truncate w-full text-center">{p.nickname}</span>
+                      </div>
+                    );
+                  })}
               </div>
             )}
-            <button
-              type="button"
-              onClick={() => setInviteOpen(!inviteShown)}
-              className="mt-2 w-full rounded-xl bg-white/10 py-2 text-sm font-bold text-amber-300 active:scale-95 transition"
-            >
-              {inviteShown ? "Hide the QR code" : "Invite friends to this game"}
-            </button>
-          </div>
-
-          <div className="rounded-2xl bg-white/5 border border-white/10 p-3">
-            <ReadyLineup
-              players={players}
-              avatars={avatarsById}
-              myId={creds.playerId}
-              onToggleReady={setReady}
-              busy={settingReady}
-            />
           </div>
 
           {lobbyAvatarOpen && (
@@ -1117,9 +1100,9 @@ export default function PlayPage() {
 
           {room.category_options && room.category_options.length > 0 && (
             <div className="rounded-2xl bg-amber-400/10 border border-amber-400/30 p-3">
-              <p className="text-sm font-bold text-white">Vote for a category</p>
-              <p className="text-xs text-slate-300 mb-2">
-                {myVote ? "Voted! Most votes picks the topic. You can still switch." : "Most votes picks the topic for this game."}
+              <p className="flex items-center justify-center gap-1.5 text-sm font-black text-white mb-2">
+                <Icon name={myVote ? "check" : "vote"} size={18} className={myVote ? "text-emerald-300" : "text-amber-300"} />
+                {myVote ? "Voted" : "Pick a category"}
               </p>
               <div className="grid grid-cols-2 gap-2">
                 {room.category_options.map((packId) => (
@@ -1136,16 +1119,32 @@ export default function PlayPage() {
             </div>
           )}
 
-          <Shoutouts roomId={room.id} creds={creds} />
+          {/* Everyone else, with who's ready. */}
+          {players.some((p) => !p.left_at && !p.is_bot && p.id !== creds.playerId) && (
+            <div className="rounded-2xl bg-white/5 border border-white/10 p-3">
+              <ReadyLineup players={players.filter((p) => p.id !== creds.playerId)} avatars={avatarsById} />
+            </div>
+          )}
 
-          <LobbyRoster
-            players={players}
-            teams={teams}
-            avatars={avatarsById}
-            highlightTeamId={creds.teamId}
-            title="Teams"
-            collapsible
-          />
+          {/* Friends scan this to get into the same game. */}
+          {inviteShown && (
+            <div className="flex flex-col items-center gap-2 text-center">
+              <JoinQRCode code={room.code} venue={venueSlug ?? "main"} size={170} />
+              <p className="text-sm text-slate-300">
+                or code <span className="font-black tracking-widest text-amber-300">{room.code}</span>
+              </p>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setInviteOpen(!inviteShown)}
+            className="w-full rounded-xl bg-white/10 py-2.5 text-sm font-bold text-amber-300 flex items-center justify-center gap-2 active:scale-95 transition"
+          >
+            <Icon name="qr" size={18} />
+            {inviteShown ? "Hide" : "Invite friends"}
+          </button>
+
+          <Shoutouts roomId={room.id} creds={creds} />
         </div>
       </Center>
     );
@@ -1157,7 +1156,7 @@ export default function PlayPage() {
       <Center>
         <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
           <ExitButton onClick={() => setConfirmingQuit(true)} />
-          <TeamBadge name={myTeam?.name ?? creds.teamName} player={me?.nickname} />
+          <TeamBadge name={teammates.length > 1 ? myTeam?.name ?? creds.teamName : "Solo"} player={me?.nickname} />
         </div>
         <GetReady title="Get ready! Question 1 is about" subtitle={categoryName ?? "Trivia"} seconds={Math.ceil(questionStart.remainingMs / 1000)} />
         {me?.avatar_id && avatarsById[me.avatar_id] && (
@@ -1188,7 +1187,7 @@ export default function PlayPage() {
       <main className="min-h-screen bg-slate-950 text-white flex flex-col items-center px-5 py-6 gap-5 text-center relative">
         <div className="w-full flex items-center justify-between">
           <ExitButton onClick={() => setConfirmingQuit(true)} />
-          <TeamBadge name={myTeam?.name ?? creds.teamName} player={me?.nickname} />
+          <TeamBadge name={teammates.length > 1 ? myTeam?.name ?? creds.teamName : "Solo"} player={me?.nickname} />
         </div>
         <div>
           <p className="text-3xl font-black text-rose-400 tracking-wide">SUDDEN DEATH</p>
@@ -1298,7 +1297,7 @@ export default function PlayPage() {
       <main className="min-h-screen bg-slate-950 text-white flex flex-col px-4 py-4 gap-3 relative">
         <div className="flex items-center justify-between">
           <ExitButton onClick={() => setConfirmingQuit(true)} />
-          <TeamBadge name={myTeam?.name ?? creds.teamName} player={me?.nickname} />
+          <TeamBadge name={teammates.length > 1 ? myTeam?.name ?? creds.teamName : "Solo"} player={me?.nickname} />
         </div>
 
         {/* One tight row: Q5/20 · Movies · 26s */}
@@ -1358,7 +1357,10 @@ export default function PlayPage() {
         <div className="w-full max-w-sm mx-auto flex flex-col gap-3">
           {locked ? (
             <div className="rounded-2xl bg-emerald-500/15 border border-emerald-400/50 px-5 py-4 text-center">
-              <p className="text-xs uppercase tracking-widest text-emerald-300 mb-1">Team locked in</p>
+              <p className="flex items-center justify-center gap-1.5 text-xs uppercase tracking-widest text-emerald-300 mb-1">
+                <Icon name="check" size={16} strokeWidth={3} />
+                Locked in
+              </p>
               <p className="text-2xl font-black break-words">{teamLock}</p>
             </div>
           ) : (
@@ -1463,7 +1465,7 @@ export default function PlayPage() {
             confirmingHint ? (
               <div className="rounded-2xl bg-white/5 border border-amber-400/40 px-4 py-3 text-center">
                 <p className="text-sm text-slate-200 mb-3">
-                  Get a clue about the answer for your team. It takes {hintCost} points off a right answer.
+                  A clue costs {hintCost} points if you get it right.
                 </p>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => setConfirmingHint(false)} className="flex-1 rounded-xl bg-white/10 py-2 font-semibold">
@@ -1475,7 +1477,7 @@ export default function PlayPage() {
                     disabled={gettingHint}
                     className="flex-1 rounded-xl bg-amber-400 text-black py-2 font-bold disabled:opacity-50"
                   >
-                    {gettingHint ? "Getting hint…" : `Show hint · costs ${hintCost}`}
+                    {gettingHint ? "…" : `Show clue −${hintCost}`}
                   </button>
                 </div>
               </div>
@@ -1485,7 +1487,7 @@ export default function PlayPage() {
                 onClick={() => setConfirmingHint(true)}
                 className="self-center rounded-full bg-sky-500/15 border border-sky-400/40 px-4 py-2 text-sm font-bold text-sky-200 active:scale-95 transition"
               >
-                Need a hint? Costs {hintCost} points
+                Clue? −{hintCost}
               </button>
             )
           ) : null}
@@ -1577,7 +1579,7 @@ export default function PlayPage() {
       <main className="min-h-screen bg-slate-950 text-white flex flex-col px-4 py-4 gap-3 relative">
         <div className="flex items-center justify-between">
           <ExitButton onClick={() => setConfirmingQuit(true)} />
-          <TeamBadge name={myTeam?.name ?? creds.teamName} player={me?.nickname} />
+          <TeamBadge name={teammates.length > 1 ? myTeam?.name ?? creds.teamName : "Solo"} player={me?.nickname} />
         </div>
         {twist ? (
           <TwistIntro
@@ -1600,7 +1602,7 @@ export default function PlayPage() {
       <main className="min-h-screen bg-slate-950 text-white flex flex-col px-4 py-4 gap-3 relative">
         <div className="flex items-center justify-between">
           <ExitButton onClick={() => setConfirmingQuit(true)} />
-          <TeamBadge name={myTeam?.name ?? creds.teamName} player={me?.nickname} />
+          <TeamBadge name={teammates.length > 1 ? myTeam?.name ?? creds.teamName : "Solo"} player={me?.nickname} />
         </div>
         <p className="text-sm font-bold text-slate-400">
           Q{room.current_question_index + 1}
@@ -1610,11 +1612,12 @@ export default function PlayPage() {
         {question && <h2 className="text-lg font-bold">{question.prompt}</h2>}
         {showStandings ? (
           <div className="flex-1 flex flex-col gap-3">
+            {reveal && <RevealVerdict reveal={reveal} myId={creds.playerId} myTeamId={creds.teamId} myPoints={myRoundPoints} compact />}
             <RoundStandings roomId={room.id} questionIndex={room.current_question_index} myTeamId={creds.teamId} powers={roomPowers} />
             {/* A tip on the scores screen for the first two questions only. */}
             {room.current_question_index < 2 && (
               <p className="rounded-xl bg-sky-500/10 border border-sky-400/30 px-4 py-3 text-center text-sm text-sky-100 animate-pop-in">
-                Tip: tap your answer fast. Faster right answers score more (up to 1,000).
+                Faster right answers = more points
               </p>
             )}
             <FunFact roomId={room.id} questionIndex={room.current_question_index} />
@@ -1630,6 +1633,7 @@ export default function PlayPage() {
             avatars={avatarsById}
             myId={creds.playerId}
             myTeamId={creds.teamId}
+            myPoints={myRoundPoints}
           />
         ) : (
           <p className="text-center text-slate-400 py-10">Revealing…</p>

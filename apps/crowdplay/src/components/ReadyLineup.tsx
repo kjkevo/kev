@@ -36,9 +36,6 @@ export function ReadyLineup({
     <div className="w-full">
       <p className={`text-center font-bold text-slate-300 ${big ? "text-2xl mb-4" : "text-sm mb-2"}`}>
         <span className="text-emerald-300">{readyCount}</span> of {real.length} ready
-        <span className={`block font-normal text-slate-400 ${big ? "text-lg" : "text-xs"}`}>
-          {readyCount === real.length ? "Everyone's ready. It starts once everyone has voted on a category." : "Tap Ready and vote on a category. When everyone has, the game starts (or when the clock runs out)."}
-        </span>
       </p>
       <div className={`flex flex-wrap justify-center ${big ? "gap-6" : "gap-3"}`}>
         {ordered.map((p) => {

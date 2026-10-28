@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { Avatar } from "@/components/Avatar";
+import { Icon } from "@/components/Icon";
 import { CharacterGate } from "@/components/CharacterGate";
 import { powerFor } from "@/lib/powers";
 import type { AvatarOption } from "@/hooks/useAvatars";
@@ -20,7 +21,6 @@ type Step = "name" | "character" | "how";
 export function JoinSteps({
   heading,
   timing,
-  month,
   nickname,
   setNickname,
   nameStatus,
@@ -36,7 +36,6 @@ export function JoinSteps({
 }: {
   heading: string;
   timing?: ReactNode;
-  month: string;
   nickname: string;
   setNickname: (name: string) => void;
   nameStatus: "checking" | "free" | "taken" | null;
@@ -76,12 +75,10 @@ export function JoinSteps({
 
       {step === "name" && (
         <div className="rounded-2xl bg-white/5 border border-white/10 p-4 flex flex-col gap-3 text-left">
-          <div>
-            <p className="text-lg font-black">{playedBefore ? "Welcome back! Your name for this month" : "Pick your name"}</p>
-            <p className="text-sm text-slate-300">
-              It shows on the TV and the scoreboard, and it&apos;s yours for all of {month}.
-            </p>
-          </div>
+          <p className="flex items-center justify-center gap-2 text-lg font-black">
+            <Icon name="user" size={20} className="text-amber-300" />
+            {playedBefore ? "Welcome back" : "Your name"}
+          </p>
           <input
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
@@ -92,15 +89,15 @@ export function JoinSteps({
           <div className="flex items-center justify-between gap-2 min-h-[1.5rem]">
             <span className="text-xs font-bold">
               {nameStatus === "taken" ? (
-                <span className="text-rose-300">Someone already has that name.</span>
+                <span className="flex items-center gap-1 text-rose-300"><Icon name="x" size={14} />Taken</span>
               ) : nameStatus === "free" ? (
-                <span className="text-emerald-300">✓ That name is yours</span>
+                <span className="flex items-center gap-1 text-emerald-300"><Icon name="check" size={14} />Yours</span>
               ) : nameStatus === "checking" ? (
                 <span className="text-slate-400">Checking…</span>
               ) : null}
             </span>
             <button type="button" onClick={rerollName} className="text-xs font-bold text-amber-300 underline">
-              Give me a random one
+              New name
             </button>
           </div>
         </div>
@@ -108,9 +105,6 @@ export function JoinSteps({
 
       {step === "character" && (
         <div className="flex flex-col gap-2">
-          <p className="text-sm text-slate-300 text-center">
-            Swipe through the characters. Each one has a <span className="font-bold text-violet-200">power</span> you can use once per game.
-          </p>
           <CharacterGate
             avatars={avatars}
             onPick={(id) => {
@@ -130,18 +124,17 @@ export function JoinSteps({
               <p className="text-xs text-slate-400">{myAvatar?.name}</p>
             </div>
           </div>
-          <p className="text-lg font-black">How it works</p>
-          <ol className="flex flex-col gap-2.5 text-sm text-slate-200">
-            <HowItem n={1}>Questions show on the TV and on your phone. Tap your answer. You have 20 seconds.</HowItem>
-            <HowItem n={2}>Right answers score points, and faster right answers score more.</HowItem>
+          <ul className="flex flex-col gap-3 text-base font-semibold text-slate-100">
+            <HowItem icon="clock">20 seconds per question</HowItem>
+            <HowItem icon="bolt">Faster right answer = more points</HowItem>
             {power && (
-              <HowItem n={3}>
-                Your power, <span className="font-bold text-violet-200">{power.name}</span>, works once per game: {power.how}
+              <HowItem icon="star">
+                <span className="text-violet-200">{power.name}:</span> {power.how} (once)
               </HowItem>
             )}
-            <HowItem n={power ? 4 : 3}>Under 4 players it&apos;s every player for themselves. With 4 or more, you&apos;re put on teams.</HowItem>
-            <HowItem n={power ? 5 : 4}>In the lobby, vote on a category and tap <span className="font-bold text-emerald-300">I&apos;m ready</span>. When everyone has, the game starts. Missing players are filled in with bots.</HowItem>
-          </ol>
+            <HowItem icon="users">4+ players = teams</HowItem>
+            <HowItem icon="hand">Vote + tap Ready to start</HowItem>
+          </ul>
         </div>
       )}
 
@@ -166,10 +159,12 @@ export function JoinSteps({
   );
 }
 
-function HowItem({ n, children }: { n: number; children: ReactNode }) {
+function HowItem({ icon, children }: { icon: string; children: ReactNode }) {
   return (
-    <li className="flex gap-2.5">
-      <span className="shrink-0 w-6 h-6 rounded-full bg-amber-400 text-black text-xs font-black flex items-center justify-center">{n}</span>
+    <li className="flex items-center gap-3">
+      <span className="shrink-0 w-9 h-9 rounded-full bg-amber-400 text-black flex items-center justify-center">
+        <Icon name={icon} size={20} strokeWidth={2.4} />
+      </span>
       <span>{children}</span>
     </li>
   );

@@ -15,7 +15,7 @@ export function ScanCards({ venue, triviaCode, big = false }: { venue: string; t
   if (!origin) return null;
   const v = encodeURIComponent(venue);
   const trivia = triviaCode
-    ? `${origin}/checkin/${v}?next=${encodeURIComponent(`/play/${triviaCode}`)}&src=qr`
+    ? `${origin}/play/${triviaCode}?venue=${v}&src=qr`
     : `${origin}/trivia?venue=${v}&src=qr`;
   const bingo = `${origin}/bingo/demo?venue=${v}&src=qr`;
   const size = big ? 220 : 132;

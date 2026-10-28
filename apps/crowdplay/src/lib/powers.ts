@@ -32,23 +32,23 @@ export type Power = {
 
 export const POWERS: Record<string, Power> = {
   "jungle-scout": { key: "trailblaze", name: "Trailblaze", timing: "before", choicesOnly: true,
-    how: "Clears two wrong answers off your team's choices." },
+    how: "Removes 2 wrong answers" },
   "crystal-titan": { key: "shield", name: "Crystal Shield", timing: "before",
-    how: "If your team gets the question wrong, you still score 300." },
+    how: "Wrong? Still get 300 points" },
   "alien-buddy": { key: "probe", name: "Mind Probe", timing: "before", choicesOnly: true,
-    how: "See how the other teams are voting. They might be wrong!" },
+    how: "See everyone's votes live" },
   "forest-guardian": { key: "patience", name: "Patience", timing: "before",
-    how: "Full speed points on the question, however long your team takes." },
+    how: "Full points, no rush" },
   "sylvan-entity": { key: "bloom", name: "Bloom", timing: "before",
-    how: "+300 bonus points if your team gets the question right." },
+    how: "+300 points if right" },
   "geo-sphinx": { key: "riddle", name: "Riddle Sight", timing: "before",
-    how: "Get the question's clue for free. No points taken off." },
+    how: "Free clue" },
   "void-walker": { key: "rift", name: "Void Rift", timing: "any",
-    how: "Steal 300 points from the team in first place (2nd place if that's you)." },
+    how: "Steal 300 from the leader" },
   "model-z": { key: "overclock", name: "Overclock", timing: "before",
-    how: "Double points if your team gets it right (×4 on a ×3 Golden question)." },
+    how: "Double points if right" },
   "stone-golem": { key: "second_wind", name: "Second Wind", timing: "after",
-    how: "After your team locks in, check the answer. If it's wrong, you get one more try for half points." },
+    how: "After you answer: wrong? Try again" },
 };
 
 const BY_KEY = Object.fromEntries(Object.values(POWERS).map((p) => [p.key, p])) as Record<PowerKey, Power>;
@@ -84,25 +84,25 @@ export function powerResultLine(key: string, data: PowerData | null | undefined)
   const d = data ?? {};
   switch (key) {
     case "trailblaze":
-      return "Two wrong answers are gone.";
+      return "2 wrong answers removed";
     case "shield":
-      return "Shield up: 300 points even if you're wrong.";
+      return "Shield up: 300 even if wrong";
     case "probe":
-      return "Here's how the other teams are voting.";
+      return "Everyone's votes, live";
     case "patience":
-      return "No rush: full speed points on this one.";
+      return "Full points, take your time";
     case "bloom":
-      return "+300 bonus if your team gets it right.";
+      return "+300 if right";
     case "riddle":
-      return "Free clue below. No points taken off.";
+      return "Free clue below";
     case "rift":
-      return `Stole ${d.amount ?? 300} points from ${d.target_name ?? "the leader"}!`;
+      return `Stole ${d.amount ?? 300} from ${d.target_name ?? "the leader"}`;
     case "overclock":
-      return "Double points if your team gets it right (×4 on Golden).";
+      return "Double points if right";
     case "second_wind":
       return d.result === "right"
-        ? `Your answer is right! Nothing to fix.`
-        : `"${d.answer ?? "That"}" was wrong. Answer again for half points!`;
+        ? "You're right!"
+        : `"${d.answer ?? "That"}" is wrong. Try again (half points)`;
     default:
       return "";
   }
@@ -155,16 +155,16 @@ export function powerScoreTag(key: string, amount: number, stolenFrom: boolean):
 
 /** Server errors from use_power, in plain words. */
 export function powerErrorText(message: string): string {
-  if (/POWER_USED/.test(message)) return "You've already used your power this game.";
-  if (/TEAM_POWER_TAKEN/.test(message)) return "A teammate already used a power on this question.";
-  if (/TEAM_LOCKED_IN/.test(message)) return "Your team already locked in. Use it before you lock in.";
-  if (/NOT_LOCKED_YET/.test(message)) return "Lock in an answer first, then use it.";
-  if (/OPEN_QUESTION/.test(message)) return "This one only works on multiple-choice questions.";
-  if (/NO_VOTES_YET/.test(message)) return "No other team has voted yet. Try again in a moment.";
-  if (/HINT_ALREADY_USED/.test(message)) return "Your team already has the clue.";
-  if (/NOTHING_TO_STEAL/.test(message)) return "Nobody has points to steal yet.";
-  if (/FOGGED/.test(message)) return "You're fogged! Wait a second.";
-  if (/TIME_EXPIRED|NOT_ACCEPTING_ANSWERS|STALE_QUESTION/.test(message)) return "Too late. Time ran out.";
+  if (/POWER_USED/.test(message)) return "Already used this game";
+  if (/TEAM_POWER_TAKEN/.test(message)) return "A teammate used one here";
+  if (/TEAM_LOCKED_IN/.test(message)) return "Use it before you answer";
+  if (/NOT_LOCKED_YET/.test(message)) return "Answer first, then use it";
+  if (/OPEN_QUESTION/.test(message)) return "Multiple choice only";
+  if (/NO_VOTES_YET/.test(message)) return "Try again in a moment";
+  if (/HINT_ALREADY_USED/.test(message)) return "You already have the clue";
+  if (/NOTHING_TO_STEAL/.test(message)) return "Nobody has points yet";
+  if (/FOGGED/.test(message)) return "Fogged! Wait a second";
+  if (/TIME_EXPIRED|NOT_ACCEPTING_ANSWERS|STALE_QUESTION/.test(message)) return "Too late";
   if (/NO_POWER/.test(message)) return "Your character has no power.";
   return "Didn't work. Try again.";
 }
