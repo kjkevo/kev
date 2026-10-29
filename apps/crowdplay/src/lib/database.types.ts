@@ -802,6 +802,10 @@ export type Database = {
         Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_ready: boolean }
         Returns: undefined
       }
+      set_player_team: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_action: string; p_team_id?: string }
+        Returns: { team_id: string; team_name: string }[]
+      }
       use_power: {
         Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_question_id: string }
         Returns: { o_power: string; o_result: Json }[]
