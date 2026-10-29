@@ -14,6 +14,8 @@ const PATHS: Record<string, string> = {
   vote: "M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9",
   trophy: "M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4ZM17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3",
   qr: "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2M14 18h2v2M18 18h2v2",
+  swap: "M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7",
+  plus: "M12 5v14M5 12h14",
 };
 
 export type IconName = keyof typeof PATHS;
