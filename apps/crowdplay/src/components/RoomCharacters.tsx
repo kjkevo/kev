@@ -26,19 +26,17 @@ function usePlaying(players: Player[], teams?: Team[]) {
 }
 
 /**
- * Who has locked in, with a progress bar. Your own team shows each
- * teammate's character (greyed while they think, popping in when they lock
- * in). In solo play everyone else is a row of small faces, no names; in team
- * play every other team is its name, ticked once all of it has answered.
- * The TV has no team of its own, so it shows everyone that way.
+ * Who has locked in, with a progress bar: every other team (your own team's
+ * answers are shown above it on the phone). In solo play everyone else is a
+ * row of small faces, no names; in team play each other team is its name,
+ * ticked once all of it has answered. The TV shows everyone that way.
  */
-export function LockInStrip({ players, teams, avatars, answered, myId, myTeamId, big = false }: Props & {
+export function LockInStrip({ players, teams, avatars, answered, myTeamId, big = false }: Props & {
   teams?: Team[];
   answered: Set<string>;
 }) {
   const playing = usePlaying(players, teams);
   if (playing.length === 0) return null;
-  const mates = myTeamId ? playing.filter((p) => p.team_id === myTeamId) : [];
   const otherTeams = (teams ?? [])
     .filter((t) => t.id !== myTeamId)
     .map((t) => {
@@ -46,7 +44,6 @@ export function LockInStrip({ players, teams, avatars, answered, myId, myTeamId,
       return { team: t, members, done: members.length > 0 && members.every((p) => answered.has(p.id)) };
     })
     .filter((t) => t.members.length > 0);
-  const size = big ? 56 : 30;
   const label = `uppercase tracking-widest font-bold text-slate-400 ${big ? "text-lg" : "text-[11px]"}`;
   // Solo play: everyone else is one player, shown as a row of small faces.
   const soloRoom = otherTeams.every((t) => t.members.length === 1);
@@ -54,34 +51,6 @@ export function LockInStrip({ players, teams, avatars, answered, myId, myTeamId,
 
   return (
     <div className="w-full flex flex-col gap-3">
-      {mates.length > 1 && (
-        <div>
-          <p className={`text-center mb-2 ${label}`}>
-            {mates.length === 1 ? "You" : "Your team"}{" "}
-            <span className="text-emerald-300">{mates.filter((p) => answered.has(p.id)).length}</span>/{mates.length}
-          </p>
-          <div className="flex flex-wrap justify-center gap-1.5">
-            {mates.map((p) => {
-              const a = p.avatar_id ? avatars[p.avatar_id] : undefined;
-              const isIn = answered.has(p.id);
-              return (
-                <span key={p.id} className="relative flex flex-col items-center" title={p.nickname}>
-                  {/* key flips when they lock in, so the landing animation plays */}
-                  <span key={isIn ? "in" : "out"} className={`rounded-full ${isIn ? "char-land" : "opacity-35 grayscale"}`}>
-                    <Avatar emoji={a?.emoji} imageUrl={a?.imageUrl} size={size} />
-                  </span>
-                  {isIn && (
-                    <span className="absolute -top-0.5 -right-0.5 rounded-full bg-emerald-400 text-black font-black w-3.5 h-3.5 text-[8px] flex items-center justify-center">
-                      ✓
-                    </span>
-                  )}
-                  <span className="truncate text-center text-slate-300 text-[9px] w-10">{p.id === myId ? "You" : p.nickname}</span>
-                </span>
-              );
-            })}
-          </div>
-        </div>
-      )}
       {otherTeams.length > 0 && (
         <div>
           <p className={`flex items-center justify-center gap-1.5 mb-2 ${label}`}>
