@@ -354,7 +354,7 @@ export default function ScreenClient() {
         {room.phase === "reveal" && (
           <>
             <p className="text-lg text-slate-400">
-              Question {room.current_question_index + 1} of {totalQuestions || "?"} · Who picked what
+              Question {room.current_question_index + 1} of {totalQuestions || "?"} · Who got it
             </p>
             {twist && <TwistBanner big twist={twist} text={twistBanner(twist, question?.twist_seq, twistCtx)} />}
             {question && <h2 className="text-3xl font-bold max-w-4xl">{question.prompt}</h2>}
