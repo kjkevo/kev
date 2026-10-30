@@ -48,7 +48,7 @@ import { useQuestionReveal } from "@/hooks/useQuestionReveal";
 import { LockInStrip, PickYourCorner, RevealVerdict } from "@/components/RoomCharacters";
 import { JoinDrops } from "@/components/JoinDrops";
 import { Podium } from "@/components/Podium";
-import { ShareCard, type ShareAward } from "@/components/ShareCard";
+import { ShareCard } from "@/components/ShareCard";
 import { EmoteCharacter, EmoteButtons } from "@/components/EmoteCharacter";
 import { useRoomEmotes } from "@/hooks/useRoomEmotes";
 
@@ -173,7 +173,7 @@ export default function PlayPage() {
   const [confirmingQuit, setConfirmingQuit] = useState(false);
   const [recap, setRecap] = useState<FinalRecapRow[] | null>(null);
   const [recapOpen, setRecapOpen] = useState(false);
-  const [awards, setAwards] = useState<ShareAward[] | null>(null);
+  const [awards, setAwards] = useState<{ icon: string; title: string; detail: string }[] | null>(null);
   const { votes: questionVotes, lock: teamLock, hint: teamHint, refresh: refreshVotes } = useQuestionVotes(
     room?.id,
     room?.phase === "question" ? question?.id : undefined,
@@ -1843,8 +1843,11 @@ export default function PlayPage() {
             {awards && awards.length > 0 && (
               <div className="flex flex-col gap-2">
                 <p className="text-xs uppercase tracking-widest text-amber-300">Your awards</p>
-                {awards.slice(0, 2).map((a) => (
+                {awards.slice(0, 3).map((a) => (
                   <div key={a.title} className="flex items-center gap-3 rounded-xl bg-amber-400/10 border border-amber-400/30 px-4 py-2.5 text-left">
+                    <span className="shrink-0 w-11 h-11 rounded-full bg-amber-400 text-black flex items-center justify-center">
+                      <Icon name={a.icon} size={24} strokeWidth={2.4} />
+                    </span>
                     <span className="min-w-0">
                       <span className="block font-black">{a.title}</span>
                       <span className="block text-sm text-slate-300">{a.detail}</span>
@@ -1859,11 +1862,9 @@ export default function PlayPage() {
                 rank={myTeamRank}
                 venue={venueName ?? "the bar"}
                 nickname={me.nickname}
-                teamName={myTeam?.name ?? creds.teamName}
+                teamName={room.mode === "solo" ? null : myTeam?.name ?? creds.teamName}
                 score={myTeam?.score ?? 0}
                 imageUrl={me.avatar_id ? avatarsById[me.avatar_id]?.imageUrl : null}
-                emoji={me.avatar_id ? avatarsById[me.avatar_id]?.emoji : null}
-                award={awards?.[0] ?? null}
               />
             )}
 
@@ -1878,7 +1879,11 @@ export default function PlayPage() {
                     }`}
                   >
                     <span>
-                      #{topThree.length + i + 1} {t.name}
+                      #{topThree.length + i + 1} {(() => {
+                        // A team of one is a solo player: show their name.
+                        const on = players.filter((p) => p.team_id === t.id);
+                        return on.length === 1 ? on[0].nickname : t.name;
+                      })()}
                     </span>
                     <span className="tabular-nums">{t.score.toLocaleString()}</span>
                   </div>
@@ -1935,10 +1940,9 @@ export default function PlayPage() {
             <button
               onClick={playNextSameTeam}
               disabled={rejoining}
-              className="w-full max-w-xs mx-auto block rounded-2xl bg-amber-400 text-black font-black text-lg py-3 shadow-lg shadow-amber-400/20 disabled:opacity-50 active:scale-95 transition"
+              className="w-full max-w-xs mx-auto block rounded-2xl bg-amber-400 text-black font-black text-xl py-4 shadow-lg shadow-amber-400/20 disabled:opacity-50 active:scale-95 transition"
             >
               {rejoining ? "Getting you in…" : "Play again"}
-              <span className="block text-xs font-semibold text-black/70">Same team · next game in about 2 min</span>
             </button>
             {rejoinError && <p className="mt-1 text-center text-sm text-amber-300/90">{rejoinError}</p>}
           </div>

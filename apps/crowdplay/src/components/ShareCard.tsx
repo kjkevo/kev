@@ -18,9 +18,6 @@ export function shareHeadline(rank: number, venue: string) {
   return `I played trivia at ${venue}`;
 }
 
-/** A personal award shown on the card ("Fastest finger · Right answer in 2.1s"). */
-export type ShareAward = { icon: string; title: string; detail: string };
-
 function loadImage(src: string) {
   return new Promise<HTMLImageElement | null>((resolve) => {
     const img = new Image();
@@ -30,31 +27,14 @@ function loadImage(src: string) {
   });
 }
 
-/** Wraps text onto lines no wider than maxWidth; returns the lines. */
-function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number) {
-  const words = text.split(" ");
-  const lines: string[] = [];
-  let line = "";
-  for (const w of words) {
-    const test = line ? `${line} ${w}` : w;
-    if (ctx.measureText(test).width > maxWidth && line) {
-      lines.push(line);
-      line = w;
-    } else line = test;
-  }
-  if (line) lines.push(line);
-  return lines;
-}
-
 async function drawCard(opts: {
   rank: number;
   venue: string;
   nickname: string;
-  teamName: string;
+  /** Team games only; solo cards show just the points. */
+  teamName?: string | null;
   score: number;
   imageUrl?: string | null;
-  emoji?: string | null;
-  award?: ShareAward | null;
 }) {
   const canvas = document.createElement("canvas");
   canvas.width = W;
@@ -76,92 +56,67 @@ async function drawCard(opts: {
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, W, H);
 
+  // Just the result: place, character, name, points. Nothing to decode.
   ctx.textAlign = "center";
   ctx.fillStyle = "#fbbf24";
-  ctx.font = "900 64px system-ui, -apple-system, sans-serif";
-  ctx.fillText(opts.rank === 1 ? "CHAMPION" : `${ordinal(opts.rank).toUpperCase()} PLACE`, W / 2, 140);
-
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "900 76px system-ui, -apple-system, sans-serif";
-  const lines = wrap(ctx, shareHeadline(opts.rank, opts.venue), W - 140);
-  lines.slice(0, 3).forEach((l, i) => ctx.fillText(l, W / 2, 250 + i * 88));
+  ctx.font = "900 110px system-ui, -apple-system, sans-serif";
+  ctx.fillText(opts.rank === 1 ? "CHAMPION" : `${ordinal(opts.rank).toUpperCase()} PLACE`, W / 2, 200);
 
   const img = opts.imageUrl ? await loadImage(opts.imageUrl) : null;
-  const top = 250 + Math.min(lines.length, 3) * 88 - 20;
   if (img) {
-    const size = 480;
+    const size = 640;
     ctx.shadowColor = "rgba(0,0,0,0.5)";
     ctx.shadowBlur = 40;
-    ctx.drawImage(img, (W - size) / 2, top, size, size);
+    ctx.drawImage(img, (W - size) / 2, 260, size, size);
     ctx.shadowBlur = 0;
   }
 
-  // The player's best award, as a pill under the character.
-  if (opts.award) {
-    ctx.font = "800 44px system-ui, -apple-system, sans-serif";
-    const label = `${opts.award.title} · ${opts.award.detail}`;
-    const tw = Math.min(ctx.measureText(label).width, W - 120);
-    const y = H - 400;
-    ctx.fillStyle = "rgba(251,191,36,0.18)";
-    ctx.beginPath();
-    if (ctx.roundRect) ctx.roundRect(W / 2 - tw / 2 - 36, y - 52, tw + 72, 76, 38);
-    else ctx.rect(W / 2 - tw / 2 - 36, y - 52, tw + 72, 76);
-    ctx.fill();
-    ctx.fillStyle = "#fde68a";
-    ctx.fillText(label, W / 2, y, W - 120);
-  }
-
   ctx.fillStyle = "#ffffff";
-  ctx.font = "800 60px system-ui, -apple-system, sans-serif";
-  ctx.fillText(opts.nickname, W / 2, H - 285);
+  ctx.font = "900 80px system-ui, -apple-system, sans-serif";
+  ctx.fillText(opts.nickname, W / 2, H - 300, W - 120);
   ctx.fillStyle = "#c7d2fe";
-  ctx.font = "600 40px system-ui, -apple-system, sans-serif";
-  ctx.fillText(`${opts.teamName} · ${opts.score.toLocaleString()} pts`, W / 2, H - 225);
+  ctx.font = "700 52px system-ui, -apple-system, sans-serif";
+  ctx.fillText(
+    opts.teamName ? `${opts.teamName} · ${opts.score.toLocaleString()} pts` : `${opts.score.toLocaleString()} pts`,
+    W / 2,
+    H - 225,
+    W - 120
+  );
 
-  // Date and where to play, so every share points back to the bar and the app.
-  ctx.fillStyle = "#a5b4fc";
-  ctx.font = "600 34px system-ui, -apple-system, sans-serif";
-  const date = new Date().toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-  ctx.fillText(`${date} · Play at slimpse.vercel.app`, W / 2, H - 150);
-
-  ctx.font = "900 52px system-ui, -apple-system, sans-serif";
+  ctx.font = "900 60px system-ui, -apple-system, sans-serif";
   ctx.fillStyle = "#ffffff";
   const brand = "Slim";
   const w1 = ctx.measureText(brand).width;
   const w2 = ctx.measureText("pse").width;
   ctx.textAlign = "left";
-  ctx.fillText(brand, W / 2 - (w1 + w2) / 2, H - 70);
+  ctx.fillText(brand, W / 2 - (w1 + w2) / 2, H - 90);
   ctx.fillStyle = "#fbbf24";
-  ctx.fillText("pse", W / 2 - (w1 + w2) / 2 + w1, H - 70);
+  ctx.fillText("pse", W / 2 - (w1 + w2) / 2 + w1, H - 90);
 
   return new Promise<Blob | null>((resolve) => canvas.toBlob((b) => resolve(b), "image/png"));
 }
 
 /**
- * "I won trivia at [Venue]" (or 2nd, 3rd, "I played…"): a picture of the
- * player's character with their result and best award, ready to share to
- * stories or save to the camera roll. Every player gets one.
+ * A picture of the player's result (place, character, name, points), ready
+ * to share to stories or save to the camera roll. Every player gets one.
  */
 export function ShareCard(props: {
   rank: number;
   venue: string;
   nickname: string;
-  teamName: string;
+  teamName?: string | null;
   score: number;
   imageUrl?: string | null;
-  emoji?: string | null;
-  award?: ShareAward | null;
 }) {
   const [blob, setBlob] = useState<Blob | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
-  const { rank, venue, nickname, teamName, score, imageUrl, emoji, award } = props;
-  const awardKey = award ? `${award.icon}|${award.title}|${award.detail}` : "";
+  const { rank, venue, nickname, teamName, score, imageUrl } = props;
 
   useEffect(() => {
     let url: string | null = null;
     let cancelled = false;
-    drawCard({ rank, venue, nickname, teamName, score, imageUrl, emoji, award }).then((b) => {
+    drawCard({ rank, venue, nickname, teamName, score, imageUrl }).then((b) => {
       if (cancelled || !b) return;
       url = URL.createObjectURL(b);
       setBlob(b);
@@ -171,8 +126,7 @@ export function ShareCard(props: {
       cancelled = true;
       if (url) URL.revokeObjectURL(url);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- awardKey stands in for award
-  }, [rank, venue, nickname, teamName, score, imageUrl, emoji, awardKey]);
+  }, [rank, venue, nickname, teamName, score, imageUrl]);
 
   async function share() {
     if (!blob) return;
