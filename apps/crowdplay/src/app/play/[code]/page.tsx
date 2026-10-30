@@ -1306,7 +1306,7 @@ export default function PlayPage() {
       <Center>
         <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
           <ExitButton onClick={() => setConfirmingQuit(true)} />
-          <TeamBadge name={room.mode === "solo" ? "Solo" : myTeam?.name ?? creds.teamName} player={me?.nickname} />
+          <TeamBadge name={room.mode === "solo" ? "Solo" : myTeam?.name ?? creds.teamName} player={me?.nickname} score={myTeam?.score ?? 0} />
         </div>
         <GetReady title="Get ready! Question 1 is about" subtitle={categoryName ?? "Trivia"} seconds={Math.ceil(questionStart.remainingMs / 1000)} />
         {me?.avatar_id && avatarsById[me.avatar_id] && (
@@ -1337,7 +1337,7 @@ export default function PlayPage() {
       <main className="min-h-screen bg-slate-950 text-white flex flex-col items-center px-5 py-6 gap-5 text-center relative">
         <div className="w-full flex items-center justify-between">
           <ExitButton onClick={() => setConfirmingQuit(true)} />
-          <TeamBadge name={room.mode === "solo" ? "Solo" : myTeam?.name ?? creds.teamName} player={me?.nickname} />
+          <TeamBadge name={room.mode === "solo" ? "Solo" : myTeam?.name ?? creds.teamName} player={me?.nickname} score={myTeam?.score ?? 0} />
         </div>
         <div>
           <p className="text-3xl font-black text-rose-400 tracking-wide">SUDDEN DEATH</p>
@@ -1447,7 +1447,7 @@ export default function PlayPage() {
       <main className="min-h-screen bg-slate-950 text-white flex flex-col px-4 py-4 gap-3 relative">
         <div className="flex items-center justify-between">
           <ExitButton onClick={() => setConfirmingQuit(true)} />
-          <TeamBadge name={room.mode === "solo" ? "Solo" : myTeam?.name ?? creds.teamName} player={me?.nickname} />
+          <TeamBadge name={room.mode === "solo" ? "Solo" : myTeam?.name ?? creds.teamName} player={me?.nickname} score={myTeam?.score ?? 0} />
         </div>
 
         {/* One tight row: Q5/20 · Movies · 26s */}
@@ -1734,7 +1734,7 @@ export default function PlayPage() {
       <main className="min-h-screen bg-slate-950 text-white flex flex-col px-4 py-4 gap-3 relative">
         <div className="flex items-center justify-between">
           <ExitButton onClick={() => setConfirmingQuit(true)} />
-          <TeamBadge name={room.mode === "solo" ? "Solo" : myTeam?.name ?? creds.teamName} player={me?.nickname} />
+          <TeamBadge name={room.mode === "solo" ? "Solo" : myTeam?.name ?? creds.teamName} player={me?.nickname} score={myTeam?.score ?? 0} />
         </div>
         {twist ? (
           <TwistIntro
@@ -1757,7 +1757,7 @@ export default function PlayPage() {
       <main className="min-h-screen bg-slate-950 text-white flex flex-col px-4 py-4 gap-3 relative">
         <div className="flex items-center justify-between">
           <ExitButton onClick={() => setConfirmingQuit(true)} />
-          <TeamBadge name={room.mode === "solo" ? "Solo" : myTeam?.name ?? creds.teamName} player={me?.nickname} />
+          <TeamBadge name={room.mode === "solo" ? "Solo" : myTeam?.name ?? creds.teamName} player={me?.nickname} score={myTeam?.score ?? 0} />
         </div>
         <p className="text-sm font-bold text-slate-400">
           Q{room.current_question_index + 1}
@@ -2014,11 +2014,19 @@ function ExitButton({ onClick }: { onClick: () => void }) {
 }
 
 /** You and your team, top right during the game. */
-function TeamBadge({ name, player }: { name: string; player?: string }) {
+/** Top corner during the game: who you are, your team (or Solo), and your
+ * points so far, which update after every question. */
+function TeamBadge({ name, player, score }: { name: string; player?: string; score?: number }) {
   return (
     <span className="max-w-[60%] rounded-2xl bg-amber-400/15 border border-amber-400/40 px-4 py-1.5 text-right leading-tight">
       {player && <span className="block text-sm font-black text-white truncate">{player}</span>}
       <span className="block text-xs font-bold text-amber-300 truncate">{name}</span>
+      {score !== undefined && (
+        <span key={score} className="flex items-center justify-end gap-1 text-lg font-black text-white tabular-nums animate-pop-in">
+          <Icon name="star" size={15} className="text-amber-300" />
+          {score.toLocaleString()}
+        </span>
+      )}
     </span>
   );
 }
