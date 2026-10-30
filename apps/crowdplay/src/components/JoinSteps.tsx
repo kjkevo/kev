@@ -138,7 +138,7 @@ export function JoinSteps({
             {soloGame ? (
               <HowItem icon="user">Everyone for themselves</HowItem>
             ) : (
-              <HowItem icon="users">4+ players = teams</HowItem>
+              <HowItem icon="users">Teams of 4 · bots fill empty spots</HowItem>
             )}
             <HowItem icon="hand">Vote + tap Ready to start</HowItem>
           </ul>

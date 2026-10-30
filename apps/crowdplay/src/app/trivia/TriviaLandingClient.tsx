@@ -17,15 +17,13 @@ import { useTriviaQueue, roundsToWaitLabel, currentGameProgress } from "@/hooks/
 import { playerKey, type Player, type Team } from "@/lib/types";
 import { useSeason } from "@/hooks/useSeason";
 import { SeasonChip } from "@/components/SeasonNotice";
-import { JoinByCode } from "@/components/JoinByCode";
 
 /**
  * The entry point for anyone without a room code: the venue TV's QR code
  * lands here, as does someone opening the site cold. Each venue runs two
  * games side by side: Solo (everyone for themselves, join any time, bots
- * step out as people join) and Team Play (the venue TV's game: solo under 4
- * real players, teams of 4 from then on, no joining mid-game). A clear
- * button for each, plus a box for a game code.
+ * step out as people join) and Team Play (the venue TV's game: always teams of 4,
+ * bots filling open spots, no joining mid-game). A clear button for each.
  */
 export default function TriviaLandingClient() {
   const venue = usePlayerVenue();
@@ -194,7 +192,7 @@ export default function TriviaLandingClient() {
           </button>
         </div>
 
-        {/* Team Play: the venue's team game (teams of 4 once 4 people are in). */}
+        {/* Team Play: the venue's team game (teams of 4, bots fill open spots). */}
         <div className="rounded-3xl bg-white/5 border border-white/15 p-4 flex flex-col gap-3">
           <div className="flex items-center justify-center gap-2">
             <Icon name="users" size={22} className="text-sky-300" />
@@ -219,10 +217,6 @@ export default function TriviaLandingClient() {
         </div>
       </div>
 
-      <div className="flex flex-col items-center gap-2">
-        <p className="text-xs uppercase tracking-widest text-indigo-300/70">Have a game code?</p>
-        <JoinByCode />
-      </div>
     </Shell>
   );
 }

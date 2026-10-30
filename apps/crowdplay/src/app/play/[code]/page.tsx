@@ -1067,9 +1067,12 @@ export default function PlayPage() {
     const teamName = myTeam?.name ?? creds.teamName;
     const inviteShown = inviteOpen ?? false;
     const myCharacter = me?.avatar_id ? avatarsById[me.avatar_id] : avatarId ? avatarsById[avatarId] : undefined;
-    const friendTeam = myTeam?.kind === "self";
-    const solo = teammates.length <= 1 && !friendTeam;
-    // Teams you could join: real players only, no bots, not full.
+    // Team Play is always a team of 4 (bots fill open spots at the start);
+    // the solo game is everyone for themselves.
+    const teamGame = room.mode !== "solo";
+    const mates = teammates.filter((p) => p.id !== creds.playerId);
+    const openSpots = Math.max(0, 3 - mates.length);
+    // Teams you could switch to: real players only, no bots, not full.
     const joinableTeams = teams
       .filter((t) => t.id !== creds.teamId)
       .map((t) => ({ team: t, members: activePlayers.filter((p) => p.team_id === t.id) }))
@@ -1080,7 +1083,7 @@ export default function PlayPage() {
         {buySheet}
         <JoinDrops players={players} teams={teams} avatars={avatarsById} excludeId={creds.playerId} />
         <div className="w-full max-w-sm flex flex-col gap-3 pt-16 pb-8">
-          {/* You: your character, the clock, and your Ready button. */}
+          {/* You: your character, the clock, your Ready button, and your team's spots. */}
           <div className="rounded-3xl bg-indigo-950/90 border border-white/15 p-3 shadow-lg">
             <div className="flex items-center gap-3">
               <div className="flex flex-col items-center shrink-0">
@@ -1102,9 +1105,9 @@ export default function PlayPage() {
               </div>
               <div className="flex-1 min-w-0 flex flex-col items-center gap-2 text-center">
                 <p className="text-lg font-black truncate max-w-full">{me?.nickname}</p>
-                <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-bold text-slate-200">
-                  <Icon name={solo ? "user" : "users"} size={14} />
-                  {solo ? "Solo" : teamName}
+                <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-bold text-slate-200 max-w-full">
+                  <Icon name={teamGame ? "users" : "user"} size={14} />
+                  <span className="truncate">{teamGame ? teamName : "Solo"}</span>
                 </span>
                 <div className="flex items-center gap-1.5 text-amber-400">
                   <Icon name="clock" size={22} />
@@ -1129,11 +1132,10 @@ export default function PlayPage() {
                 </button>
               </div>
             </div>
-            {!solo && teammates.length > 1 && (
-              <div className="mt-3 flex justify-center gap-3">
-                {teammates
-                  .filter((p) => p.id !== creds.playerId)
-                  .map((p) => {
+            {teamGame && (
+              <div className="mt-3">
+                <div className="flex justify-center gap-3">
+                  {mates.slice(0, 3).map((p) => {
                     const a = p.avatar_id ? avatarsById[p.avatar_id] : undefined;
                     return (
                       <div key={p.id} className="flex flex-col items-center w-16">
@@ -1142,9 +1144,25 @@ export default function PlayPage() {
                       </div>
                     );
                   })}
+                  {Array.from({ length: openSpots }).map((_, i) => (
+                    <button
+                      key={`open-${i}`}
+                      type="button"
+                      onClick={() => setInviteOpen(true)}
+                      aria-label="Invite a friend to this spot"
+                      className="flex flex-col items-center w-16 active:scale-95 transition"
+                    >
+                      <span className="w-14 h-14 rounded-full border-2 border-dashed border-white/30 flex items-center justify-center text-white/50">
+                        <Icon name="plus" size={22} />
+                      </span>
+                      <span className="text-[11px] text-slate-400 mt-0.5">Open</span>
+                    </button>
+                  ))}
+                </div>
+                {openSpots > 0 && <p className="mt-1 text-center text-[11px] text-slate-400">Open spots get bots at the start</p>}
               </div>
             )}
-            <div className={`mt-3 grid gap-2 ${room.mode === "solo" ? "grid-cols-1" : "grid-cols-2"}`}>
+            <div className={`mt-3 grid gap-2 ${teamGame ? "grid-cols-2" : "grid-cols-1"}`}>
               <button
                 type="button"
                 onClick={() => {
@@ -1158,81 +1176,58 @@ export default function PlayPage() {
                 <Icon name="swap" size={15} />
                 Change character
               </button>
-              {room.mode !== "solo" && (
-              <button
-                type="button"
-                onClick={() => {
-                  setTeamOpen(!teamOpen);
-                  setLobbyAvatarOpen(false);
-                }}
-                className={`rounded-xl py-2 text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 ${
-                  teamOpen ? "bg-white text-black" : "bg-white/10 text-slate-200"
-                }`}
-              >
-                <Icon name="users" size={15} />
-                {solo ? "Play as a team" : "My team"}
-              </button>
+              {teamGame && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTeamOpen(!teamOpen);
+                    setLobbyAvatarOpen(false);
+                  }}
+                  className={`rounded-xl py-2 text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 ${
+                    teamOpen ? "bg-white text-black" : "bg-white/10 text-slate-200"
+                  }`}
+                >
+                  <Icon name="users" size={15} />
+                  Switch team
+                </button>
               )}
             </div>
           </div>
 
-          {teamOpen && room.mode !== "solo" && (
+          {teamOpen && teamGame && (
             <div className="rounded-2xl bg-white/5 border border-white/10 p-3 flex flex-col gap-2">
-              {solo ? (
+              {joinableTeams.map(({ team, members }) => (
+                <button
+                  key={team.id}
+                  type="button"
+                  onClick={() => changeTeam("join", team.id)}
+                  disabled={teamBusy}
+                  className="w-full rounded-xl bg-white/10 px-3 py-2 flex items-center gap-2 text-left active:scale-95 transition disabled:opacity-60"
+                >
+                  <div className="flex -space-x-2">
+                    {members.map((p) => {
+                      const a = p.avatar_id ? avatarsById[p.avatar_id] : undefined;
+                      return <Avatar key={p.id} emoji={a?.emoji} imageUrl={a?.imageUrl} size={28} />;
+                    })}
+                  </div>
+                  <span className="flex-1 min-w-0 truncate text-sm font-bold">{team.name}</span>
+                  <span className="text-xs font-black text-amber-300">Join</span>
+                </button>
+              ))}
+              {mates.length > 0 && (
                 <button
                   type="button"
                   onClick={() => changeTeam("start")}
                   disabled={teamBusy}
-                  className="w-full rounded-xl bg-amber-400 text-black py-2.5 font-black flex items-center justify-center gap-2 active:scale-95 transition disabled:opacity-60"
+                  className="w-full rounded-xl bg-white/10 py-2 text-sm font-bold flex items-center justify-center gap-1.5 active:scale-95 transition disabled:opacity-60"
                 >
-                  <Icon name="plus" size={18} strokeWidth={2.6} />
-                  Start a team
-                </button>
-              ) : (
-                <p className="text-center text-sm font-bold text-slate-200">
-                  {myTeam?.name} · {teammates.length} of 4
-                </p>
-              )}
-              {joinableTeams.length > 0 && (
-                <>
-                  <p className="text-center text-[11px] font-bold uppercase tracking-wide text-slate-400">or join</p>
-                  {joinableTeams.map(({ team, members }) => (
-                    <button
-                      key={team.id}
-                      type="button"
-                      onClick={() => changeTeam("join", team.id)}
-                      disabled={teamBusy}
-                      className="w-full rounded-xl bg-white/10 px-3 py-2 flex items-center gap-2 text-left active:scale-95 transition disabled:opacity-60"
-                    >
-                      <div className="flex -space-x-2">
-                        {members.map((p) => {
-                          const a = p.avatar_id ? avatarsById[p.avatar_id] : undefined;
-                          return <Avatar key={p.id} emoji={a?.emoji} imageUrl={a?.imageUrl} size={28} />;
-                        })}
-                      </div>
-                      <span className="flex-1 min-w-0 truncate text-sm font-bold">
-                        {members.length === 1 && team.kind !== "self" ? members[0].nickname : team.name}
-                      </span>
-                      <span className="text-xs font-black text-amber-300">Join</span>
-                    </button>
-                  ))}
-                </>
-              )}
-              {!solo && (
-                <button
-                  type="button"
-                  onClick={() => changeTeam("solo")}
-                  disabled={teamBusy}
-                  className="w-full rounded-xl py-2 text-xs font-bold text-slate-400 flex items-center justify-center gap-1.5 active:scale-95 transition"
-                >
-                  <Icon name="user" size={14} />
-                  Leave team, play solo
+                  <Icon name="plus" size={16} />
+                  New team
                 </button>
               )}
-              <p className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400">
-                <Icon name="users" size={13} />
-                Friends tap “Play as a team” and join you
-              </p>
+              {joinableTeams.length === 0 && mates.length === 0 && (
+                <p className="text-center text-sm text-slate-400">No other teams yet</p>
+              )}
               {teamNote && <p className="text-center text-xs text-rose-300">{teamNote}</p>}
             </div>
           )}
@@ -1243,6 +1238,24 @@ export default function PlayPage() {
             </div>
           )}
           {avatarNote && <p className="text-xs text-amber-300/80">{avatarNote}</p>}
+
+          {/* Friends scan this to get into the same game (and your team). */}
+          <button
+            type="button"
+            onClick={() => setInviteOpen(!inviteShown)}
+            className={`w-full rounded-2xl py-4 text-lg font-black flex items-center justify-center gap-2 border-2 active:scale-95 transition ${
+              inviteShown ? "bg-white/10 border-white/20 text-slate-200" : "bg-amber-400/15 border-amber-400/60 text-amber-300"
+            }`}
+          >
+            <Icon name="qr" size={24} />
+            {inviteShown ? "Hide" : teamGame && openSpots > 0 ? `Invite friends · ${openSpots} open` : "Invite friends"}
+          </button>
+          {inviteShown && (
+            <div className="flex flex-col items-center gap-2 text-center">
+              <JoinQRCode code={room.code} venue={venueSlug ?? "main"} team={teamGame ? creds.teamId : null} size={190} />
+              <p className="text-sm text-slate-300">{teamGame ? "Scan to join your team" : "Scan to join this game"}</p>
+            </div>
+          )}
 
           {room.queued && (
             <div className="rounded-2xl bg-sky-500/10 border border-sky-400/40 px-4 py-3">
@@ -1279,24 +1292,6 @@ export default function PlayPage() {
             </div>
           )}
 
-          {/* Friends scan this to get into the same game. */}
-          {inviteShown && (
-            <div className="flex flex-col items-center gap-2 text-center">
-              <JoinQRCode code={room.code} venue={venueSlug ?? "main"} size={170} />
-              <p className="text-sm text-slate-300">
-                or code <span className="font-black tracking-widest text-amber-300">{room.code}</span>
-              </p>
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={() => setInviteOpen(!inviteShown)}
-            className="w-full rounded-xl bg-white/10 py-2.5 text-sm font-bold text-amber-300 flex items-center justify-center gap-2 active:scale-95 transition"
-          >
-            <Icon name="qr" size={18} />
-            {inviteShown ? "Hide" : "Invite friends"}
-          </button>
-
           <Shoutouts roomId={room.id} creds={creds} />
         </div>
       </Center>
@@ -1309,7 +1304,7 @@ export default function PlayPage() {
       <Center>
         <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
           <ExitButton onClick={() => setConfirmingQuit(true)} />
-          <TeamBadge name={teammates.length > 1 ? myTeam?.name ?? creds.teamName : "Solo"} player={me?.nickname} />
+          <TeamBadge name={room.mode === "solo" ? "Solo" : myTeam?.name ?? creds.teamName} player={me?.nickname} />
         </div>
         <GetReady title="Get ready! Question 1 is about" subtitle={categoryName ?? "Trivia"} seconds={Math.ceil(questionStart.remainingMs / 1000)} />
         {me?.avatar_id && avatarsById[me.avatar_id] && (
@@ -1340,7 +1335,7 @@ export default function PlayPage() {
       <main className="min-h-screen bg-slate-950 text-white flex flex-col items-center px-5 py-6 gap-5 text-center relative">
         <div className="w-full flex items-center justify-between">
           <ExitButton onClick={() => setConfirmingQuit(true)} />
-          <TeamBadge name={teammates.length > 1 ? myTeam?.name ?? creds.teamName : "Solo"} player={me?.nickname} />
+          <TeamBadge name={room.mode === "solo" ? "Solo" : myTeam?.name ?? creds.teamName} player={me?.nickname} />
         </div>
         <div>
           <p className="text-3xl font-black text-rose-400 tracking-wide">SUDDEN DEATH</p>
@@ -1450,7 +1445,7 @@ export default function PlayPage() {
       <main className="min-h-screen bg-slate-950 text-white flex flex-col px-4 py-4 gap-3 relative">
         <div className="flex items-center justify-between">
           <ExitButton onClick={() => setConfirmingQuit(true)} />
-          <TeamBadge name={teammates.length > 1 ? myTeam?.name ?? creds.teamName : "Solo"} player={me?.nickname} />
+          <TeamBadge name={room.mode === "solo" ? "Solo" : myTeam?.name ?? creds.teamName} player={me?.nickname} />
         </div>
 
         {/* One tight row: Q5/20 · Movies · 26s */}
@@ -1736,7 +1731,7 @@ export default function PlayPage() {
       <main className="min-h-screen bg-slate-950 text-white flex flex-col px-4 py-4 gap-3 relative">
         <div className="flex items-center justify-between">
           <ExitButton onClick={() => setConfirmingQuit(true)} />
-          <TeamBadge name={teammates.length > 1 ? myTeam?.name ?? creds.teamName : "Solo"} player={me?.nickname} />
+          <TeamBadge name={room.mode === "solo" ? "Solo" : myTeam?.name ?? creds.teamName} player={me?.nickname} />
         </div>
         {twist ? (
           <TwistIntro
@@ -1759,7 +1754,7 @@ export default function PlayPage() {
       <main className="min-h-screen bg-slate-950 text-white flex flex-col px-4 py-4 gap-3 relative">
         <div className="flex items-center justify-between">
           <ExitButton onClick={() => setConfirmingQuit(true)} />
-          <TeamBadge name={teammates.length > 1 ? myTeam?.name ?? creds.teamName : "Solo"} player={me?.nickname} />
+          <TeamBadge name={room.mode === "solo" ? "Solo" : myTeam?.name ?? creds.teamName} player={me?.nickname} />
         </div>
         <p className="text-sm font-bold text-slate-400">
           Q{room.current_question_index + 1}
