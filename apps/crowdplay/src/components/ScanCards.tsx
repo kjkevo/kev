@@ -4,10 +4,9 @@ import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 
 /**
- * "Scan to play" codes for each game, side by side: Trivia (straight into
- * the current game when a room code is given, otherwise the trivia page)
- * and Social Bingo (its demo for now). Used on the venue TV and the home
- * screen.
+ * The "scan to play" code for Trivia: straight into a game when a room
+ * code is given, otherwise the Trivia page (Solo or Team Play). Used on the
+ * venue TV and the home screen.
  */
 export function ScanCards({ venue, triviaCode, big = false }: { venue: string; triviaCode?: string | null; big?: boolean }) {
   const [origin, setOrigin] = useState("");
@@ -17,12 +16,10 @@ export function ScanCards({ venue, triviaCode, big = false }: { venue: string; t
   const trivia = triviaCode
     ? `${origin}/play/${triviaCode}?venue=${v}&src=qr`
     : `${origin}/trivia?venue=${v}&src=qr`;
-  const bingo = `${origin}/bingo/demo?venue=${v}&src=qr`;
   const size = big ? 220 : 132;
   return (
     <div className={`flex flex-wrap justify-center ${big ? "gap-10" : "gap-4"}`}>
       <Card title="Trivia" line={triviaCode ? `Game ${triviaCode} · scan to join` : "Solo or teams"} url={trivia} size={size} big={big} accent />
-      <Card title="Social Bingo" line="Scan to try the demo" url={bingo} size={size} big={big} />
     </div>
   );
 }

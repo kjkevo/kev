@@ -112,8 +112,6 @@ export default function CheckinPage() {
         ) : (
           <div className="w-full max-w-xs flex flex-col gap-3">
             <GameLink href={`/trivia?venue=${venue}`} label="Trivia" />
-            <GameLink href={`/feud?venue=${venue}`} label="Family Feud" />
-            <GameLink href={`/bingo?venue=${venue}`} label="Social Bingo" />
           </div>
         )}
       </Shell>

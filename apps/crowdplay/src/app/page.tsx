@@ -3,37 +3,9 @@ import Link from "next/link";
 import { MyCharacterButton } from "@/components/CharacterLocker";
 import { MonthlyChampion } from "@/components/MonthlyChampion";
 import { ScanCards } from "@/components/ScanCards";
-
-const GAMES = [
-  {
-    name: "Trivia",
-    initial: "T",
-    icon: "/games/trivia.png",
-    tagline: "Live teams, live leaderboard",
-    href: "/trivia",
-    live: true,
-  },
-  {
-    name: "Social Bingo",
-    initial: "B",
-    icon: "/games/bingo.png",
-    tagline: "Meet people, mark your card",
-    href: "/bingo/demo",
-    live: false,
-    demo: true,
-  },
-  {
-    name: "Sports Predictions",
-    initial: "S",
-    icon: "/games/sports.png",
-    tagline: "Call it before it happens",
-    href: "#",
-    live: false,
-  },
-];
+import { Icon } from "@/components/Icon";
 
 export default function Home() {
-  const [trivia, ...soon] = GAMES;
   return (
     <main className="min-h-screen flex flex-col items-center justify-center gap-5 bg-gradient-to-b from-indigo-950 via-purple-950 to-black text-white px-4 py-8 text-center">
       <div>
@@ -46,55 +18,28 @@ export default function Home() {
       <MyCharacterButton />
 
       <div className="w-full max-w-sm flex flex-col gap-3">
-        {/* The live game: one big card. */}
-        <Link
-          href={trivia.href}
-          className="rounded-3xl bg-amber-400 text-black p-5 flex items-center gap-4 text-left shadow-lg shadow-amber-400/25 transition active:scale-95"
-        >
-          <div className="w-14 h-14 shrink-0 rounded-2xl bg-black overflow-hidden">
-            <img src={trivia.icon} alt="" className="w-full h-full object-cover" />
+        {/* The games, side by side: Trivia (live) and Mixer (coming soon). */}
+        <div className="grid grid-cols-2 gap-3">
+          <Link
+            href="/trivia"
+            className="rounded-3xl bg-amber-400 text-black p-4 flex flex-col items-center gap-2 shadow-lg shadow-amber-400/25 transition active:scale-95"
+          >
+            <div className="w-16 h-16 rounded-2xl bg-black overflow-hidden">
+              <img src="/games/trivia.png" alt="" className="w-full h-full object-cover" />
+            </div>
+            <div className="font-black text-2xl leading-tight">Trivia</div>
+            <div className="text-xs font-bold text-black/70">Play now ›</div>
+          </Link>
+          <div className="rounded-3xl bg-white/[0.06] border border-white/15 p-4 flex flex-col items-center gap-2">
+            <div className="w-16 h-16 rounded-2xl bg-black/40 flex items-center justify-center text-pink-300">
+              <Icon name="users" size={34} />
+            </div>
+            <div className="font-black text-2xl leading-tight">Mixer</div>
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Coming soon</div>
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="font-black text-2xl leading-tight">{trivia.name}</div>
-            <div className="text-sm font-semibold text-black/70">{trivia.tagline}</div>
-          </div>
-          <span className="text-2xl font-black">›</span>
-        </Link>
+        </div>
 
         <MonthlyChampion />
-
-        {/* Coming soon: a small row underneath. */}
-        <div className="grid grid-cols-2 gap-2">
-          {soon.map((game) => {
-            const tile = (
-              <>
-                <div className="w-12 h-12 rounded-xl bg-black overflow-hidden">
-                  <img src={game.icon} alt="" className="w-full h-full object-cover" />
-                </div>
-                <div className="font-bold text-xs leading-tight">{game.name}</div>
-                <div className={`text-[10px] uppercase tracking-wider ${"demo" in game ? "text-amber-300 font-bold" : "text-slate-500"}`}>
-                  {"demo" in game ? "Watch the demo ›" : "Coming soon"}
-                </div>
-              </>
-            );
-            return "demo" in game ? (
-              <Link
-                key={game.name}
-                href={game.href}
-                className="rounded-2xl bg-white/[0.06] border border-amber-400/30 px-2 py-3 flex flex-col items-center gap-1 transition active:scale-95"
-              >
-                {tile}
-              </Link>
-            ) : (
-              <div
-                key={game.name}
-                className="rounded-2xl bg-white/[0.03] border border-white/5 px-2 py-3 flex flex-col items-center gap-1 opacity-60"
-              >
-                {tile}
-              </div>
-            );
-          })}
-        </div>
       </div>
 
       {/* On a laptop or TV: codes people can scan with their phones. */}
