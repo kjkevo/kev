@@ -26,10 +26,11 @@ function usePlaying(players: Player[], teams?: Team[]) {
 }
 
 /**
- * Who has locked in. Your own team shows each teammate's character (greyed
- * while they think, popping in when they lock in); every other team is just
- * its name, with a spinner until all of it has answered. The TV has no team
- * of its own, so it shows every team that way.
+ * Who has locked in, with a progress bar. Your own team shows each
+ * teammate's character (greyed while they think, popping in when they lock
+ * in). In solo play everyone else is a row of small faces, no names; in team
+ * play every other team is its name, ticked once all of it has answered.
+ * The TV has no team of its own, so it shows everyone that way.
  */
 export function LockInStrip({ players, teams, avatars, answered, myId, myTeamId, big = false }: Props & {
   teams?: Team[];
@@ -47,10 +48,13 @@ export function LockInStrip({ players, teams, avatars, answered, myId, myTeamId,
     .filter((t) => t.members.length > 0);
   const size = big ? 56 : 30;
   const label = `uppercase tracking-widest font-bold text-slate-400 ${big ? "text-lg" : "text-[11px]"}`;
+  // Solo play: everyone else is one player, shown as a row of small faces.
+  const soloRoom = otherTeams.every((t) => t.members.length === 1);
+  const doneCount = otherTeams.filter((t) => t.done).length;
 
   return (
     <div className="w-full flex flex-col gap-3">
-      {mates.length > 0 && (
+      {mates.length > 1 && (
         <div>
           <p className={`text-center mb-2 ${label}`}>
             {mates.length === 1 ? "You" : "Your team"}{" "}
@@ -80,10 +84,36 @@ export function LockInStrip({ players, teams, avatars, answered, myId, myTeamId,
       )}
       {otherTeams.length > 0 && (
         <div>
-          <p className={`text-center mb-2 ${label}`}>
-            {myTeamId ? "Other teams" : "Locked in"}{" "}
-            <span className="text-emerald-300">{otherTeams.filter((t) => t.done).length}</span>/{otherTeams.length}
+          <p className={`flex items-center justify-center gap-1.5 mb-2 ${label}`}>
+            <Icon name="check" size={big ? 20 : 13} className="text-emerald-300" />
+            {soloRoom ? "Players" : "Teams"} <span className="text-emerald-300">{doneCount}</span>/{otherTeams.length}
           </p>
+          <div className={`mx-auto mb-2 h-1.5 rounded-full bg-white/10 overflow-hidden ${big ? "w-96" : "w-48"}`}>
+            <div
+              className="h-full rounded-full bg-emerald-400 transition-all duration-500"
+              style={{ width: `${(doneCount / otherTeams.length) * 100}%` }}
+            />
+          </div>
+          {soloRoom ? (
+            <div className={`flex flex-wrap justify-center ${big ? "gap-2" : "gap-1"}`}>
+              {otherTeams.map(({ team, members, done }) => {
+                const p = members[0];
+                const a = p.avatar_id ? avatars[p.avatar_id] : undefined;
+                return (
+                  <span key={team.id} title={p.nickname} className="relative">
+                    <span key={done ? "in" : "out"} className={`block rounded-full ${done ? "char-land" : "opacity-35 grayscale"}`}>
+                      <Avatar emoji={a?.emoji} imageUrl={a?.imageUrl} size={big ? 48 : 26} />
+                    </span>
+                    {done && (
+                      <span className={`absolute -top-0.5 -right-0.5 rounded-full bg-emerald-400 text-black flex items-center justify-center ${big ? "w-5 h-5" : "w-3 h-3"}`}>
+                        <Icon name="check" size={big ? 14 : 9} strokeWidth={3.5} />
+                      </span>
+                    )}
+                  </span>
+                );
+              })}
+            </div>
+          ) : (
           <div className={`flex flex-wrap justify-center ${big ? "gap-3" : "gap-1.5"}`}>
             {otherTeams.map(({ team, done }) => (
               <span
@@ -97,15 +127,13 @@ export function LockInStrip({ players, teams, avatars, answered, myId, myTeamId,
                     ✓
                   </span>
                 ) : (
-                  <span
-                    aria-hidden="true"
-                    className={`rounded-full border-2 border-slate-500 border-t-amber-400 animate-spin ${big ? "w-5 h-5" : "w-3 h-3"}`}
-                  />
+                  <span aria-hidden="true" className={`rounded-full border-2 border-slate-500 ${big ? "w-5 h-5" : "w-3 h-3"}`} />
                 )}
                 <span className="truncate max-w-[12rem]">{team.name}</span>
               </span>
             ))}
           </div>
+          )}
         </div>
       )}
     </div>
