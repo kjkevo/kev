@@ -1634,8 +1634,10 @@ export default function PlayPage() {
         </div>
 
         <div className="w-full max-w-sm mx-auto">
+          {/* One slim row per teammate (bots too): face, name, answer. Solo: nothing to show. */}
+          {teammates.length > 1 && (
+          <>
           <p className="text-xs uppercase tracking-widest text-amber-400 text-center mb-2">{open ? "Your team's answers" : "Your team"}</p>
-          {/* One slim row per teammate (bots too): face, name, answer. */}
           <div className="flex flex-col gap-1.5">
             {teammates.map((p) => {
               const a = p.avatar_id ? avatarsById[p.avatar_id] : undefined;
@@ -1680,7 +1682,9 @@ export default function PlayPage() {
               );
             })}
           </div>
-          <div className="mt-4 border-t border-white/10 pt-3">
+          </>
+          )}
+          <div className={teammates.length > 1 ? "mt-4 border-t border-white/10 pt-3" : ""}>
             <LockInStrip
               players={players}
               teams={teams}
