@@ -6,6 +6,7 @@ import { fogUntil, isTwist, twistBanner, twistDescription, twistPersonalLine, ty
 import { TwistBanner, TwistIntro } from "@/components/TwistIntro";
 import { useFogs } from "@/hooks/useFogs";
 import { usePowers, useRoomPowers } from "@/hooks/usePowers";
+import { TeamPowerToasts } from "@/components/TeamPowerToasts";
 import { PowerPanel } from "@/components/PowerPanel";
 import { powerErrorText } from "@/lib/powers";
 import { RoundStandings } from "@/components/RoundStandings";
@@ -81,7 +82,18 @@ function friendlyError(raw: string) {
   return key ? JOIN_ERRORS[key] : "Something went wrong. Try again.";
 }
 
+/** The game page, with your team's power notifications over every screen. */
 export default function PlayPage() {
+  const params = useParams<{ code: string }>();
+  return (
+    <>
+      <PlayPageBody />
+      <TeamPowerToasts code={params?.code?.toUpperCase() ?? null} />
+    </>
+  );
+}
+
+function PlayPageBody() {
   const params = useParams<{ code: string }>();
   const router = useRouter();
   const code = params.code?.toUpperCase();
