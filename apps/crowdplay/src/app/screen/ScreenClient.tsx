@@ -35,7 +35,7 @@ import { JoinDrops } from "@/components/JoinDrops";
 import Link from "next/link";
 import { ScanCards } from "@/components/ScanCards";
 import { ReadyLineup } from "@/components/ReadyLineup";
-import { Podium } from "@/components/Podium";
+import { PodiumCeremony } from "@/components/PodiumCeremony";
 
 /**
  * The venue's TV/projector view — leave this open all night. It always
@@ -381,13 +381,7 @@ export default function ScreenClient() {
                 {teams.find((t) => t.id === room.sd_winner_team_id)?.name} won in sudden death (+100)
               </p>
             )}
-            <Podium
-              placed={sortedTeams.slice(0, 3).map((team, i) => ({ team, rank: i + 1 }))}
-              teamCount={sortedTeams.length}
-              players={players}
-              avatars={avatarsById}
-              big
-            />
+            <PodiumCeremony key={room.id} top={sortedTeams.slice(0, 3)} players={players} avatars={avatarsById} big />
             <TeamStandings teams={sortedTeams} />
             {recap && <Recap recap={recap} />}
             <p className="text-slate-400">Next game boarding shortly…</p>

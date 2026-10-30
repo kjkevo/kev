@@ -48,7 +48,7 @@ import { useAnsweredPlayers } from "@/hooks/useAnsweredPlayers";
 import { useQuestionReveal } from "@/hooks/useQuestionReveal";
 import { LockInStrip, PickYourCorner, RevealVerdict } from "@/components/RoomCharacters";
 import { JoinDrops } from "@/components/JoinDrops";
-import { Podium } from "@/components/Podium";
+import { PodiumCeremony } from "@/components/PodiumCeremony";
 import { ShareCard } from "@/components/ShareCard";
 import { EmoteCharacter, EmoteButtons } from "@/components/EmoteCharacter";
 import { useRoomEmotes } from "@/hooks/useRoomEmotes";
@@ -410,59 +410,17 @@ function PlayPageBody() {
   }, [teams, creds?.teamId]);
   const myTeamRank = creds ? sortedTeams.findIndex((t) => t.id === creds.teamId) + 1 : 0;
 
-  // Kahoot-style podium reveal: 3rd, then 2nd, then a suspense beat, then
-  // 1st -- only after all of that plays out do the rest of the standings,
-  // the recap, and the way back to the menu show up.
+  // The podium ceremony (3rd, 2nd, then 1st, each in the spotlight) plays
+  // first; only then do the awards, the rest of the standings and Play again
+  // show up.
   const topThree = useMemo(() => sortedTeams.slice(0, Math.min(3, sortedTeams.length)), [sortedTeams]);
   const restTeams = useMemo(() => sortedTeams.slice(topThree.length), [sortedTeams, topThree]);
-  const revealOrder = useMemo(() => [...topThree].reverse(), [topThree]);
-  const [revealCount, setRevealCount] = useState(0);
   const myRankRef = useRef(0);
   myRankRef.current = myTeamRank;
-  const [suspense, setSuspense] = useState(false);
   const [showRest, setShowRest] = useState(false);
-
   useEffect(() => {
-    if (room?.phase !== "final" || revealOrder.length === 0) return;
-    let cancelled = false;
-    const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
-
-    async function run() {
-      await sleep(1000);
-      for (let i = 0; i < revealOrder.length; i++) {
-        if (cancelled) return;
-        const isWinner = i === revealOrder.length - 1;
-        if (isWinner && revealOrder.length > 1) {
-          setSuspense(true);
-          sounds.drumroll(2.4);
-          await sleep(2500);
-          if (cancelled) return;
-          setSuspense(false);
-        }
-        setRevealCount(i + 1);
-        if (isWinner) {
-          if (myRankRef.current === 1) sounds.fanfare();
-          else sounds.gameOver();
-        } else sounds.beep();
-        await sleep(isWinner ? 900 : 1600);
-      }
-      if (!cancelled) setShowRest(true);
-    }
-
-    run();
-    return () => {
-      cancelled = true;
-    };
-  }, [room?.phase, room?.id, revealOrder.length]);
-
-  const revealedPodium = useMemo(
-    () =>
-      revealOrder
-        .map((t, idx) => ({ team: t, rank: topThree.length - idx }))
-        .slice(0, revealCount)
-        .reverse(),
-    [revealOrder, topThree.length, revealCount]
-  );
+    if (room?.phase !== "final") setShowRest(false);
+  }, [room?.phase]);
 
   // Premium avatars: buying is wired in with payments; until then, say so.
   function buyAvatar(a: AvatarOption) {
@@ -1803,24 +1761,21 @@ function PlayPageBody() {
           </p>
         )}
 
-        <Podium
-          placed={revealedPodium}
-          teamCount={sortedTeams.length}
+        <PodiumCeremony
+          key={room.id}
+          top={topThree}
           players={players}
           avatars={avatarsById}
           myTeamId={creds.teamId}
+          onSuspense={() => sounds.drumroll(2.4)}
+          onReveal={(rank) => {
+            if (rank === 1) {
+              if (myRankRef.current === 1) sounds.fanfare();
+              else sounds.gameOver();
+            } else sounds.beep();
+          }}
+          onDone={() => setShowRest(true)}
         />
-
-        {suspense && (
-          <div className="flex flex-col items-center gap-3 py-6 animate-pop-in">
-            <p className="text-sm uppercase tracking-widest text-slate-400">And in 1st place…</p>
-            <div className="flex gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-suspense-pulse" style={{ animationDelay: "0ms" }} />
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-suspense-pulse" style={{ animationDelay: "150ms" }} />
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-suspense-pulse" style={{ animationDelay: "300ms" }} />
-            </div>
-          </div>
-        )}
 
         {showRest && (
           <div className="w-full max-w-xs flex flex-col gap-4 mt-6 animate-pop-in">
