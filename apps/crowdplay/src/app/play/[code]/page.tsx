@@ -1567,10 +1567,76 @@ export default function PlayPage() {
         </div>
 
         <div className="w-full max-w-sm mx-auto">
-          {/* One slim row per teammate (bots too): face, name, answer. Solo: nothing to show. */}
-          {teammates.length > 1 && (
+          {/* Written answers with teammates: every answer your team typed, with
+              its votes. Tap Vote to back one; the most votes is the team's answer. */}
+          {teammates.length > 1 && open && (
+            <div className="flex flex-col gap-2">
+              <p className="flex items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-widest text-amber-400">
+                <Icon name="vote" size={15} />
+                Vote for your team&apos;s answer
+              </p>
+              {teamOptions.length === 0 && <p className="text-center text-sm text-slate-400">No answers yet. Type yours above.</p>}
+              {teamOptions.map((o, i) => {
+                const voters = teammates.filter((p) => questionVotes[p.id] && normalizeAnswer(questionVotes[p.id]) === normalizeAnswer(o.text));
+                const isTeamAnswer = i === 0 && (teamOptions.length === 1 || o.voters.length > teamOptions[1].voters.length);
+                const canPick = !o.mine && !locked && !countdown.expired && !sendingVote && !blocked;
+                return (
+                  <button
+                    key={o.text}
+                    type="button"
+                    onClick={() => canPick && castVote(o.text)}
+                    disabled={!canPick}
+                    className={`flex items-center gap-3 rounded-2xl border-2 px-3 py-2.5 text-left transition active:scale-[0.98] ${
+                      o.mine ? "bg-amber-400/20 border-amber-400" : "bg-white/5 border-white/15"
+                    }`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-lg font-black break-words leading-tight">{o.text}</p>
+                      <div className="mt-1 flex items-center gap-2">
+                        <div className="flex -space-x-2">
+                          {voters.map((p) => {
+                            const a = p.avatar_id ? avatarsById[p.avatar_id] : undefined;
+                            return <Avatar key={p.id} emoji={a?.emoji} imageUrl={a?.imageUrl} size={24} />;
+                          })}
+                        </div>
+                        <span className="text-xs text-slate-300">
+                          {o.voters.length} vote{o.voters.length === 1 ? "" : "s"}
+                        </span>
+                        {isTeamAnswer && teamOptions.length > 1 && (
+                          <span className="rounded-full bg-emerald-400 text-black text-[10px] font-black uppercase px-2 py-0.5">Team answer</span>
+                        )}
+                      </div>
+                    </div>
+                    <span
+                      className={`shrink-0 rounded-xl px-3 py-2 text-sm font-black ${
+                        o.mine ? "bg-amber-400 text-black" : canPick ? "bg-white text-black" : "bg-white/10 text-slate-400"
+                      }`}
+                    >
+                      {o.mine ? "Your vote ✓" : "Vote"}
+                    </span>
+                  </button>
+                );
+              })}
+              {teammates.some((p) => !questionVotes[p.id]) && (
+                <p className="flex items-center justify-center gap-2 text-xs text-slate-400">
+                  Still thinking:
+                  <span className="flex -space-x-2">
+                    {teammates
+                      .filter((p) => !questionVotes[p.id])
+                      .map((p) => {
+                        const a = p.avatar_id ? avatarsById[p.avatar_id] : undefined;
+                        return <Avatar key={p.id} emoji={a?.emoji} imageUrl={a?.imageUrl} size={22} className="opacity-60" />;
+                      })}
+                  </span>
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Multiple choice with teammates: one slim row per teammate (bots too): face, name, pick. */}
+          {teammates.length > 1 && !open && (
           <>
-          <p className="text-xs uppercase tracking-widest text-amber-400 text-center mb-2">{open ? "Your team's answers" : "Your team"}</p>
+          <p className="text-xs uppercase tracking-widest text-amber-400 text-center mb-2">Your team</p>
           <div className="flex flex-col gap-1.5">
             {teammates.map((p) => {
               const a = p.avatar_id ? avatarsById[p.avatar_id] : undefined;

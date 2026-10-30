@@ -182,6 +182,18 @@ export function PickYourCorner({ reveal, players, teams, avatars, myId, myTeamId
     return playing.filter((p) => correct.has(p.id));
   }, [playing, reveal]);
 
+  // Team play (any team has 2+ players): show the teams that got it right,
+  // not every character; your own team first.
+  const teamPlay = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const p of playing) counts.set(p.team_id!, (counts.get(p.team_id!) ?? 0) + 1);
+    return Array.from(counts.values()).some((n) => n > 1);
+  }, [playing]);
+  const rightTeams = useMemo(() => {
+    const ids = new Set(reveal.picks.filter((r) => r.teamCorrect).map((r) => r.teamId));
+    return (teams ?? []).filter((t) => ids.has(t.id)).sort((a, b) => (a.id === myTeamId ? -1 : b.id === myTeamId ? 1 : 0));
+  }, [reveal, teams, myTeamId]);
+
   const myTeamPick = reveal.picks.find((r) => r.teamId === myTeamId);
   const myPick = reveal.picks.find((r) => r.playerId === myId);
   const size = big ? 96 : 80;
@@ -214,11 +226,37 @@ export function PickYourCorner({ reveal, players, teams, avatars, myId, myTeamId
         }`}
       >
         <p className={`font-bold break-words text-emerald-200 ${big ? "text-3xl" : "text-lg"}`}>{reveal.correctAnswer}</p>
-        <p className={`flex items-center gap-1.5 text-emerald-100/80 ${big ? "text-lg" : "text-sm"}`}>
-          <Icon name="check" size={big ? 20 : 15} />
-          {rightPeople.length === 0 ? "Nobody got this one" : `${rightPeople.length} got it right`}
-        </p>
-        {rightPeople.length > 0 && (
+        {teamPlay ? (
+          <>
+            <p className={`flex items-center gap-1.5 text-emerald-100/80 ${big ? "text-lg" : "text-sm"}`}>
+              <Icon name="check" size={big ? 20 : 15} />
+              {rightTeams.length === 0
+                ? "No team got this one"
+                : `${rightTeams.length} team${rightTeams.length === 1 ? "" : "s"} got it right`}
+            </p>
+            {rightTeams.length > 0 && (
+              <div className={`flex flex-wrap ${big ? "gap-3" : "gap-2"} pt-2 pb-1`}>
+                {rightTeams.map((t) => (
+                  <span
+                    key={t.id}
+                    className={`flex items-center gap-1.5 rounded-full font-bold ${big ? "px-5 py-2 text-2xl" : "px-3 py-1.5 text-base"} ${
+                      t.id === myTeamId ? "bg-amber-400 text-black" : "bg-emerald-400/20 border border-emerald-400/50 text-emerald-50"
+                    }`}
+                  >
+                    <Icon name="users" size={big ? 22 : 16} />
+                    {t.id === myTeamId ? `${t.name} (you)` : t.name}
+                  </span>
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          <p className={`flex items-center gap-1.5 text-emerald-100/80 ${big ? "text-lg" : "text-sm"}`}>
+            <Icon name="check" size={big ? 20 : 15} />
+            {rightPeople.length === 0 ? "Nobody got this one" : `${rightPeople.length} got it right`}
+          </p>
+        )}
+        {!teamPlay && rightPeople.length > 0 && (
           <div className={`flex flex-wrap ${big ? "gap-3" : "gap-2"} pt-2 pb-1`}>
             {rightPeople.map((p) => {
               const a = p.avatar_id ? avatars[p.avatar_id] : undefined;
