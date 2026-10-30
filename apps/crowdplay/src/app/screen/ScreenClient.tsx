@@ -359,7 +359,7 @@ export default function ScreenClient() {
             {question && <h2 className="text-3xl font-bold max-w-4xl">{question.prompt}</h2>}
             {revealClock.reached ? (
               <>
-                <RoundStandings roomId={room.id} questionIndex={room.current_question_index} powers={roomPowers} big />
+                <RoundStandings roomId={room.id} questionIndex={room.current_question_index} players={players} avatars={avatarsById} powers={roomPowers} big />
                 <FunFact roomId={room.id} questionIndex={room.current_question_index} big />
               </>
             ) : (
