@@ -486,6 +486,7 @@ export type Database = {
           created_at: string
           current_question_index: number
           ended_reason: string | null
+          mode: string
           id: string
           phase: string
           phase_started_at: string
@@ -513,6 +514,7 @@ export type Database = {
           created_at?: string
           current_question_index?: number
           ended_reason?: string | null
+          mode?: string
           id?: string
           phase?: string
           phase_started_at?: string
@@ -533,6 +535,7 @@ export type Database = {
           created_at?: string
           current_question_index?: number
           ended_reason?: string | null
+          mode?: string
           id?: string
           phase?: string
           phase_started_at?: string

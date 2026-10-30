@@ -21,7 +21,7 @@ export function ScanCards({ venue, triviaCode, big = false }: { venue: string; t
   const size = big ? 220 : 132;
   return (
     <div className={`flex flex-wrap justify-center ${big ? "gap-10" : "gap-4"}`}>
-      <Card title="Trivia" line={triviaCode ? `Game ${triviaCode} · scan to join` : "Scan to play"} url={trivia} size={size} big={big} accent />
+      <Card title="Trivia" line={triviaCode ? `Game ${triviaCode} · scan to join` : "Solo or teams"} url={trivia} size={size} big={big} accent />
       <Card title="Social Bingo" line="Scan to try the demo" url={bingo} size={size} big={big} />
     </div>
   );

@@ -33,6 +33,7 @@ export function JoinSteps({
   joinError,
   joinLabel,
   onJoin,
+  soloGame = false,
 }: {
   heading: string;
   timing?: ReactNode;
@@ -48,6 +49,8 @@ export function JoinSteps({
   joinError: string | null;
   joinLabel: string;
   onJoin: () => void;
+  /** A solo game: everyone for themselves, join any time. */
+  soloGame?: boolean;
 }) {
   const steps: Step[] = playedBefore ? ["name"] : ["name", "character", "how"];
   const [step, setStep] = useState<Step>("name");
@@ -132,7 +135,11 @@ export function JoinSteps({
                 <span className="text-violet-200">{power.name}:</span> {power.how} (once)
               </HowItem>
             )}
-            <HowItem icon="users">4+ players = teams</HowItem>
+            {soloGame ? (
+              <HowItem icon="user">Everyone for themselves</HowItem>
+            ) : (
+              <HowItem icon="users">4+ players = teams</HowItem>
+            )}
             <HowItem icon="hand">Vote + tap Ready to start</HowItem>
           </ul>
         </div>
