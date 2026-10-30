@@ -67,7 +67,7 @@ export function Podium({
               {spot && (
                 <>
                   <span className={`font-black text-center leading-tight line-clamp-2 break-words max-w-full ${big ? "text-2xl" : "text-xs"}`}>
-                    {spot.team.name}
+                    {onTeam.length === 1 ? onTeam[0].nickname : spot.team.name}
                   </span>
                   <span className={`font-black tabular-nums text-black/70 ${big ? "text-xl" : "text-xs"}`}>
                     {spot.team.score.toLocaleString()}
