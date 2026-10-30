@@ -87,13 +87,6 @@ export default function TriviaLandingClient() {
   const canJoinNow = room !== null && room.phase === "lobby" && !lobbyFull;
   const isWaiting = room !== null && declinedCode === room.code;
 
-  const statusLine =
-    room === null
-      ? { text: "No game running right now" }
-      : room.phase === "lobby"
-        ? { text: lobbyFull ? "This game is full" : "Next game" }
-        : { text: "Game in progress" };
-
   if (waitedForNext && canJoinNow && room) {
     return (
       <Shell>
@@ -155,11 +148,15 @@ export default function TriviaLandingClient() {
     );
   }
 
+  // Team games run side by side, so there is nearly always an open lobby;
+  // between one starting and the next opening (a second) the button waits.
   const teamButton = canJoinNow
     ? { label: "Join Team Play", onClick: () => router.push(`/play/${room.code}`) }
-    : nextGame
-      ? { label: "Join the next team game", onClick: () => room && setDeclinedCode(room.code) }
-      : { label: "Wait for the next team game", onClick: () => room && setDeclinedCode(room.code) };
+    : { label: "Opening the next game…", onClick: () => {} };
+  // A rush: the team game is a while off but a solo game is already
+  // playing, so point people at Solo instead of a countdown.
+  const soloNoWait = !!soloRoom && soloRoom.phase !== "lobby";
+  const teamWaitLong = !canJoinNow || !room?.starts_at || countdown.remainingMs > 60_000;
 
   return (
     <Shell>
@@ -171,6 +168,9 @@ export default function TriviaLandingClient() {
           <div className="flex items-center justify-center gap-2">
             <Icon name="user" size={22} className="text-amber-300" />
             <h2 className="text-2xl font-black">Solo</h2>
+            {soloNoWait && (
+              <span className="rounded-full bg-emerald-400 text-black text-xs font-black px-2 py-0.5">No wait</span>
+            )}
           </div>
           <p className="text-sm text-slate-300">
             {soloRoom === undefined
@@ -199,17 +199,22 @@ export default function TriviaLandingClient() {
             <h2 className="text-2xl font-black">Team Play</h2>
           </div>
           <p className="text-sm text-slate-300">
-            {statusLine.text}
-            {canJoinNow && room.starts_at && !countdown.reached && (
+            {!canJoinNow ? (
+              "A new game opens in a moment"
+            ) : room.starts_at && !countdown.reached ? (
               <>
-                {" "}in <span className="text-amber-400 font-black tabular-nums">{countdown.label}</span>
+                Starts in <span className="text-amber-400 font-black tabular-nums">{countdown.label}</span>
               </>
+            ) : (
+              "Starts when players join"
             )}
-            {!canJoinNow && nextGame && <> · {roundsToWaitLabel(nextGame.o_rounds_to_wait, nextGame)}</>}
           </p>
+          {soloNoWait && teamWaitLong && (
+            <p className="text-xs font-bold text-emerald-300">Don&apos;t want to wait? Play Solo now</p>
+          )}
           <button
             onClick={teamButton.onClick}
-            disabled={!room}
+            disabled={!canJoinNow}
             className="rounded-2xl bg-sky-400 text-black font-black text-lg py-4 disabled:opacity-40 active:scale-95 transition"
           >
             {teamButton.label}

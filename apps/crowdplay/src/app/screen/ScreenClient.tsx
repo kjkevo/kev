@@ -49,7 +49,7 @@ import { Podium } from "@/components/Podium";
 export default function ScreenClient() {
   const venue = useScreenVenue();
   const venueId = useVenueId(venue);
-  const activeRoom = useActiveRoom(venueId);
+  const activeRoom = useActiveRoom(venueId, "team", true);
   const code = activeRoom?.code ?? null;
   const { room, players, teams } = useRoomRealtime(code);
   const question = useCurrentQuestion(room?.id, room?.current_question_index, room?.phase);
