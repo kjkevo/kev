@@ -1239,7 +1239,8 @@ export default function PlayPage() {
           )}
           {avatarNote && <p className="text-xs text-amber-300/80">{avatarNote}</p>}
 
-          {/* Friends scan this to get into the same game (and your team). */}
+          {/* Friends scan this to get onto your team (team game only). */}
+          {teamGame && (
           <button
             type="button"
             onClick={() => setInviteOpen(!inviteShown)}
@@ -1248,12 +1249,13 @@ export default function PlayPage() {
             }`}
           >
             <Icon name="qr" size={24} />
-            {inviteShown ? "Hide" : teamGame && openSpots > 0 ? `Invite friends · ${openSpots} open` : "Invite friends"}
+            {inviteShown ? "Hide" : openSpots > 0 ? `Invite friends · ${openSpots} open` : "Invite friends"}
           </button>
-          {inviteShown && (
+          )}
+          {teamGame && inviteShown && (
             <div className="flex flex-col items-center gap-2 text-center">
-              <JoinQRCode code={room.code} venue={venueSlug ?? "main"} team={teamGame ? creds.teamId : null} size={190} />
-              <p className="text-sm text-slate-300">{teamGame ? "Scan to join your team" : "Scan to join this game"}</p>
+              <JoinQRCode code={room.code} venue={venueSlug ?? "main"} team={creds.teamId} size={190} />
+              <p className="text-sm text-slate-300">Scan to join your team</p>
             </div>
           )}
 
@@ -1541,7 +1543,8 @@ export default function PlayPage() {
                         } ${notMyCall && !mine ? "opacity-40" : ""} ${gone ? "opacity-25 line-through" : ""}`}
                       >
                         {c}
-                        {teamVotes > 0 && (
+                        {/* Vote counts only mean something with teammates; alone, the yellow is enough. */}
+                        {teamVotes > 0 && teammates.length > 1 && (
                           <span className={`float-right text-sm font-bold mt-1 ${mine ? "text-black/70" : "text-amber-300"}`}>
                             {teamVotes} {teamVotes === 1 ? "vote" : "votes"}
                             {mine ? " ✓" : ""}
