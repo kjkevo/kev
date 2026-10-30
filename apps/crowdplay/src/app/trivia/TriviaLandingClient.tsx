@@ -6,6 +6,8 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { useLiveActiveRoom } from "@/hooks/useLiveActiveRoom";
+import { useActiveRoom } from "@/hooks/useActiveRoom";
+import { Icon } from "@/components/Icon";
 import { usePlayerVenue, useVenueId } from "@/lib/venue";
 import { useCountdownTo } from "@/hooks/useCountdownTo";
 import { LiveGameGlance } from "@/components/LiveGameGlance";
@@ -18,20 +20,20 @@ import { SeasonChip } from "@/components/SeasonNotice";
 import { JoinByCode } from "@/components/JoinByCode";
 
 /**
- * The entry point for anyone who lands here without a specific room code
- * (a QR code always skips straight to /play/{code} — this page is for
- * someone opening the site cold). Games now run on their own around the
- * clock (see the autonomous ticker), boarding a fresh one automatically,
- * so at any moment there is exactly one current room somewhere in its
- * lifecycle. This screen always offers the same two explicit choices
- * regardless of that state: join what's happening/about to happen, or say
- * "not this one" and wait for a clean start — with a live view of the
- * current game either way, so waiting never means staring at a blank page.
+ * The entry point for anyone without a room code: the venue TV's QR code
+ * lands here, as does someone opening the site cold. Each venue runs two
+ * games side by side: Solo (everyone for themselves, join any time, bots
+ * step out as people join) and Team Play (the venue TV's game: solo under 4
+ * real players, teams of 4 from then on, no joining mid-game). A clear
+ * button for each, plus a box for a game code.
  */
 export default function TriviaLandingClient() {
   const venue = usePlayerVenue();
   const venueId = useVenueId(venue);
-  const { room, players, teams } = useLiveActiveRoom(venueId);
+  const { room, players, teams } = useLiveActiveRoom(venueId, "team");
+  const soloRoom = useActiveRoom(venueId, "solo");
+  const soloCountdown = useCountdownTo(soloRoom?.phase === "lobby" ? soloRoom.starts_at : null);
+  const soloCountdownLabel = soloRoom?.starts_at && !soloCountdown.reached ? soloCountdown.label : null;
   const router = useRouter();
   const countdown = useCountdownTo(room?.phase === "lobby" ? room.starts_at : null);
   // Busy nights: games lined up behind this one that people can sign up
@@ -53,7 +55,7 @@ export default function TriviaLandingClient() {
   // Already in this game (or the next one) on this phone, e.g. the page was
   // closed or the phone locked: straight back into it.
   useEffect(() => {
-    for (const c of [room?.code, nextGame?.o_code]) {
+    for (const c of [room?.code, nextGame?.o_code, soloRoom?.code]) {
       if (!c) continue;
       try {
         if (localStorage.getItem(playerKey(c))) {
@@ -62,7 +64,7 @@ export default function TriviaLandingClient() {
         }
       } catch {}
     }
-  }, [room?.code, nextGame?.o_code, router]);
+  }, [room?.code, nextGame?.o_code, soloRoom?.code, router]);
   // Someone who waited gets asked straight away how they want to play the
   // new game (solo or their own team) instead of the generic join screen.
   const [waitedForNext, setWaitedForNext] = useState(false);
@@ -155,72 +157,69 @@ export default function TriviaLandingClient() {
     );
   }
 
+  const teamButton = canJoinNow
+    ? { label: "Join Team Play", onClick: () => router.push(`/play/${room.code}`) }
+    : nextGame
+      ? { label: "Join the next team game", onClick: () => room && setDeclinedCode(room.code) }
+      : { label: "Wait for the next team game", onClick: () => room && setDeclinedCode(room.code) };
+
   return (
     <Shell>
-      <h2 className="text-2xl font-bold text-indigo-100">
-        {statusLine.text}
-        {canJoinNow && room.starts_at && !countdown.reached && (
-          <>
-            {" "}in <span className="text-amber-400 font-black tabular-nums">{countdown.label}</span>
-          </>
-        )}
-      </h2>
-
       <MyCharacterButton />
 
-      {/* One clear main action: join this game when it's boarding, otherwise
-          sign up for (or wait for) the next one. */}
-      <div className="flex flex-col gap-3 w-full max-w-sm mt-2">
-        {canJoinNow ? (
-          <>
-            <button
-              onClick={() => router.push(`/play/${room.code}`)}
-              className="rounded-2xl bg-amber-400 text-black font-black text-xl py-5 shadow-lg shadow-amber-400/30 active:scale-95 transition"
-            >
-              Join the Game
-            </button>
-            <button onClick={() => setDeclinedCode(room.code)} className="text-xs text-slate-500">
-              Skip this one
-            </button>
-          </>
-        ) : (
+      <div className="flex flex-col gap-4 w-full max-w-sm">
+        {/* Solo: everyone for themselves, open any time. */}
+        <div className="rounded-3xl bg-amber-400/10 border border-amber-400/40 p-4 flex flex-col gap-3">
+          <div className="flex items-center justify-center gap-2">
+            <Icon name="user" size={22} className="text-amber-300" />
+            <h2 className="text-2xl font-black">Solo</h2>
+          </div>
+          <p className="text-sm text-slate-300">
+            {soloRoom === undefined
+              ? "Checking…"
+              : soloRoom === null
+                ? "A new game opens in a moment"
+                : soloRoom.phase === "lobby"
+                  ? soloCountdownLabel
+                    ? `Starts in ${soloCountdownLabel} · join any time`
+                    : "Join any time"
+                  : "Game on · jump right in"}
+          </p>
           <button
-            onClick={() => room && setDeclinedCode(room.code)}
-            disabled={!room}
+            onClick={() => soloRoom && router.push(`/play/${soloRoom.code}`)}
+            disabled={!soloRoom}
             className="rounded-2xl bg-amber-400 text-black font-black text-xl py-5 shadow-lg shadow-amber-400/30 disabled:opacity-40 active:scale-95 transition"
           >
-            {nextGame ? "Join the Next Game" : "Wait for the Next Game"}
-            {nextGame && (
-              <span className="block text-xs font-semibold text-black/70">{roundsToWaitLabel(nextGame.o_rounds_to_wait, nextGame)}</span>
-            )}
+            Play Solo
           </button>
-        )}
+        </div>
+
+        {/* Team Play: the venue's team game (teams of 4 once 4 people are in). */}
+        <div className="rounded-3xl bg-white/5 border border-white/15 p-4 flex flex-col gap-3">
+          <div className="flex items-center justify-center gap-2">
+            <Icon name="users" size={22} className="text-sky-300" />
+            <h2 className="text-2xl font-black">Team Play</h2>
+          </div>
+          <p className="text-sm text-slate-300">
+            {statusLine.text}
+            {canJoinNow && room.starts_at && !countdown.reached && (
+              <>
+                {" "}in <span className="text-amber-400 font-black tabular-nums">{countdown.label}</span>
+              </>
+            )}
+            {!canJoinNow && nextGame && <> · {roundsToWaitLabel(nextGame.o_rounds_to_wait, nextGame)}</>}
+          </p>
+          <button
+            onClick={teamButton.onClick}
+            disabled={!room}
+            className="rounded-2xl bg-sky-400 text-black font-black text-lg py-4 disabled:opacity-40 active:scale-95 transition"
+          >
+            {teamButton.label}
+          </button>
+        </div>
       </div>
 
-      {!canJoinNow && (
-        <p className="text-xs text-indigo-300/60 max-w-xs">
-          {room === null
-            ? "A new game starts on its own soon."
-            : lobbyFull
-              ? "All 8 teams are full. You'll play right after."
-              : "No joining mid-game. You're up next."}
-        </p>
-      )}
-
-      {/* A disabled button with no other context looks broken — a round can
-          easily run 10+ minutes while boarding only lasts ~20s, so most
-          visits will land mid-round. This proves the game is actually
-          alive and shows how far along it is, rather than leaving the
-          button as an unexplained dead end. */}
-      {!canJoinNow && room && <LiveGameGlance room={room} players={players} teams={teams} />}
-
-      {canJoinNow && (
-        <>
-          <LobbyRoster players={players} teams={teams} />
-        </>
-      )}
-
-      <div className="flex flex-col items-center gap-2 mt-2">
+      <div className="flex flex-col items-center gap-2">
         <p className="text-xs uppercase tracking-widest text-indigo-300/70">Have a game code?</p>
         <JoinByCode />
       </div>

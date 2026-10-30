@@ -197,7 +197,7 @@ export default function ScreenClient() {
           <>
             <JoinDrops players={players} teams={teams} avatars={avatarsById} big />
             <p className="text-4xl font-black">Scan with your phone camera to play</p>
-            <ScanCards venue={venue} triviaCode={room.code} big />
+            <ScanCards venue={venue} big />
             {/* Showing this screen on your own phone or laptop: join the same game without scanning. */}
             <div className="flex flex-col items-center gap-2">
               <Link

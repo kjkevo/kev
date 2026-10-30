@@ -370,6 +370,8 @@ export default function PlayPage() {
   const liveTeams = useLiveTeams(players, teams);
 
   const me = useMemo(() => players.find((p) => p.id === creds?.playerId), [players, creds]);
+  // A solo game takes new players right up to its results.
+  const soloOpen = !!room && room.mode === "solo" && !room.retired && room.phase !== "final";
   const myTeam = useMemo(() => teams.find((t) => t.id === creds?.teamId), [teams, creds]);
   // The lobby can move you to another team (solo play under 4 real players,
   // teams of 4 from then on): follow the server so your team is always right.
@@ -539,9 +541,24 @@ export default function PlayPage() {
   }, [season?.username, season?.month]);
 
   // The next game with room at this venue: the first queued lobby, or the
-  // open lobby if the game before it has already ended.
+  // open lobby if the game before it has already ended. A solo game's next
+  // one is the venue's open solo game (they can be joined mid-game).
   async function nextGameCode(): Promise<string | null> {
     if (!room) return null;
+    if (room.mode === "solo") {
+      const { data: solo } = await supabase
+        .from("rooms")
+        .select("code")
+        .eq("venue_id", room.venue_id)
+        .eq("mode", "solo")
+        .eq("retired", false)
+        .neq("phase", "final")
+        .neq("code", code!)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return solo?.code ?? null;
+    }
     const { data } = await supabase.rpc("trivia_queue", { p_venue_id: room.venue_id });
     const queued = (data ?? []).find((q) => !q.o_full && q.o_code !== code);
     if (queued) return queued.o_code;
@@ -549,6 +566,7 @@ export default function PlayPage() {
       .from("rooms")
       .select("code")
       .eq("venue_id", room.venue_id)
+      .eq("mode", "team")
       .eq("phase", "lobby")
       .eq("retired", false)
       .neq("code", code!)
@@ -605,7 +623,7 @@ export default function PlayPage() {
     // so nobody is turned away; its lobby shows "Next game" and the wait.
     let target = code;
     let teamId = joinMode === "team" && selectedTeamId ? selectedTeamId : undefined;
-    if (room && room.phase !== "lobby") {
+    if (room && room.phase !== "lobby" && !soloOpen) {
       target = (await nextGameCode()) ?? code;
       teamId = undefined; // a team picked here belongs to this game
     }
@@ -910,14 +928,14 @@ export default function PlayPage() {
 
   // Waiting behind a game nobody real is playing (or about to join one in
   // progress): end that game so this one boards with a fresh countdown.
-  const blockedByRunningGame = !!room && (room.queued || (!creds && room.phase !== "lobby"));
+  const blockedByRunningGame = !!room && (room.queued || (!creds && room.phase !== "lobby" && !soloOpen));
   useEffect(() => {
     if (blockedByRunningGame && venueSlug) supabase.rpc("trivia_fresh_start", { p_venue: venueSlug });
   }, [blockedByRunningGame, venueSlug]);
 
   // Not in this game and it's already playing (or over): no error screen,
   // straight to the next game's lobby, where they get a confirmed spot.
-  const shouldForward = !!room && credsChecked && !creds && (room.phase !== "lobby" || room.retired);
+  const shouldForward = !!room && credsChecked && !creds && (room.phase !== "lobby" || room.retired) && !soloOpen;
   useEffect(() => {
     if (!shouldForward) return;
     let cancelled = false;
@@ -976,11 +994,13 @@ export default function PlayPage() {
 
   if (!creds) {
     const invitedTeam = selectedTeamId ? teams.find((t) => t.id === selectedTeamId) : undefined;
-    const lobbyOpen = room.phase === "lobby";
+    const lobbyOpen = room.phase === "lobby" || soloOpen;
     const timing = room.queued ? (
       <p className="text-sm font-bold text-sky-200">Next game · {roundsToWaitLabel(myQueueSpot?.o_rounds_to_wait ?? 1, myQueueSpot)}</p>
     ) : !lobbyOpen ? (
       <p className="text-sm text-sky-200">A game is playing right now. You&apos;ll be in the next one.</p>
+    ) : room.phase !== "lobby" ? (
+      <p className="text-sm text-emerald-200">Game in progress · jump right in</p>
     ) : room.starts_at && !scheduledCountdown.reached ? (
       <p className="text-sm text-slate-300">
         Starts in <span className="font-bold text-amber-400 tabular-nums">{scheduledCountdown.label}</span>
@@ -1022,7 +1042,7 @@ export default function PlayPage() {
       <Center>
         <BackButton onClick={() => leaveRoom("/")} />
         <JoinSteps
-          heading={invitedTeam && lobbyOpen ? `Join ${invitedTeam.name}` : "Join trivia"}
+          heading={invitedTeam && lobbyOpen ? `Join ${invitedTeam.name}` : room.mode === "solo" ? "Solo trivia" : "Join trivia"}
           timing={timing}
           nickname={nickname}
           setNickname={setNickname}
@@ -1036,6 +1056,7 @@ export default function PlayPage() {
           joinError={joinError}
           joinLabel={lobbyOpen ? "Join the game" : "Join the next game"}
           onJoin={() => joinWith(avatarId)}
+          soloGame={room.mode === "solo"}
         />
       </Center>
     );
@@ -1123,7 +1144,7 @@ export default function PlayPage() {
                   })}
               </div>
             )}
-            <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className={`mt-3 grid gap-2 ${room.mode === "solo" ? "grid-cols-1" : "grid-cols-2"}`}>
               <button
                 type="button"
                 onClick={() => {
@@ -1137,6 +1158,7 @@ export default function PlayPage() {
                 <Icon name="swap" size={15} />
                 Change character
               </button>
+              {room.mode !== "solo" && (
               <button
                 type="button"
                 onClick={() => {
@@ -1150,10 +1172,11 @@ export default function PlayPage() {
                 <Icon name="users" size={15} />
                 {solo ? "Play as a team" : "My team"}
               </button>
+              )}
             </div>
           </div>
 
-          {teamOpen && (
+          {teamOpen && room.mode !== "solo" && (
             <div className="rounded-2xl bg-white/5 border border-white/10 p-3 flex flex-col gap-2">
               {solo ? (
                 <button
