@@ -189,7 +189,11 @@ export default function PlayPage() {
   // Game twists: names for the intro and banner, and live fogs on a sabotage question.
   const twist = isTwist(question?.twist) ? question.twist : null;
   const twistCtx: TwistContext = {
-    teamName: (id) => teams.find((t) => t.id === id)?.name ?? "A team",
+    // A team of one is a solo player: name the player.
+    teamName: (id) => {
+      const on = players.filter((p) => p.team_id === id && !p.left_at);
+      return on.length === 1 ? on[0].nickname : teams.find((t) => t.id === id)?.name ?? "A team";
+    },
     playerName: (id) => players.find((p) => p.id === id)?.nickname ?? "a teammate",
     myTeamId: creds?.teamId,
     myPlayerId: creds?.playerId,

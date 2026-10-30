@@ -9,13 +9,13 @@ export const TWIST_INTRO_SECONDS = 7;
 /** Seconds a fog blocks a team from answering (matches trivia_fog_until()). */
 export const FOG_SECONDS = 3;
 
-export const TWISTS: Record<Twist, { title: string; color: string; glow: string }> = {
-  lightning: { title: "Lightning Round", color: "text-yellow-300", glow: "rgba(250,204,21,0.28)" },
-  comeback: { title: "Comeback Bonus", color: "text-emerald-300", glow: "rgba(52,211,153,0.25)" },
-  bounty: { title: "Bounty", color: "text-amber-300", glow: "rgba(251,191,36,0.28)" },
-  golden: { title: "Golden Question", color: "text-amber-200", glow: "rgba(252,211,77,0.35)" },
-  captain: { title: "Team Captain's Call", color: "text-fuchsia-300", glow: "rgba(232,121,249,0.25)" },
-  sabotage: { title: "Sabotage", color: "text-sky-300", glow: "rgba(56,189,248,0.25)" },
+export const TWISTS: Record<Twist, { title: string; icon: string; color: string; glow: string }> = {
+  lightning: { title: "Lightning Round", icon: "bolt", color: "text-yellow-300", glow: "rgba(250,204,21,0.28)" },
+  comeback: { title: "Comeback", icon: "up", color: "text-emerald-300", glow: "rgba(52,211,153,0.25)" },
+  bounty: { title: "Bounty", icon: "target", color: "text-amber-300", glow: "rgba(251,191,36,0.28)" },
+  golden: { title: "Golden Question", icon: "star", color: "text-amber-200", glow: "rgba(252,211,77,0.35)" },
+  captain: { title: "Captain's Call", icon: "user", color: "text-fuchsia-300", glow: "rgba(232,121,249,0.25)" },
+  sabotage: { title: "Sabotage", icon: "cloud", color: "text-sky-300", glow: "rgba(56,189,248,0.25)" },
 };
 
 export function isTwist(t: string | null | undefined): t is Twist {
@@ -37,39 +37,36 @@ function list(names: string[]) {
   return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
 
-/** The intro screen's description, everyone's version (the TV). */
-export function twistDescription(twist: Twist, ctx: TwistContext): string {
-  const targets = (ctx.twistTeams ?? []).map(ctx.teamName);
+/** The intro screen's big line (what you win) and small line (when),
+ * everyone's version (the TV). Kept to a few words. */
+export function twistDescription(twist: Twist, ctx: TwistContext): { headline: string; sub?: string } {
+  const target = (ctx.twistTeams ?? []).map(ctx.teamName)[0];
   switch (twist) {
     case "lightning":
-      return "3 rapid-fire questions. 8 seconds each. Double points!";
+      return { headline: "2× points", sub: "3 quick questions · 8 sec" };
     case "comeback":
-      return targets.length > 0
-        ? `Last place (${list(targets)}) scores 1.5× on this question. Time to catch up!`
-        : "Last place scores 1.5× on this question. Time to catch up!";
+      return { headline: "1.5× points", sub: `For last place${target ? `: ${target}` : ""}` };
     case "bounty":
-      return targets.length > 0
-        ? `${targets[0]} is in 1st. If they miss this one, every team that gets it right wins +500.`
-        : "1st place is the target. If they miss, every team that gets it right wins +500.";
+      return { headline: "+500", sub: `If ${target ?? "1st place"} gets it wrong` };
     case "golden":
-      return "This one's worth triple points.";
+      return { headline: "3× points" };
     case "captain":
-      return "One player answers for the whole team. No help allowed!";
+      return { headline: "Captain answers", sub: "One player answers for the team" };
     case "sabotage":
-      return "Every team gets one fog to throw at another team. A fogged team can't answer for 3 seconds.";
+      return { headline: "Fog a rival", sub: "They can't answer for 3 sec" };
   }
 }
 
-/** A line just for this player's team on the intro screen, if any. */
+/** A line just for this player on the intro screen, if any. */
 export function twistPersonalLine(twist: Twist, ctx: TwistContext): string | null {
   const mine = !!ctx.myTeamId && (ctx.twistTeams ?? []).includes(ctx.myTeamId);
-  if (twist === "comeback" && mine) return "That's you! Your points are 1.5× on this one.";
-  if (twist === "bounty" && mine) return "That's you! Get it right so nobody cashes in.";
+  if (twist === "comeback" && mine) return "That's you!";
+  if (twist === "bounty" && mine) return "That's you! Don't miss";
   if (twist === "captain" && ctx.myTeamId && ctx.captains?.[ctx.myTeamId]) {
     const cap = ctx.captains[ctx.myTeamId];
-    return cap === ctx.myPlayerId ? "You're the captain! Your answer is your team's answer." : `Your captain: ${ctx.playerName(cap)}`;
+    return cap === ctx.myPlayerId ? "You're the captain!" : `Captain: ${ctx.playerName(cap)}`;
   }
-  if (twist === "sabotage") return "Tap a team's name during the question to fog them.";
+  if (twist === "sabotage") return "Tap a name to fog it";
   return null;
 }
 
@@ -90,7 +87,7 @@ export function twistBanner(twist: Twist, seq: number | null | undefined, ctx: T
       return `Captain's call${cap ? ` · ${cap === ctx.myPlayerId ? "You're the captain" : `Captain: ${ctx.playerName(cap)}`}` : ""}`;
     }
     case "sabotage":
-      return `Sabotage · fog another team`;
+      return `Sabotage · fog a rival`;
   }
 }
 
