@@ -16,6 +16,9 @@ const PATHS: Record<string, string> = {
   qr: "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2M14 18h2v2M18 18h2v2",
   swap: "M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7",
   plus: "M12 5v14M5 12h14",
+  up: "M3 17l6-6 4 4 8-8M15 7h6v6",
+  target: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM12 12h.01",
+  cloud: "M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9.5 4.3 4.3 0 0 0 7 18Z",
 };
 
 export type IconName = keyof typeof PATHS;
