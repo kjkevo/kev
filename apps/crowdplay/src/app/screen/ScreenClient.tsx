@@ -206,9 +206,6 @@ export default function ScreenClient() {
               >
                 Join this game on this device
               </Link>
-              <p className="text-lg text-slate-400">
-                Or type the code <span className="font-black tracking-widest text-amber-300">{room.code}</span> at slimpse.vercel.app/trivia
-              </p>
             </div>
             {room.starts_at && !scheduledCountdown.reached ? (
               <p className="text-2xl text-slate-300">
