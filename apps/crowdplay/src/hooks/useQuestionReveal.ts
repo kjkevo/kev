@@ -14,7 +14,7 @@ export type RevealPick = {
 
 export type QuestionReveal = { correctAnswer: string; picks: RevealPick[] };
 
-/** Who picked what on the question just played, during its reveal. */
+/** Who got it on the question just played, during its reveal. */
 export function useQuestionReveal(roomId: string | undefined, phase: string | undefined, questionIndex: number | undefined) {
   const [reveal, setReveal] = useState<QuestionReveal | null>(null);
 

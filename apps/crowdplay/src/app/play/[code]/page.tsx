@@ -1761,7 +1761,7 @@ export default function PlayPage() {
         </div>
         <p className="text-sm font-bold text-slate-400">
           Q{room.current_question_index + 1}
-          {totalQuestions ? `/${totalQuestions}` : ""} · {showStandings ? "Scores" : "Who picked what"}
+          {totalQuestions ? `/${totalQuestions}` : ""} · {showStandings ? "Scores" : "Who got it"}
         </p>
         {twist && <TwistBanner twist={twist} text={twistBanner(twist, question?.twist_seq, twistCtx)} />}
         {question && <h2 className="text-lg font-bold">{question.prompt}</h2>}
