@@ -730,37 +730,6 @@ export default function PlayPage() {
     setSettingReady(false);
   }
 
-  // "Team up" in the lobby: start a team, join someone's, or go back to solo.
-  const [teamOpen, setTeamOpen] = useState(false);
-  const [teamBusy, setTeamBusy] = useState(false);
-  const [teamNote, setTeamNote] = useState<string | null>(null);
-  async function changeTeam(action: "start" | "join" | "solo", teamId?: string) {
-    if (!room || !creds || teamBusy) return;
-    setTeamBusy(true);
-    setTeamNote(null);
-    haptics.tap();
-    const { data, error } = await supabase.rpc("set_player_team", {
-      p_room_id: room.id,
-      p_player_id: creds.playerId,
-      p_client_token: creds.clientToken,
-      p_action: action,
-      p_team_id: teamId,
-    });
-    setTeamBusy(false);
-    if (error || !data?.[0]) {
-      setTeamNote(/TEAM_FULL/.test(error?.message ?? "") ? "That team is full" : "Didn't work. Try again.");
-      return;
-    }
-    const next = { ...creds, teamId: data[0].team_id, teamName: data[0].team_name };
-    setCreds(next);
-    try {
-      localStorage.setItem(playerKey(code ?? ""), JSON.stringify(next));
-    } catch {
-      // storage blocked: the in-memory creds are enough for this visit
-    }
-    if (action !== "start") setTeamOpen(false);
-  }
-
   async function vote(packId: string) {
     if (!room || !creds || packId === myVote) return;
     setDisplayTally((prev) => {
@@ -1072,11 +1041,6 @@ export default function PlayPage() {
     const teamGame = room.mode !== "solo";
     const mates = teammates.filter((p) => p.id !== creds.playerId);
     const openSpots = Math.max(0, 3 - mates.length);
-    // Teams you could switch to: real players only, no bots, not full.
-    const joinableTeams = teams
-      .filter((t) => t.id !== creds.teamId)
-      .map((t) => ({ team: t, members: activePlayers.filter((p) => p.team_id === t.id) }))
-      .filter(({ members }) => members.length > 0 && members.length < 4 && members.every((p) => !p.is_bot));
     return (
       <Center>
         <BackButton onClick={() => leaveRoom("/")} />
@@ -1162,13 +1126,10 @@ export default function PlayPage() {
                 {openSpots > 0 && <p className="mt-1 text-center text-[11px] text-slate-400">Open spots get bots at the start</p>}
               </div>
             )}
-            <div className={`mt-3 grid gap-2 ${teamGame ? "grid-cols-2" : "grid-cols-1"}`}>
+            <div className="mt-3 grid grid-cols-1 gap-2">
               <button
                 type="button"
-                onClick={() => {
-                  setLobbyAvatarOpen(!lobbyAvatarOpen);
-                  setTeamOpen(false);
-                }}
+                onClick={() => setLobbyAvatarOpen(!lobbyAvatarOpen)}
                 className={`rounded-xl py-2 text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 ${
                   lobbyAvatarOpen ? "bg-white text-black" : "bg-white/10 text-slate-200"
                 }`}
@@ -1176,61 +1137,8 @@ export default function PlayPage() {
                 <Icon name="swap" size={15} />
                 Change character
               </button>
-              {teamGame && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTeamOpen(!teamOpen);
-                    setLobbyAvatarOpen(false);
-                  }}
-                  className={`rounded-xl py-2 text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 ${
-                    teamOpen ? "bg-white text-black" : "bg-white/10 text-slate-200"
-                  }`}
-                >
-                  <Icon name="users" size={15} />
-                  Switch team
-                </button>
-              )}
             </div>
           </div>
-
-          {teamOpen && teamGame && (
-            <div className="rounded-2xl bg-white/5 border border-white/10 p-3 flex flex-col gap-2">
-              {joinableTeams.map(({ team, members }) => (
-                <button
-                  key={team.id}
-                  type="button"
-                  onClick={() => changeTeam("join", team.id)}
-                  disabled={teamBusy}
-                  className="w-full rounded-xl bg-white/10 px-3 py-2 flex items-center gap-2 text-left active:scale-95 transition disabled:opacity-60"
-                >
-                  <div className="flex -space-x-2">
-                    {members.map((p) => {
-                      const a = p.avatar_id ? avatarsById[p.avatar_id] : undefined;
-                      return <Avatar key={p.id} emoji={a?.emoji} imageUrl={a?.imageUrl} size={28} />;
-                    })}
-                  </div>
-                  <span className="flex-1 min-w-0 truncate text-sm font-bold">{team.name}</span>
-                  <span className="text-xs font-black text-amber-300">Join</span>
-                </button>
-              ))}
-              {mates.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => changeTeam("start")}
-                  disabled={teamBusy}
-                  className="w-full rounded-xl bg-white/10 py-2 text-sm font-bold flex items-center justify-center gap-1.5 active:scale-95 transition disabled:opacity-60"
-                >
-                  <Icon name="plus" size={16} />
-                  New team
-                </button>
-              )}
-              {joinableTeams.length === 0 && mates.length === 0 && (
-                <p className="text-center text-sm text-slate-400">No other teams yet</p>
-              )}
-              {teamNote && <p className="text-center text-xs text-rose-300">{teamNote}</p>}
-            </div>
-          )}
 
           {lobbyAvatarOpen && (
             <div className="flex flex-col items-center">
