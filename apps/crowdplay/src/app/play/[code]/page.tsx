@@ -1743,7 +1743,7 @@ export default function PlayPage() {
         {showStandings ? (
           <div className="flex-1 flex flex-col gap-3">
             {reveal && <RevealVerdict reveal={reveal} myId={creds.playerId} myTeamId={creds.teamId} myPoints={myRoundPoints} compact />}
-            <RoundStandings roomId={room.id} questionIndex={room.current_question_index} myTeamId={creds.teamId} powers={roomPowers} />
+            <RoundStandings roomId={room.id} questionIndex={room.current_question_index} myTeamId={creds.teamId} players={players} avatars={avatarsById} powers={roomPowers} />
             {/* A tip on the scores screen for the first two questions only. */}
             {room.current_question_index < 2 && (
               <p className="rounded-xl bg-sky-500/10 border border-sky-400/30 px-4 py-3 text-center text-sm text-sky-100 animate-pop-in">
