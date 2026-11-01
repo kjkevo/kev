@@ -4,6 +4,7 @@ import { MyCharacterButton } from "@/components/CharacterLocker";
 import { MonthlyChampion } from "@/components/MonthlyChampion";
 import { ScanCards } from "@/components/ScanCards";
 import { Icon } from "@/components/Icon";
+import { VenueBanner } from "@/components/VenueBanner";
 
 export default function Home() {
   return (
@@ -14,6 +15,9 @@ export default function Home() {
         </h1>
         <p className="mt-2 text-sm sm:text-lg text-indigo-200">Pick a game, no app, no login.</p>
       </div>
+
+      {/* A bar's own logo, welcome line and prize (?venue=...). */}
+      <VenueBanner />
 
       <MyCharacterButton />
 
