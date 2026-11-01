@@ -17,7 +17,12 @@ export function GetReady({
 }) {
   return (
     <div className="flex flex-col items-center gap-3 text-center animate-pop-in">
-      <p className={`uppercase tracking-widest text-slate-400 ${big ? "text-2xl" : "text-sm"}`}>{title}</p>
+      {/* With no subtitle the title is the headline ("Get Ready"). */}
+      {subtitle ? (
+        <p className={`uppercase tracking-widest text-slate-400 ${big ? "text-2xl" : "text-sm"}`}>{title}</p>
+      ) : (
+        <p className={`font-black text-amber-400 ${big ? "text-7xl" : "text-4xl"}`}>{title}</p>
+      )}
       {subtitle && <p className={`font-black text-amber-400 ${big ? "text-6xl" : "text-3xl"}`}>{subtitle}</p>}
       <div
         key={seconds}
