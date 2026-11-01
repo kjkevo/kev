@@ -7,6 +7,7 @@ import { TwistBanner, TwistIntro } from "@/components/TwistIntro";
 import { useFogs } from "@/hooks/useFogs";
 import { usePowers, useRoomPowers } from "@/hooks/usePowers";
 import { TeamPowerToasts } from "@/components/TeamPowerToasts";
+import { VenueBanner } from "@/components/VenueBanner";
 import { PowerPanel } from "@/components/PowerPanel";
 import { powerErrorText } from "@/lib/powers";
 import { RoundStandings } from "@/components/RoundStandings";
@@ -1117,6 +1118,8 @@ function PlayPageBody() {
           )}
           {avatarNote && <p className="text-xs text-amber-300/80">{avatarNote}</p>}
 
+          <VenueBanner venue={venueSlug} compact />
+
           {/* Friends scan this to get onto your team (team game only). */}
           {teamGame && (
           <button
@@ -1746,7 +1749,10 @@ function PlayPageBody() {
         <div className="self-start">
           <ExitButton onClick={() => leaveRoom("/trivia")} />
         </div>
-        <h1 className="text-2xl font-bold mt-2 mb-4">Final Results</h1>
+        <h1 className="text-2xl font-bold mt-2 mb-2">Final Results</h1>
+        <div className="mb-3 flex justify-center">
+          <VenueBanner venue={venueSlug} compact />
+        </div>
         {room.ended_reason === "idle" && (
           <p className="mb-4 rounded-full bg-white/10 px-4 py-1 text-sm text-slate-300">
             Game ended early: nobody answered for 3 questions

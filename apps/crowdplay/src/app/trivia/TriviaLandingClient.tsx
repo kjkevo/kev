@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { useLiveActiveRoom } from "@/hooks/useLiveActiveRoom";
 import { useActiveRoom } from "@/hooks/useActiveRoom";
 import { Icon } from "@/components/Icon";
+import { VenueBanner } from "@/components/VenueBanner";
 import { usePlayerVenue, useVenueId } from "@/lib/venue";
 import { useCountdownTo } from "@/hooks/useCountdownTo";
 import { LiveGameGlance } from "@/components/LiveGameGlance";
@@ -277,6 +278,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           <SeasonChip season={season} />
         </div>
       </div>
+      <VenueBanner />
       {children}
     </main>
   );

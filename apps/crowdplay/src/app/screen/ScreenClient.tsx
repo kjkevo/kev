@@ -34,6 +34,7 @@ import { LockInStrip, PickYourCorner } from "@/components/RoomCharacters";
 import { JoinDrops } from "@/components/JoinDrops";
 import Link from "next/link";
 import { ScanCards } from "@/components/ScanCards";
+import { VenueBanner } from "@/components/VenueBanner";
 import { ReadyLineup } from "@/components/ReadyLineup";
 import { PodiumCeremony } from "@/components/PodiumCeremony";
 
@@ -196,6 +197,7 @@ export default function ScreenClient() {
         {room.phase === "lobby" && (
           <>
             <JoinDrops players={players} teams={teams} avatars={avatarsById} big />
+            <VenueBanner venue={venue} big />
             <p className="text-4xl font-black">Scan with your phone camera to play</p>
             <ScanCards venue={venue} big />
             {/* Showing this screen on your own phone or laptop: join the same game without scanning. */}

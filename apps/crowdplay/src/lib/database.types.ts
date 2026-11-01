@@ -805,6 +805,10 @@ export type Database = {
         Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_ready: boolean }
         Returns: undefined
       }
+      get_venue_brand: {
+        Args: { p_venue: string }
+        Returns: { o_name: string; o_logo_url: string | null; o_accent: string | null; o_welcome: string | null; o_prize: string | null }[]
+      }
       set_player_team: {
         Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_action: string; p_team_id?: string }
         Returns: { team_id: string; team_name: string }[]
