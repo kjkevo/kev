@@ -2,16 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import { usePlayerVenue } from "@/lib/venue";
 
 /**
  * The "scan to play" code for Trivia: straight into a game when a room
  * code is given, otherwise the Trivia page (Solo or Team Play). Used on the
- * venue TV and the home screen.
+ * venue TV and the home screen. Without a venue it uses this page's bar
+ * (?venue=, or the one this device remembers).
  */
-export function ScanCards({ venue, triviaCode, big = false }: { venue: string; triviaCode?: string | null; big?: boolean }) {
+export function ScanCards({ venue: venueProp, triviaCode, big = false }: { venue?: string; triviaCode?: string | null; big?: boolean }) {
   const [origin, setOrigin] = useState("");
   useEffect(() => setOrigin(window.location.origin), []);
-  if (!origin) return null;
+  const pageVenue = usePlayerVenue();
+  const venue = venueProp ?? pageVenue;
+  if (!origin || !venue) return null;
   const v = encodeURIComponent(venue);
   const trivia = triviaCode
     ? `${origin}/play/${triviaCode}?venue=${v}&src=qr`
