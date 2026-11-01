@@ -110,7 +110,7 @@ export function PodiumCeremony({
   }, [key]);
 
   const spotlight = ranks.find((r) => stages[r] === "center" || stages[r] === "enter");
-  const stageHeight = big ? 470 : 290;
+  const stageHeight = big ? 560 : 340;
 
   return (
     <div className={`relative w-full ${big ? "max-w-4xl" : "max-w-sm"}`} style={{ height: stageHeight }}>
@@ -135,11 +135,13 @@ export function PodiumCeremony({
           stage === "enter"
             ? `translate(${dx}%, -30%) scale(0.2)`
             : stage === "center"
-              ? `translate(${dx}%, -12%) scale(${big ? 1.35 : 1.45})`
+              ? `translate(${dx}%, -4%) scale(${big ? 1.25 : 1.3})`
               : "translate(0, 0) scale(1)";
         const inBackground = stage === "placed" && spotlight !== undefined;
         const mine = team.id === myTeamId;
-        const size = Math.round((big ? 96 : 50) * (rank === 1 ? 1.15 : 1));
+        // A solo player fills the podium; a team shares it, so smaller the more there are.
+        const base = members.length <= 1 ? (big ? 190 : 96) : members.length === 2 ? (big ? 130 : 68) : big ? 96 : 50;
+        const size = Math.round(base * (rank === 1 ? 1.15 : 1));
         const name = members.length === 1 ? members[0].nickname : team.name;
         return (
           <div
