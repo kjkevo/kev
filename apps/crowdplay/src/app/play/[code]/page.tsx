@@ -1179,14 +1179,13 @@ function PlayPageBody() {
   }
 
   if (room.phase === "question" && question && questionStart.remainingMs > 0) {
-    const categoryName = room.winning_category_id ? packs[room.winning_category_id]?.name : undefined;
     return (
       <Center>
         <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
           <ExitButton onClick={() => setConfirmingQuit(true)} />
           <TeamBadge name={room.mode === "solo" ? "Solo" : myTeam?.name ?? creds.teamName} player={me?.nickname} score={myTeam?.score ?? 0} />
         </div>
-        <GetReady title="Get ready! Question 1 is about" subtitle={categoryName ?? "Trivia"} seconds={Math.ceil(questionStart.remainingMs / 1000)} />
+        <GetReady title="Get Ready" seconds={Math.ceil(questionStart.remainingMs / 1000)} />
         {me?.avatar_id && avatarsById[me.avatar_id] && (
           <div className="mt-6">
             <CharacterBuddy
