@@ -19,3 +19,19 @@ code → `main`, database → `cgkstbqwzsvmvgsffswy`, dashboard → Control Room
    `main`, copy dashboard changes into the Control Room (PROJECT id stays live).
 
 Keep migrations in `supabase/migrations/` numbered in order.
+
+## Setting up a bar from the Bar Pitch Profile
+
+The owner fills in the "Bar Pitch Profile" page (claude.ai/artifact/1y4RdtSGhUiUFXk5pgwR4Z)
+before visiting a bar; each submission is a `bars/<slug>` document in that page's
+database (`status: "submitted"`). When asked to "set up <bar>":
+1. Read the document (ArtifactData get, collection `bars`).
+2. If it has `logoAssetId`, fetch it with the Artifact tool (`action: "read"`,
+   `path: <asset id>`), save it as `public/venues/<slug>.<ext>`, commit and merge,
+   and use `/venues/<slug>.<ext>` as the logo URL.
+3. Run `select * from public.apply_venue_profile('<json>'::jsonb)` with
+   `{slug, name, timezone, logo_url, accent, welcome, prize,
+     questions: [{prompt, answer, wrong, accept, fun_fact}]}` (map `funFact` to
+   `fun_fact`). It creates/updates the venue and replaces its House pack.
+4. Update the document: `status: "live"`,
+   `liveUrl: "https://slimpse.vercel.app/?venue=<slug>"`.
