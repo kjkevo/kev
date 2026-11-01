@@ -257,14 +257,18 @@ export function PickYourCorner({ reveal, players, teams, avatars, myId, myTeamId
           </p>
         )}
         {!teamPlay && rightPeople.length > 0 && (
-          <div className={`flex flex-wrap ${big ? "gap-3" : "gap-2"} pt-2 pb-1`}>
+          // Even columns wide enough for full names, which wrap rather than cut off.
+          <div
+            className={`grid ${big ? "gap-4" : "gap-x-2 gap-y-3"} pt-2 pb-1`}
+            style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${big ? 150 : 100}px, 1fr))` }}
+          >
             {rightPeople.map((p) => {
               const a = p.avatar_id ? avatars[p.avatar_id] : undefined;
               return (
-                <span key={p.id} className="flex flex-col items-center" style={{ width: size + 8 }}>
+                <span key={p.id} className="flex flex-col items-center">
                   <Avatar emoji={a?.emoji} imageUrl={a?.imageUrl} size={size} variant="full" />
                   <span
-                    className={`truncate w-full text-center ${big ? "text-xl" : "text-base"} ${
+                    className={`w-full text-center leading-tight break-words ${big ? "text-xl" : "text-sm"} ${
                       p.id === myId ? "font-black text-amber-300" : p.team_id === myTeamId ? "text-amber-200/80" : "text-slate-300"
                     }`}
                   >
