@@ -10,7 +10,7 @@ import { TeamPowerToasts } from "@/components/TeamPowerToasts";
 import { PowerPanel } from "@/components/PowerPanel";
 import { powerErrorText } from "@/lib/powers";
 import { RoundStandings } from "@/components/RoundStandings";
-import { AdSlot, FunFact } from "@/components/RoundExtras";
+import { FunFact } from "@/components/RoundExtras";
 import { listenForUnlock, sounds } from "@/lib/sounds";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -1505,7 +1505,7 @@ function PlayPageBody() {
                     disabled={gettingHint}
                     className="flex-1 rounded-xl bg-amber-400 text-black py-2 font-bold disabled:opacity-50"
                   >
-                    {gettingHint ? "…" : `Show clue −${hintCost}`}
+                    {gettingHint ? "…" : `Show clue (${hintCost} points)`}
                   </button>
                 </div>
               </div>
@@ -1515,7 +1515,7 @@ function PlayPageBody() {
                 onClick={() => setConfirmingHint(true)}
                 className="self-center rounded-full bg-sky-500/15 border border-sky-400/40 px-4 py-2 text-sm font-bold text-sky-200 active:scale-95 transition"
               >
-                Clue? −{hintCost}
+                Clue? {hintCost} points
               </button>
             )
           ) : null}
@@ -1719,9 +1719,7 @@ function PlayPageBody() {
               </p>
             )}
             <FunFact roomId={room.id} questionIndex={room.current_question_index} />
-            <div className="mt-auto pt-2 pb-14">
-              <AdSlot venue={venueSlug ?? "main"} questionIndex={room.current_question_index} />
-            </div>
+            {/* The sponsor ad slot (AdSlot) goes back here when sponsors are ready. */}
           </div>
         ) : reveal ? (
           <PickYourCorner
