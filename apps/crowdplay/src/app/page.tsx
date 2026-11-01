@@ -45,7 +45,7 @@ export default function Home() {
       {/* On a laptop or TV: codes people can scan with their phones. */}
       <div className="hidden md:flex flex-col items-center gap-3 mt-4">
         <p className="text-sm uppercase tracking-widest text-indigo-200">Or scan with your phone camera</p>
-        <ScanCards venue="main" />
+        <ScanCards />
       </div>
     </main>
   );
