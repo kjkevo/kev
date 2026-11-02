@@ -35,3 +35,7 @@ database (`status: "submitted"`). When asked to "set up <bar>":
    `fun_fact`). It creates/updates the venue and replaces its House pack.
 4. Update the document: `status: "live"`,
    `liveUrl: "https://slimpse.vercel.app/?venue=<slug>"`.
+
+When asked to "end the pitch" for a bar: `select * from public.end_venue_pitch('<slug>')`,
+then set its document's `status: "ended"`. Its link falls back to the normal game;
+setting it up again brings it back.
