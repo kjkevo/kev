@@ -50,7 +50,10 @@ export function RoundStandings({
     const load = () =>
       supabase.rpc("get_round_standings", { p_room_id: roomId }).then(({ data }) => {
         if (cancelled || !data) return;
-        setRows(data.map((r) => ({ teamId: r.o_team_id, name: r.o_name, score: r.o_score, points: r.o_points, rank: r.o_rank })));
+        // Places by position, not by the server's tied rank (1st, 1st, 3rd), so
+        // there is always a 1st, 2nd and 3rd. The rows come sorted by score,
+        // then name, so a tie is settled the same way on every phone and the TV.
+        setRows(data.map((r, i) => ({ teamId: r.o_team_id, name: r.o_name, score: r.o_score, points: r.o_points, rank: i + 1 })));
       });
     load();
     // Scores land a moment after the question closes; read again shortly.
