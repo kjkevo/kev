@@ -55,6 +55,7 @@ import { GameProgress } from "@/components/GameProgress";
 import { LevelChip } from "@/components/LevelChip";
 import { StreakMoment, type Streak } from "@/components/StreakMoment";
 import { PerkButton, PerkPicker, useCarryPerk } from "@/components/Perks";
+import { perkInfo } from "@/lib/perks";
 import { EmoteCharacter, EmoteButtons } from "@/components/EmoteCharacter";
 import { useRoomEmotes } from "@/hooks/useRoomEmotes";
 
@@ -172,8 +173,8 @@ function PlayPageBody() {
   const [joinMode, setJoinMode] = useState<"solo" | "team">("solo");
   // null = default (open for a first-timer, closed for a returning player).
   // null: follow the default (shown while you're alone on a team you made).
-  const [inviteOpen, setInviteOpen] = useState<boolean | null>(null);
-  const [lobbyAvatarOpen, setLobbyAvatarOpen] = useState(false);
+  // The lobby's three small squares (Perks, QR code, Character) open one at a time.
+  const [lobbyTile, setLobbyTile] = useState<null | "perks" | "qr" | "character">(null);
   const [rejoining, setRejoining] = useState(false);
   const [rejoinError, setRejoinError] = useState<string | null>(null);
   const [newTeamName, setNewTeamName] = useState("");
@@ -392,7 +393,7 @@ function PlayPageBody() {
     setAwards(null);
     setRejoining(false);
     setRejoinError(null);
-    setInviteOpen(null);
+    setLobbyTile(null);
   }, [room?.id]);
 
   useEffect(() => {
@@ -682,7 +683,7 @@ function PlayPageBody() {
     } catch {}
     if (target !== code) {
       // Joined the next game: go to its lobby (it loads these credentials).
-      if (creating) setInviteOpen(true);
+      if (creating) setLobbyTile("qr");
       supabase.rpc("link_player_device", {
         p_room_id: c.roomId,
         p_player_id: c.playerId,
@@ -694,7 +695,7 @@ function PlayPageBody() {
     }
     setCreds(c);
     // Made a new team: show their invite QR code straight away.
-    if (creating) setInviteOpen(true);
+    if (creating) setLobbyTile("qr");
     // Ties this player to the phone, so wins can be counted across games
     // (the "won 3 in a row" champion on the venue's QR display).
     supabase.rpc("link_player_device", {
@@ -1040,7 +1041,6 @@ function PlayPageBody() {
   if (room.phase === "lobby") {
     const showCountdown = room.starts_at && !scheduledCountdown.reached;
     const teamName = myTeam?.name ?? creds.teamName;
-    const inviteShown = inviteOpen ?? false;
     const myCharacter = me?.avatar_id ? avatarsById[me.avatar_id] : avatarId ? avatarsById[avatarId] : undefined;
     // Team Play is always a team of 4 (bots fill open spots at the start);
     // the solo game is everyone for themselves.
@@ -1059,7 +1059,7 @@ function PlayPageBody() {
               <div className="flex flex-col items-center shrink-0">
                 <button
                   type="button"
-                  onClick={() => setLobbyAvatarOpen(!lobbyAvatarOpen)}
+                  onClick={() => setLobbyTile("character")}
                   aria-label="Change your character"
                   className="active:scale-95 transition"
                 >
@@ -1121,7 +1121,7 @@ function PlayPageBody() {
                     <button
                       key={`open-${i}`}
                       type="button"
-                      onClick={() => setInviteOpen(true)}
+                      onClick={() => setLobbyTile("qr")}
                       aria-label="Invite a friend to this spot"
                       className="flex flex-col items-center w-16 active:scale-95 transition"
                     >
@@ -1135,48 +1135,93 @@ function PlayPageBody() {
                 {openSpots > 0 && <p className="mt-1 text-center text-[11px] text-slate-400">Open spots get bots at the start</p>}
               </div>
             )}
-            <div className="mt-3 grid grid-cols-1 gap-2">
-              <button
-                type="button"
-                onClick={() => setLobbyAvatarOpen(!lobbyAvatarOpen)}
-                className={`rounded-xl py-2 text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 ${
-                  lobbyAvatarOpen ? "bg-white text-black" : "bg-white/10 text-slate-200"
-                }`}
-              >
-                <Icon name="swap" size={15} />
-                Change character
-              </button>
-            </div>
           </div>
 
-          {lobbyAvatarOpen && (
-            <div className="flex flex-col items-center">
-              <AvatarPicker avatars={avatars} selectedId={me?.avatar_id ?? avatarId} onSelect={changeAvatar} onBuy={buyAvatar} />
-            </div>
-          )}
           {avatarNote && <p className="text-xs text-amber-300/80">{avatarNote}</p>}
 
-          <VenueBanner venue={venueSlug} compact />
+          {/* Three small squares: Perks, QR code (invite) and Character. Each opens big. */}
+          <div className="grid grid-cols-3 gap-2">
+            {(
+              [
+                {
+                  key: "perks" as const,
+                  label: "Perks",
+                  icon: me?.perk && perkInfo(me.perk) ? <span className="text-3xl leading-none">{perkInfo(me.perk)!.icon}</span> : <Icon name="bolt" size={30} />,
+                  sub: me?.perk ? perkInfo(me.perk)?.name ?? "Equipped" : "None on",
+                },
+                {
+                  key: "qr" as const,
+                  label: teamGame ? "Invite" : "QR code",
+                  icon: <Icon name="qr" size={30} />,
+                  sub: teamGame ? (openSpots > 0 ? `${openSpots} open` : "Team full") : "Scan to join",
+                },
+                {
+                  key: "character" as const,
+                  label: "Character",
+                  icon: <Avatar emoji={myCharacter?.emoji} imageUrl={myCharacter?.imageUrl} size={38} />,
+                  sub: myCharacter?.name ?? "Pick one",
+                },
+              ]
+            ).map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setLobbyTile(t.key)}
+                className="aspect-square rounded-2xl bg-white/[0.07] border border-white/15 hover:border-amber-400/60 flex flex-col items-center justify-center gap-1 px-1 text-amber-300 active:scale-95 transition"
+              >
+                {t.icon}
+                <span className="text-sm font-black text-white leading-tight">{t.label}</span>
+                <span className="max-w-full truncate text-[10px] font-semibold text-slate-400">{t.sub}</span>
+              </button>
+            ))}
+          </div>
 
-          {/* Friends scan this to get onto your team (team game only). */}
-          {teamGame && (
-          <button
-            type="button"
-            onClick={() => setInviteOpen(!inviteShown)}
-            className={`w-full rounded-2xl py-4 text-lg font-black flex items-center justify-center gap-2 border-2 active:scale-95 transition ${
-              inviteShown ? "bg-white/10 border-white/20 text-slate-200" : "bg-amber-400/15 border-amber-400/60 text-amber-300"
-            }`}
-          >
-            <Icon name="qr" size={24} />
-            {inviteShown ? "Hide" : openSpots > 0 ? `Invite friends · ${openSpots} open` : "Invite friends"}
-          </button>
-          )}
-          {teamGame && inviteShown && (
-            <div className="flex flex-col items-center gap-2 text-center">
-              <JoinQRCode code={room.code} venue={venueSlug ?? "main"} team={creds.teamId} size={190} />
-              <p className="text-sm text-slate-300">Scan to join your team</p>
+          {lobbyTile && (
+            <div className="fixed inset-0 z-50 bg-black/70 flex items-end sm:items-center justify-center" onClick={() => setLobbyTile(null)}>
+              <div
+                className="w-full max-w-md max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl bg-slate-900 border border-white/10 p-5 text-white text-center animate-pop-in"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-lg font-black">
+                    {lobbyTile === "perks" ? "Perks" : lobbyTile === "qr" ? (teamGame ? "Invite friends" : "Scan to join") : "My character"}
+                  </p>
+                  <button type="button" onClick={() => setLobbyTile(null)} className="rounded-full bg-white/10 px-3 py-1 text-sm font-bold">
+                    Done
+                  </button>
+                </div>
+                {lobbyTile === "perks" && <PerkPicker roomId={room.id} creds={creds} me={me} />}
+                {lobbyTile === "qr" && (
+                  <div className="flex flex-col items-center gap-2">
+                    <JoinQRCode code={room.code} venue={venueSlug ?? "main"} team={teamGame ? creds.teamId : undefined} size={220} />
+                    <p className="text-sm text-slate-300">
+                      {teamGame
+                        ? openSpots > 0
+                          ? `Scan to join your team · ${openSpots} open ${openSpots === 1 ? "spot" : "spots"}`
+                          : "Scan to join your team"
+                        : "Scan to join this game"}
+                    </p>
+                  </div>
+                )}
+                {lobbyTile === "character" && (
+                  <div className="flex flex-col items-center">
+                    <AvatarPicker
+                      avatars={avatars}
+                      selectedId={me?.avatar_id ?? avatarId}
+                      onSelect={changeAvatar}
+                      onBuy={(a) => {
+                        setLobbyTile(null);
+                        buyAvatar(a);
+                      }}
+                    />
+                    {avatarNote && <p className="mt-2 text-xs text-amber-300/80">{avatarNote}</p>}
+                  </div>
+                )}
+              </div>
             </div>
           )}
+
+          <VenueBanner venue={venueSlug} compact />
 
           {room.queued && (
             <div className="rounded-2xl bg-sky-500/10 border border-sky-400/40 px-4 py-3">
@@ -1205,9 +1250,6 @@ function PlayPageBody() {
               </div>
             </div>
           )}
-
-          {/* Perks: one extra power-up, unlocked by leveling up. */}
-          <PerkPicker roomId={room.id} creds={creds} me={me} />
 
           {/* Everyone else, with who's ready. */}
           {players.some((p) => !p.left_at && !p.is_bot && p.id !== creds.playerId) && (
