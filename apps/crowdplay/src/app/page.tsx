@@ -2,6 +2,8 @@
 import Link from "next/link";
 import { MyCharacterButton } from "@/components/CharacterLocker";
 import { MonthlyChampion } from "@/components/MonthlyChampion";
+import { Leaderboard } from "@/components/Leaderboard";
+import { ProgressCard } from "@/components/ProgressCard";
 import { ScanCards } from "@/components/ScanCards";
 import { Icon } from "@/components/Icon";
 import { VenueBanner } from "@/components/VenueBanner";
@@ -13,13 +15,17 @@ export default function Home() {
         <h1 className="text-4xl sm:text-6xl font-black tracking-tight">
           Slim<span className="text-amber-400">pse</span>
         </h1>
-        <p className="mt-2 text-sm sm:text-lg text-indigo-200">Pick a game, no app, no login.</p>
+        <p className="mt-2 text-sm sm:text-lg text-indigo-200">Pick a game. No app needed.</p>
       </div>
 
       {/* A bar's own logo, welcome line and prize (?venue=...). */}
       <VenueBanner />
 
       <MyCharacterButton />
+
+      <div className="w-full max-w-sm">
+        <ProgressCard />
+      </div>
 
       <div className="w-full max-w-sm flex flex-col gap-3">
         {/* The games, side by side: Trivia (live) and Mixer (coming soon). */}
@@ -44,6 +50,7 @@ export default function Home() {
         </div>
 
         <MonthlyChampion />
+        <Leaderboard />
       </div>
 
       {/* On a laptop or TV: codes people can scan with their phones. */}

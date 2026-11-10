@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { formatPrice } from "@/components/AvatarPicker";
+import { unlockLabel } from "@/components/AvatarPicker";
 import { CharacterCarousel } from "@/components/CharacterCarousel";
 import { CharacterPreview } from "@/components/CharacterPreview";
 import type { AvatarOption } from "@/hooks/useAvatars";
@@ -28,7 +28,7 @@ export function CharacterGate({
         <CharacterCarousel
           avatars={avatars}
           selectedId={null}
-          buttonLabel={(a) => (a.owned ? "Choose" : `Unlock · ${formatPrice(a.priceCents)}`)}
+          buttonLabel={(a) => (a.owned ? "Choose" : unlockLabel(a))}
           onButton={(a) => (a.owned ? onPick(a.id) : onBuy?.(a))}
           onView={setViewing}
         />

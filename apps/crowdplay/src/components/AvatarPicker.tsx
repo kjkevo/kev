@@ -9,6 +9,11 @@ export function formatPrice(cents: number) {
   return `$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`;
 }
 
+/** Button text for a locked character: unlock it now instead of waiting for its level. */
+export function unlockLabel(a: AvatarOption) {
+  return a.unlockLevel ? `Unlock now · ${formatPrice(a.priceCents)}` : `Unlock · ${formatPrice(a.priceCents)}`;
+}
+
 /**
  * The characters on a carousel. Tapping one opens a close-up
  * (CharacterPreview); Unlock on a locked one opens the "Unlock Character" screen.
@@ -31,7 +36,7 @@ export function AvatarPicker({
       <CharacterCarousel
         avatars={avatars}
         selectedId={selectedId}
-        buttonLabel={(a) => (a.id === selectedId ? "Equipped ✓" : a.owned ? "Equip" : `Unlock · ${formatPrice(a.priceCents)}`)}
+        buttonLabel={(a) => (a.id === selectedId ? "Equipped ✓" : a.owned ? "Equip" : unlockLabel(a))}
         onButton={(a) => (a.owned ? onSelect(a.id) : onBuy?.(a))}
         onView={setViewing}
       />

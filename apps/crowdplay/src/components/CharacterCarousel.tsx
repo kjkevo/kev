@@ -78,6 +78,7 @@ export function CharacterCarousel({
         </button>
       </div>
       <p className="text-lg font-black">{a.name}</p>
+      {locked && a.unlockLevel && <p className="-mt-2 text-xs font-bold text-amber-300">🔒 Free at Level {a.unlockLevel}</p>}
       <PowerCard key={a.id} avatarId={a.id} className="max-w-xs animate-[fade-in_0.2s_ease-out]" />
       <button
         type="button"
