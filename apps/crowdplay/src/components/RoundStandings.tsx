@@ -117,7 +117,9 @@ export function RoundStandings({
         {ranks.map((rank, i) => {
           const r = rows.find((x) => x.rank === rank)!;
           const members = membersOf(r.teamId);
-          const size = (big ? 96 : 52) * (rank === 1 ? 1.15 : 1);
+          // Chest-up frames: one player fills the column; teams share it (3-4 in a 2x2 grid).
+          const n = members.length;
+          const size = Math.round((n <= 1 ? (big ? 170 : 84) : n === 2 ? (big ? 120 : 54) : big ? 90 : 48) * (rank === 1 ? 1.1 : 1));
           const isMine = r.teamId === myTeamId;
           const tookLead = rank === 1 && r.teamId === newLeader;
           return (
@@ -150,20 +152,32 @@ export function RoundStandings({
                   +{r.points.toLocaleString()}
                 </span>
               )}
-              <div className={`flex justify-center ${big ? "-space-x-6" : "-space-x-4"}`}>
+              <div
+                className={`mb-1 ${members.length >= 3 ? "grid grid-cols-2 gap-1 justify-items-center" : "flex justify-center gap-1"}`}
+              >
                 {members.map((p) => {
                   const a = p.avatar_id ? avatars[p.avatar_id] : undefined;
                   // Each character plays its own first emote when its team takes the lead.
                   const emote = emotesFor(p.avatar_id)[0];
+                  // Chest up: the full figure scaled up and pinned to the top of a frame.
                   return (
-                    <EmoteCharacter
+                    <div
                       key={p.id}
-                      avatarId={p.avatar_id}
-                      emoji={a?.emoji}
-                      imageUrl={a?.imageUrl}
-                      size={size}
-                      play={tookLead && leadPlay && emote ? playFor(p.id, emote.id, leadPlay.n) : null}
-                    />
+                      className={`relative overflow-hidden rounded-xl bg-gradient-to-b from-white/15 to-white/[0.03] ${
+                        isMine ? "ring-2 ring-white/80" : "ring-1 ring-white/15"
+                      }`}
+                      style={{ width: size, height: Math.round(size * 0.9) }}
+                    >
+                      <div className="absolute left-1/2 top-0 -translate-x-1/2">
+                        <EmoteCharacter
+                          avatarId={p.avatar_id}
+                          emoji={a?.emoji}
+                          imageUrl={a?.imageUrl}
+                          size={Math.round(size * 2.3)}
+                          play={tookLead && leadPlay && emote ? playFor(p.id, emote.id, leadPlay.n) : null}
+                        />
+                      </div>
+                    </div>
                   );
                 })}
               </div>
