@@ -53,6 +53,7 @@ import { PodiumCeremony } from "@/components/PodiumCeremony";
 import { ShareCard } from "@/components/ShareCard";
 import { GameProgress } from "@/components/GameProgress";
 import { LevelChip } from "@/components/LevelChip";
+import { StreakMoment, type Streak } from "@/components/StreakMoment";
 import { EmoteCharacter, EmoteButtons } from "@/components/EmoteCharacter";
 import { useRoomEmotes } from "@/hooks/useRoomEmotes";
 
@@ -299,6 +300,26 @@ function PlayPageBody() {
   useEffect(() => {
     if (showStandings) sounds.standings();
   }, [showStandings]);
+
+  // Right answers in a row for your team (counted once per question while
+  // this page is open). At 3 in a row, and every 2 more after that, your
+  // character pops up and does its emote.
+  const streakRef = useRef<{ roomId: string; lastIndex: number; count: number }>({ roomId: "", lastIndex: -1, count: 0 });
+  const [streak, setStreak] = useState<Streak | null>(null);
+  useEffect(() => {
+    if (revealKey < 0 || !room?.id || !reveal) return;
+    const s = streakRef.current;
+    if (s.roomId !== room.id) {
+      s.roomId = room.id;
+      s.lastIndex = -1;
+      s.count = 0;
+    }
+    if (revealKey <= s.lastIndex) return;
+    s.lastIndex = revealKey;
+    s.count = myRevealPick?.teamCorrect ? s.count + 1 : 0;
+    if (s.count >= 3 && (s.count - 3) % 2 === 0) setStreak({ count: s.count, n: revealKey });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [revealKey, room?.id, !!reveal]);
 
   useEffect(() => {
     if (room?.phase === "twist_intro") sounds.twist();
@@ -1743,6 +1764,13 @@ function PlayPageBody() {
           <p className="text-center text-slate-400 py-10">Revealing…</p>
         )}
         {confirmingQuit && <QuitConfirm onCancel={() => setConfirmingQuit(false)} onConfirm={() => leaveRoom("/trivia")} />}
+        <StreakMoment
+          streak={streak}
+          avatarId={me?.avatar_id}
+          emoji={me?.avatar_id ? avatarsById[me.avatar_id]?.emoji : null}
+          imageUrl={me?.avatar_id ? avatarsById[me.avatar_id]?.imageUrl : null}
+          team={room.mode !== "solo"}
+        />
       </main>
     );
   }
