@@ -18,6 +18,7 @@ import { useTriviaQueue, roundsToWaitLabel, currentGameProgress } from "@/hooks/
 import { playerKey, type Player, type Team } from "@/lib/types";
 import { useSeason } from "@/hooks/useSeason";
 import { SeasonChip } from "@/components/SeasonNotice";
+import { LevelChip } from "@/components/LevelChip";
 
 /**
  * The entry point for anyone without a room code: the venue TV's QR code
@@ -277,6 +278,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           {season?.username && <span className="font-bold text-indigo-100">{season.username}</span>}
           <SeasonChip season={season} />
         </div>
+        <LevelChip bar />
       </div>
       <VenueBanner />
       {children}

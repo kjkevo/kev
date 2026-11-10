@@ -52,6 +52,7 @@ import { JoinDrops } from "@/components/JoinDrops";
 import { PodiumCeremony } from "@/components/PodiumCeremony";
 import { ShareCard } from "@/components/ShareCard";
 import { GameProgress } from "@/components/GameProgress";
+import { LevelChip } from "@/components/LevelChip";
 import { EmoteCharacter, EmoteButtons } from "@/components/EmoteCharacter";
 import { useRoomEmotes } from "@/hooks/useRoomEmotes";
 
@@ -1041,10 +1042,13 @@ function PlayPageBody() {
               </div>
               <div className="flex-1 min-w-0 flex flex-col items-center gap-2 text-center">
                 <p className="text-lg font-black truncate max-w-full">{me?.nickname}</p>
-                <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-bold text-slate-200 max-w-full">
-                  <Icon name={teamGame ? "users" : "user"} size={14} />
-                  <span className="truncate">{teamGame ? teamName : "Solo"}</span>
-                </span>
+                <div className="flex flex-wrap items-center justify-center gap-1.5 max-w-full">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-bold text-slate-200 max-w-full">
+                    <Icon name={teamGame ? "users" : "user"} size={14} />
+                    <span className="truncate">{teamGame ? teamName : "Solo"}</span>
+                  </span>
+                  <LevelChip />
+                </div>
                 <div className="flex items-center gap-1.5 text-amber-400">
                   <Icon name="clock" size={22} />
                   {room.queued ? (
