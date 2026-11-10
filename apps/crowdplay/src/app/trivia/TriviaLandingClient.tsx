@@ -20,6 +20,7 @@ import { useSeason } from "@/hooks/useSeason";
 import { SeasonChip } from "@/components/SeasonNotice";
 import { LevelChip } from "@/components/LevelChip";
 import { ScanCards } from "@/components/ScanCards";
+import { AccountLink } from "@/components/AccountLink";
 
 /**
  * The entry point for anyone without a room code: the venue TV's QR code
@@ -224,6 +225,9 @@ export default function TriviaLandingClient() {
             {teamButton.label}
           </button>
         </div>
+
+        {/* Signing in brings a saved level, streak and characters to this phone. */}
+        <AccountLink />
       </div>
 
       {/* On a laptop or TV: the code people scan with their phones to get here. */}
