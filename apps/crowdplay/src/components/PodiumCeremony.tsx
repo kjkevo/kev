@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { EmoteCharacter, type EmotePlay } from "@/components/EmoteCharacter";
 import { emotesFor } from "@/lib/emotes";
 import type { AvatarOption } from "@/hooks/useAvatars";
@@ -55,6 +55,17 @@ export function PodiumCeremony({
   const [stages, setStages] = useState<Record<number, Stage>>({});
   const [plays, setPlays] = useState<Record<string, EmotePlay>>({});
   const [suspense, setSuspense] = useState(false);
+  // The stage's width, so a team's characters are sized to fit side by side on their block.
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [stageW, setStageW] = useState(big ? 896 : 384);
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setStageW(el.clientWidth));
+    ro.observe(el);
+    setStageW(el.clientWidth);
+    return () => ro.disconnect();
+  }, []);
 
   const membersOf = (team: Team) => {
     const onTeam = players.filter((p) => p.team_id === team.id);
@@ -127,7 +138,7 @@ export function PodiumCeremony({
   const stageHeight = big ? 560 : 340;
 
   return (
-    <div className={`relative w-full ${big ? "max-w-4xl" : "max-w-sm"}`} style={{ height: stageHeight }}>
+    <div ref={stageRef} className={`relative w-full ${big ? "max-w-4xl" : "max-w-sm md:max-w-2xl"}`} style={{ height: stageHeight }}>
       {suspense && (
         <div className="absolute inset-x-0 top-1/3 flex flex-col items-center gap-3 animate-pop-in">
           <p className={`uppercase tracking-widest text-slate-300 ${big ? "text-2xl" : "text-sm"}`}>And in 1st place…</p>
@@ -153,14 +164,17 @@ export function PodiumCeremony({
               : "translate(0, 0) scale(1)";
         const inBackground = stage === "placed" && spotlight !== undefined;
         const mine = team.id === myTeamId;
-        // A solo player fills the podium; a team shares it, so smaller the more there are.
-        const base = members.length <= 1 ? (big ? 190 : 96) : members.length === 2 ? (big ? 130 : 68) : big ? 96 : 50;
-        const size = Math.round(base * (rank === 1 ? 1.15 : 1));
+        // A solo player fills the podium; a team's players stand side by side,
+        // each sized so the whole team fits on its block without crowding.
+        const n = Math.max(1, members.length);
+        const base = n <= 1 ? (big ? 190 : 120) : big ? 130 : 96;
+        const fit = ((stageW / 3 - 16) / n) * 1.12; // a figure is a bit narrower than its square picture
+        const size = Math.round(Math.min(base, fit) * (rank === 1 ? 1.1 : 1));
         const name = members.length === 1 ? members[0].nickname : team.name;
         return (
           <div
             key={rank}
-            className="absolute bottom-0 flex flex-col items-center"
+            className="absolute bottom-0 flex flex-col items-center px-2"
             style={{
               left: `${slot * (100 / 3)}%`,
               width: `${100 / 3}%`,
@@ -179,7 +193,7 @@ export function PodiumCeremony({
                 style={{ background: `radial-gradient(circle at 50% 40%, ${GLOW[rank]}, transparent 70%)` }}
               />
             )}
-            <div className={`flex justify-center ${big ? "-space-x-6" : "-space-x-3"}`}>
+            <div className="flex justify-center -space-x-0.5">
               {members.map((p) => {
                 const a = p.avatar_id ? avatars[p.avatar_id] : undefined;
                 return <EmoteCharacter key={p.id} avatarId={p.avatar_id} emoji={a?.emoji} imageUrl={a?.imageUrl} size={size} play={plays[p.id]} />;
