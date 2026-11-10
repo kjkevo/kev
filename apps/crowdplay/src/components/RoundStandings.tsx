@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { powerScoreTag } from "@/lib/powers";
 import type { RoomPower } from "@/hooks/usePowers";
-import { Avatar } from "@/components/Avatar";
+import { EmoteCharacter, type EmotePlay } from "@/components/EmoteCharacter";
+import { emotesFor } from "@/lib/emotes";
 import type { AvatarOption } from "@/hooks/useAvatars";
 import type { Player } from "@/lib/types";
 
@@ -18,6 +19,10 @@ const HEIGHT: Record<number, [string, string]> = { 1: ["h-28", "h-48"], 2: ["h-2
 
 type Standing = { teamId: string; name: string; score: number; points: number; rank: number };
 
+// Who led after the last scores screen, per game (kept while the page is open),
+// to spot a lead change.
+const lastLeader = new Map<string, string>();
+
 /**
  * The scores after each question: the top 3 on a gold, silver and bronze
  * podium (characters standing on their block, what each just scored above
@@ -25,6 +30,8 @@ type Standing = { teamId: string; name: string; score: number; points: number; r
  * own name. A power used on
  * the question shows as a tag beside the points, so a doubled (or stolen)
  * score explains itself.
+ * Lead change: when a different team takes 1st, its characters do their
+ * emote on the gold block, with "Took the lead!" above.
  */
 export function RoundStandings({
   roomId,
@@ -44,6 +51,15 @@ export function RoundStandings({
   big?: boolean;
 }) {
   const [rows, setRows] = useState<Standing[] | null>(null);
+  const [newLeader, setNewLeader] = useState<string | null>(null);
+  const [leadPlay, setLeadPlay] = useState<EmotePlay | null>(null);
+  // One stable play request per character, so re-renders don't restart the emote.
+  const plays = useRef(new Map<string, EmotePlay>());
+  const playFor = (playerId: string, emoteId: string, n: number) => {
+    const key = `${playerId}:${n}`;
+    if (!plays.current.has(key)) plays.current.set(key, { emoteId, n });
+    return plays.current.get(key)!;
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -54,6 +70,11 @@ export function RoundStandings({
         // there is always a 1st, 2nd and 3rd. The rows come sorted by score,
         // then name, so a tie is settled the same way on every phone and the TV.
         setRows(data.map((r, i) => ({ teamId: r.o_team_id, name: r.o_name, score: r.o_score, points: r.o_points, rank: i + 1 })));
+        const leader = data[0]?.o_score > 0 ? data[0].o_team_id : null;
+        if (!leader) return;
+        const before = lastLeader.get(roomId);
+        lastLeader.set(roomId, leader);
+        if (before && before !== leader) setNewLeader(leader);
       });
     load();
     // Scores land a moment after the question closes; read again shortly.
@@ -63,6 +84,13 @@ export function RoundStandings({
       clearTimeout(t);
     };
   }, [roomId, questionIndex]);
+
+  // Start the leaders' emotes once the podium has popped in.
+  useEffect(() => {
+    if (!newLeader) return;
+    const t = setTimeout(() => setLeadPlay({ emoteId: "", n: Date.now() }), 500);
+    return () => clearTimeout(t);
+  }, [newLeader]);
 
   if (!rows || rows.length === 0) return null;
   const mine = myTeamId ? rows.find((r) => r.teamId === myTeamId) : undefined;
@@ -91,12 +119,22 @@ export function RoundStandings({
           const members = membersOf(r.teamId);
           const size = (big ? 96 : 52) * (rank === 1 ? 1.15 : 1);
           const isMine = r.teamId === myTeamId;
+          const tookLead = rank === 1 && r.teamId === newLeader;
           return (
             <div
               key={r.teamId}
               className="flex-1 min-w-0 flex flex-col items-center animate-pop-in"
               style={{ animationDelay: `${i * 120}ms`, animationFillMode: "both" }}
             >
+              {tookLead && (
+                <span
+                  className={`mb-1 max-w-full rounded-full bg-amber-400 text-black font-black text-center leading-tight animate-pop-in ${
+                    big ? "text-xl px-4 py-1" : "text-[11px] px-2 py-0.5"
+                  }`}
+                >
+                  👑 {isMine ? (members.length > 1 ? "Your team took the lead!" : "You took the lead!") : "Took the lead!"}
+                </span>
+              )}
               {tagsFor(r.teamId).map((tag) => (
                 <span
                   key={tag}
@@ -115,7 +153,18 @@ export function RoundStandings({
               <div className={`flex justify-center ${big ? "-space-x-6" : "-space-x-4"}`}>
                 {members.map((p) => {
                   const a = p.avatar_id ? avatars[p.avatar_id] : undefined;
-                  return <Avatar key={p.id} emoji={a?.emoji} imageUrl={a?.imageUrl} size={size} variant="full" />;
+                  // Each character plays its own first emote when its team takes the lead.
+                  const emote = emotesFor(p.avatar_id)[0];
+                  return (
+                    <EmoteCharacter
+                      key={p.id}
+                      avatarId={p.avatar_id}
+                      emoji={a?.emoji}
+                      imageUrl={a?.imageUrl}
+                      size={size}
+                      play={tookLead && leadPlay && emote ? playFor(p.id, emote.id, leadPlay.n) : null}
+                    />
+                  );
                 })}
               </div>
               <div
