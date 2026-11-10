@@ -338,6 +338,7 @@ export type Database = {
           avatar_id: string | null
           device_key: string | null
           team_members: string[] | null
+          perk: string | null
         }
         Insert: {
           client_token?: string
@@ -578,6 +579,15 @@ export type Database = {
         Update: { thrown_at?: string }
         Relationships: []
       }
+      trivia_perks: {
+        Row: {
+          id: string; room_id: string; question_id: string | null; team_id: string; player_id: string
+          perk: string; amount: number; data: Json; created_at: string
+        }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
       trivia_powers: {
         Row: {
           id: string; room_id: string; question_id: string; team_id: string; player_id: string
@@ -663,6 +673,18 @@ export type Database = {
           o_area: string
           o_resets_at: string
         }[]
+      }
+      list_perks: {
+        Args: { p_device_key: string }
+        Returns: { o_key: string; o_name: string; o_unlock_level: number; o_unlocked: boolean }[]
+      }
+      set_player_perk: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_perk: string | null; p_device_key: string }
+        Returns: undefined
+      }
+      use_perk: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_question_id: string }
+        Returns: { o_perk: string; o_amount: number }[]
       }
       progress_touch: {
         Args: { p_device_key: string }
