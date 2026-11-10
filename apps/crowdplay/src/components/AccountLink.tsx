@@ -15,7 +15,7 @@ export function AccountLink() {
   return (
     <div className="text-center text-xs">
       {p.saved ? (
-        <span className="text-slate-400">✓ Signed in as {p.email}</span>
+        <span className="text-slate-400">Signed in as {p.email}</span>
       ) : (
         <button type="button" onClick={() => setOpen(true)} className="text-slate-300">
           Already saved your progress? <span className="font-bold text-amber-300 underline">Sign in</span>

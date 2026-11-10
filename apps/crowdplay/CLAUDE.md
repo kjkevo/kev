@@ -20,6 +20,10 @@ code → `main`, database → `cgkstbqwzsvmvgsffswy`, dashboard → Control Room
 
 Keep migrations in `supabase/migrations/` numbered in order.
 
+**No emojis anywhere in the game** (the owner's standing rule): no emoji in
+UI text, labels, notifications, perks or database strings. Use the line
+icons in `src/components/Icon.tsx` or plain words instead.
+
 ## Setting up a bar from the Bar Pitch Profile
 
 The owner fills in the "Bar Pitch Profile" page (claude.ai/artifact/1y4RdtSGhUiUFXk5pgwR4Z)

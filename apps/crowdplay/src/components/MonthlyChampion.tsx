@@ -36,7 +36,7 @@ export function MonthlyChampion() {
   const shown = champ ?? PLACEHOLDER;
   return (
     <div className="w-full rounded-3xl bg-gradient-to-b from-amber-400/20 to-amber-400/5 border border-amber-400/40 px-4 py-3 flex flex-col items-center gap-2">
-      <p className="text-[11px] font-bold uppercase tracking-widest text-amber-300">👑 {month} Champion</p>
+      <p className="text-[11px] font-bold uppercase tracking-widest text-amber-300">{month} Champion</p>
       <ChestUp imageUrl={shown.imageUrl} emoji={shown.emoji} name={shown.nickname} width={96} highlight />
     </div>
   );

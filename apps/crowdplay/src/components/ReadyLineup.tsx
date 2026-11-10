@@ -52,7 +52,7 @@ export function ReadyLineup({
                     p.ready ? "bg-emerald-400 text-black" : "bg-amber-400 text-black animate-pulse"
                   }`}
                 >
-                  {p.ready ? "Ready ✓" : "Tap: I'm ready"}
+                  {p.ready ? "Ready" : "Tap: I'm ready"}
                 </button>
               ) : (
                 <span

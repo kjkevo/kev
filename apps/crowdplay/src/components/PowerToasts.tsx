@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { powerByKey, powerFace } from "@/lib/powers";
 import { perkInfo } from "@/lib/perks";
+import { Icon } from "@/components/Icon";
 import { playerKey, type PlayerCredentials } from "@/lib/types";
 
 type Toast = { id: string; who: string; power: string; mine: boolean; perk?: boolean };
@@ -108,7 +109,7 @@ export function PowerToasts({ code }: { code: string | null }) {
             }`}
           >
             {face && <img src={face} alt="" className="w-7 h-7 shrink-0 rounded-full bg-black/30 object-cover" />}
-            {perk && <span className="w-7 h-7 shrink-0 rounded-full bg-black/30 flex items-center justify-center text-base">{perk.icon}</span>}
+            {perk && <span className="w-7 h-7 shrink-0 rounded-full bg-black/30 flex items-center justify-center text-emerald-200"><Icon name={perk.icon} size={16} /></span>}
             <p className="min-w-0 truncate text-xs text-white">
               {perk?.key === "mirror" ? (
                 <>

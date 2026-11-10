@@ -194,7 +194,7 @@ export default function BingoDemoClient() {
                         <div key={f.key} className="flex items-center gap-2.5 rounded-xl bg-white/5 px-2.5 py-1.5 animate-pop-in">
                           <Avatar imageUrl={img(p.avatar)} size={30} />
                           <p className="text-sm leading-tight">
-                            <span className="font-bold">{p.name}</span> <span className="text-emerald-300">✓</span>{" "}
+                            <span className="font-bold">{p.name}</span> <span className="text-emerald-300">(got it)</span>{" "}
                             <span className="text-slate-200">{f.text}</span>
                           </p>
                         </div>
@@ -262,7 +262,7 @@ export default function BingoDemoClient() {
                 .map((i) => winner.player.card[i])
                 .filter((t) => t !== BINGO_FREE)
                 .map((t) => (
-                  <li key={t}>✓ {t}</li>
+                  <li key={t}>{t}</li>
                 ))}
             </ul>
             <p className="mt-3 text-sm font-bold text-black/70">New cards in a few seconds…</p>
