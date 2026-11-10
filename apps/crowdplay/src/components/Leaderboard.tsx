@@ -19,24 +19,20 @@ const PLACEHOLDERS: Spot[] = [
 
 /**
  * Players of the week: the top 5 by XP earned this week around here (the
- * bar's area, e.g. Chicago) or at just this bar, chest up with their names.
+ * bar's area, e.g. Chicago), chest up with their names.
  * Resets every Monday.
  */
 export function Leaderboard() {
   const venue = usePlayerVenue();
-  const atBar = !!venue && venue !== "main";
-  const [scope, setScope] = useState<"area" | "bar">("area");
   const [spots, setSpots] = useState<Spot[] | null>(null);
-  const [area, setArea] = useState("Chicago");
 
   useEffect(() => {
     let cancelled = false;
     const load = () =>
       supabase
-        .rpc("get_leaderboard", { p_venue: venue ?? "main", p_scope: scope, p_device_key: deviceKey() })
+        .rpc("get_leaderboard", { p_venue: venue ?? "main", p_scope: "area", p_device_key: deviceKey() })
         .then(({ data }) => {
           if (cancelled) return;
-          if (data?.[0]) setArea(data[0].o_area);
           const real: Spot[] = (data ?? [])
             .filter((r) => r.o_rank <= 5)
             .map((r) => ({ key: `r${r.o_rank}`, name: r.o_name, emoji: r.o_emoji, imageUrl: r.o_image_url, isMe: r.o_is_me }));
@@ -48,30 +44,14 @@ export function Leaderboard() {
       cancelled = true;
       window.removeEventListener("slimpse:progress", load);
     };
-  }, [venue, scope]);
+  }, [venue]);
 
   if (spots === null) return null;
 
   return (
     <div className="w-full rounded-3xl bg-white/[0.06] border border-white/15 px-3 py-3">
-      <div className="flex items-center justify-between gap-2 px-1">
+      <div className="px-1">
         <p className="text-[11px] font-bold uppercase tracking-widest text-amber-300">Players of the week</p>
-        {atBar ? (
-          <div className="flex rounded-full bg-black/30 p-0.5 text-[11px] font-bold">
-            {(["area", "bar"] as const).map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setScope(s)}
-                className={`rounded-full px-2.5 py-0.5 ${scope === s ? "bg-amber-400 text-black" : "text-slate-300"}`}
-              >
-                {s === "area" ? area : "This bar"}
-              </button>
-            ))}
-          </div>
-        ) : (
-          <span className="text-[11px] font-bold text-slate-400">{area}</span>
-        )}
       </div>
       <div className="mt-3 grid grid-cols-5 gap-1.5 justify-items-center">
         {spots.map((s) => (
