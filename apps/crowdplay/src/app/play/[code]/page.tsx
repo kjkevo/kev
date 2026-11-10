@@ -6,7 +6,7 @@ import { fogUntil, isTwist, twistBanner, twistDescription, twistPersonalLine, ty
 import { TwistBanner, TwistIntro } from "@/components/TwistIntro";
 import { useFogs } from "@/hooks/useFogs";
 import { usePowers, useRoomPowers } from "@/hooks/usePowers";
-import { TeamPowerToasts } from "@/components/TeamPowerToasts";
+import { PowerToasts } from "@/components/PowerToasts";
 import { VenueBanner } from "@/components/VenueBanner";
 import { PowerPanel } from "@/components/PowerPanel";
 import { powerErrorText } from "@/lib/powers";
@@ -92,7 +92,7 @@ export default function PlayPage() {
   return (
     <>
       <PlayPageBody />
-      <TeamPowerToasts code={params?.code?.toUpperCase() ?? null} />
+      <PowerToasts code={params?.code?.toUpperCase() ?? null} />
     </>
   );
 }
