@@ -164,6 +164,8 @@ export default function TriviaLandingClient() {
 
   return (
     <Shell>
+      {/* Signing in brings a saved level, streak and characters to this phone. */}
+      <AccountLink />
       <MyCharacterButton />
 
       <div className="w-full flex flex-col md:flex-row items-center md:items-stretch justify-center gap-6">
@@ -225,9 +227,6 @@ export default function TriviaLandingClient() {
             {teamButton.label}
           </button>
         </div>
-
-        {/* Signing in brings a saved level, streak and characters to this phone. */}
-        <AccountLink />
       </div>
 
       {/* On a laptop or TV: the code people scan with their phones to get here. */}
