@@ -36,7 +36,7 @@ export function AvatarPicker({
       <CharacterCarousel
         avatars={avatars}
         selectedId={selectedId}
-        buttonLabel={(a) => (a.id === selectedId ? "Equipped ✓" : a.owned ? "Equip" : unlockLabel(a))}
+        buttonLabel={(a) => (a.id === selectedId ? "Equipped" : a.owned ? "Equip" : unlockLabel(a))}
         onButton={(a) => (a.owned ? onSelect(a.id) : onBuy?.(a))}
         onView={setViewing}
       />

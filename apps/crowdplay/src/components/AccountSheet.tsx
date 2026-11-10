@@ -145,7 +145,7 @@ export function AccountSheet({ onClose, signIn = false }: { onClose: () => void;
 
         {step === "done" && (
           <>
-            <p className="text-4xl">✅</p>
+            
             <p className="mt-2 text-2xl font-black">{merged ? "Welcome back!" : "Progress saved"}</p>
             <p className="mt-1 text-sm text-slate-300">
               {merged

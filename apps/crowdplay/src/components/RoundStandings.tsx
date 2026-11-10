@@ -135,7 +135,7 @@ export function RoundStandings({
                     big ? "text-xl px-4 py-1" : "text-[11px] px-2 py-0.5"
                   }`}
                 >
-                  👑 {isMine ? (members.length > 1 ? "Your team took the lead!" : "You took the lead!") : "Took the lead!"}
+                  {isMine ? (members.length > 1 ? "Your team took the lead!" : "You took the lead!") : "Took the lead!"}
                 </span>
               )}
               {tagsFor(r.teamId).map((tag) => (
@@ -170,7 +170,7 @@ export function RoundStandings({
                           // eslint-disable-next-line @next/next/no-img-element -- small face icon
                           <img src={face} alt="" className="w-full h-full object-cover" />
                         ) : (
-                          <span className="w-full h-full flex items-center justify-center text-xl">{a?.emoji ?? "🙂"}</span>
+                          <span className="w-full h-full flex items-center justify-center text-xl">{a?.emoji ?? ""}</span>
                         )}
                       </div>
                     );

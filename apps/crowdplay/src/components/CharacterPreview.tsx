@@ -36,7 +36,7 @@ export function CharacterPreview({
       <div className="w-full max-w-sm flex flex-col items-center gap-3 text-white" onClick={(e) => e.stopPropagation()}>
         <p className="text-2xl font-black">{avatar.name}</p>
         {locked && avatar.unlockLevel && (
-          <p className="-mt-2 text-sm font-bold text-amber-300">🔒 Free at Level {avatar.unlockLevel}</p>
+          <p className="-mt-2 text-sm font-bold text-amber-300">Free at Level {avatar.unlockLevel}</p>
         )}
         <EmoteCharacter
           avatarId={avatar.id}
@@ -66,7 +66,7 @@ export function CharacterPreview({
               disabled={equipped}
               className="flex-1 rounded-2xl bg-amber-400 text-black py-3 font-black disabled:opacity-60 active:scale-95 transition"
             >
-              {equipped ? "Equipped ✓" : equipLabel}
+              {equipped ? "Equipped" : equipLabel}
             </button>
           )}
         </div>

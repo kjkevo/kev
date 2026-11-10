@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { Icon } from "@/components/Icon";
 import { deviceKey } from "@/lib/device";
 import { PERK_ERRORS, perkInfo, rememberPerk, rememberedPerk } from "@/lib/perks";
 import type { PlayerCredentials, Player } from "@/lib/types";
@@ -93,7 +94,9 @@ export function PerkPicker({ roomId, creds, me }: { roomId: string; creds: Playe
             isOn ? "bg-emerald-400/15 border border-emerald-400/60" : row.unlocked ? "bg-white/5 border border-white/10" : "bg-black/30 border border-white/5"
           }`}
         >
-          <span className={`text-4xl ${row.unlocked ? "" : "grayscale opacity-50"}`}>{info?.icon ?? "✨"}</span>
+          <span className={row.unlocked ? "text-amber-300" : "text-slate-500"}>
+            <Icon name={info?.icon ?? "bolt"} size={40} />
+          </span>
           <span className={`font-black ${row.unlocked ? "" : "text-slate-400"}`}>{row.name}</span>
           <span className="text-xs text-slate-300 leading-snug">{info?.how}</span>
           {row.unlocked ? (
@@ -105,10 +108,10 @@ export function PerkPicker({ roomId, creds, me }: { roomId: string; creds: Playe
                 isOn ? "bg-emerald-400 text-black" : "bg-amber-400 text-black"
               }`}
             >
-              {isOn ? "Equipped ✓" : "Equip"}
+              {isOn ? "Equipped" : "Equip"}
             </button>
           ) : (
-            <span className="mt-1 rounded-full bg-white/10 px-4 py-1.5 text-sm font-bold text-slate-300">🔒 Level {row.level}</span>
+            <span className="mt-1 rounded-full bg-white/10 px-4 py-1.5 text-sm font-bold text-slate-300">Unlocks at Level {row.level}</span>
           )}
         </div>
         <button type="button" onClick={() => go(1)} aria-label="Next perk" className="w-9 h-9 shrink-0 rounded-full bg-white/10 text-xl font-black active:scale-90">
@@ -192,12 +195,12 @@ export function PerkButton({
   if (!info.active) {
     return (
       <p className="self-center rounded-full bg-emerald-400/10 border border-emerald-400/30 px-3 py-1 text-xs font-bold text-emerald-200">
-        {info.icon} {info.name} {used ? "used" : "is on"}
+        {info.name} {used ? "used" : "is on"}
       </p>
     );
   }
   if (used) {
-    return <p className="self-center text-xs font-bold text-slate-500">{info.icon} {info.name} used</p>;
+    return <p className="self-center text-xs font-bold text-slate-500">{info.name} used</p>;
   }
 
   async function use() {
@@ -226,7 +229,7 @@ export function PerkButton({
         disabled={busy}
         className="rounded-full bg-emerald-500/20 border border-emerald-400/60 px-4 py-2 text-sm font-bold text-emerald-100 active:scale-95 transition disabled:opacity-60"
       >
-        {info.icon} Use {info.name}
+        Use {info.name}
       </button>
       {note && <p className="text-xs font-bold text-amber-300">{note}</p>}
     </div>

@@ -33,7 +33,6 @@ import { useAvatars, useEquippedAvatar, type AvatarOption } from "@/hooks/useAva
 import { JoinSteps, JOINED_BEFORE_KEY } from "@/components/JoinSteps";
 import { CharacterBuddy, type CharacterMood } from "@/components/CharacterBuddy";
 import { AvatarPicker } from "@/components/AvatarPicker";
-import { Shoutouts } from "@/components/Shoutouts";
 import { deviceKey } from "@/lib/device";
 import { BuySheet } from "@/components/BuySheet";
 import { JoinQRCode } from "@/components/JoinQRCode";
@@ -1146,7 +1145,7 @@ function PlayPageBody() {
                 {
                   key: "perks" as const,
                   label: "Perks",
-                  icon: me?.perk && perkInfo(me.perk) ? <span className="text-3xl leading-none">{perkInfo(me.perk)!.icon}</span> : <Icon name="bolt" size={30} />,
+                  icon: <Icon name={perkInfo(me?.perk)?.icon ?? "bolt"} size={30} />,
                   sub: me?.perk ? perkInfo(me.perk)?.name ?? "Equipped" : "None on",
                 },
                 {
@@ -1258,7 +1257,6 @@ function PlayPageBody() {
             </div>
           )}
 
-          <Shoutouts roomId={room.id} creds={creds} />
         </div>
       </Center>
     );
@@ -1505,7 +1503,7 @@ function PlayPageBody() {
                         {teamVotes > 0 && teammates.length > 1 && (
                           <span className={`float-right text-sm font-bold mt-1 ${mine ? "text-black/70" : "text-amber-300"}`}>
                             {teamVotes} {teamVotes === 1 ? "vote" : "votes"}
-                            {mine ? " ✓" : ""}
+                            
                           </span>
                         )}
                       </button>
@@ -1557,7 +1555,7 @@ function PlayPageBody() {
                 disabled={!canVote}
                 className="rounded-2xl bg-amber-400 text-black font-black text-2xl py-5 disabled:opacity-40 active:scale-95 transition"
               >
-                {sendingVote ? "Sending…" : !myVote ? "Lock in" : canVote ? "Switch to this" : "Sent ✓"}
+                {sendingVote ? "Sending…" : !myVote ? "Lock in" : canVote ? "Switch to this" : "Sent"}
               </button>
               {voteError && <p className="text-center text-sm text-rose-400">{voteError}</p>}
             </form>
@@ -1663,7 +1661,7 @@ function PlayPageBody() {
                         o.mine ? "bg-amber-400 text-black" : canPick ? "bg-white text-black" : "bg-white/10 text-slate-400"
                       }`}
                     >
-                      {o.mine ? "Your vote ✓" : "Vote"}
+                      {o.mine ? "Your vote" : "Vote"}
                     </span>
                   </button>
                 );
@@ -1723,7 +1721,7 @@ function PlayPageBody() {
                     {!v || isMe
                       ? ""
                       : sameAsMine
-                        ? "✓"
+                        ? "Same"
                         : locked || countdown.expired
                           ? `${votes} vote${votes === 1 ? "" : "s"}`
                           : `${votes} vote${votes === 1 ? "" : "s"} · Vote`}
@@ -1745,7 +1743,6 @@ function PlayPageBody() {
             />
           </div>
           <div className="mt-3 flex justify-center">
-            <Shoutouts roomId={room.id} creds={creds} compact />
           </div>
         </div>
         {confirmingQuit && <QuitConfirm onCancel={() => setConfirmingQuit(false)} onConfirm={() => leaveRoom("/trivia")} />}
@@ -1932,7 +1929,7 @@ function PlayPageBody() {
                 <span>
                   Your answers:{" "}
                   <span className="font-bold text-emerald-400">
-                    {myRecap.filter((r) => r.o_team_correct).length}/{myRecap.length} ✓
+                    {myRecap.filter((r) => r.o_team_correct).length}/{myRecap.length} right
                   </span>
                 </span>
                 <span className="text-xs font-bold text-indigo-300">See all ▾</span>

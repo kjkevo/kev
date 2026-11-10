@@ -8,7 +8,7 @@ import { emotesFor } from "@/lib/emotes";
 export type Streak = { count: number; n: number; saved?: boolean };
 
 /**
- * "🔥 3 in a row!": your character pops in at the lower left and does its
+ * "3 in a row!": your character pops in at the lower left and does its
  * emote. Teammates see it too (with their own character), since the streak
  * belongs to the team. Stays on screen across the reveal and scores.
  */
@@ -50,12 +50,12 @@ export function StreakMoment({
         <div className="pb-1 text-left">
           {shown.saved ? (
             <>
-              <p className="text-xl font-black leading-tight">🛡️ Streak saved!</p>
-              <p className="text-xs font-bold text-orange-100">Still 🔥 {shown.count} in a row</p>
+              <p className="text-xl font-black leading-tight">Streak saved!</p>
+              <p className="text-xs font-bold text-orange-100">Still {shown.count} in a row</p>
             </>
           ) : (
             <>
-              <p className="text-xl font-black leading-tight">🔥 {shown.count} in a row!</p>
+              <p className="text-xl font-black leading-tight">{shown.count} in a row!</p>
               <p className="text-xs font-bold text-orange-100">{team ? "Your team is on fire" : "You're on fire"}</p>
             </>
           )}

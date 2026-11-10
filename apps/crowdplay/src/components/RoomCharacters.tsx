@@ -92,9 +92,7 @@ export function LockInStrip({ players, teams, avatars, answered, myTeamId, big =
                 } ${done ? "bg-emerald-500/15 border-emerald-400/50 text-emerald-100" : "bg-white/5 border-white/15 text-slate-300"}`}
               >
                 {done ? (
-                  <span className={`rounded-full bg-emerald-400 text-black font-black flex items-center justify-center ${big ? "w-6 h-6 text-sm" : "w-4 h-4 text-[9px]"}`}>
-                    ✓
-                  </span>
+                  <span className={`rounded-full bg-emerald-400 ${big ? "w-5 h-5" : "w-3 h-3"}`} />
                 ) : (
                   <span aria-hidden="true" className={`rounded-full border-2 border-slate-500 ${big ? "w-5 h-5" : "w-3 h-3"}`} />
                 )}
@@ -208,14 +206,14 @@ export function PickYourCorner({ reveal, players, teams, avatars, myId, myTeamId
         <p className={`font-black text-emerald-300 break-words ${big ? "text-5xl" : "text-3xl"}`}>{reveal.correctAnswer}</p>
         {myTeamId && myTeamPick && (
           <p className={`mt-1 font-bold ${myTeamPick.teamCorrect ? "text-emerald-300" : "text-rose-300"}`}>
-            {myTeamPick.teamCorrect ? "Your team got it ✓" : "Your team missed it"}
+            {myTeamPick.teamCorrect ? "Your team got it" : "Your team missed it"}
           </p>
         )}
         {myId && (
           <p className="mt-0.5 text-sm text-slate-300">
             {!myPick?.label
               ? "You didn't answer this one"
-              : <>You said <span className="font-bold text-white">{capitalize(myPick.label)}</span> {myPick.correct ? "✓" : "✗"}</>}
+              : <>You said <span className="font-bold text-white">{capitalize(myPick.label)}</span> {myPick.correct ? "(right)" : "(wrong)"}</>}
           </p>
         )}
       </div>

@@ -33,7 +33,7 @@ export function ChestUp({
           />
         ) : (
           <span className="absolute inset-0 flex items-center justify-center" style={{ fontSize: width * 0.55 }}>
-            {emoji ?? "🙂"}
+            {emoji ?? ""}
           </span>
         )}
       </div>

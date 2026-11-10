@@ -22,7 +22,7 @@ export function ProgressCard() {
             <span className="rounded-full bg-amber-400 text-black text-sm font-black px-3 py-0.5">Level {p.level}</span>
             {p.streak > 0 && (
               <span className="text-sm font-black text-orange-300">
-                🔥 {p.streak}-day streak
+                {p.streak}-day streak
               </span>
             )}
           </div>
@@ -47,7 +47,7 @@ export function ProgressCard() {
 
       <div className="mt-2 pt-2 border-t border-white/10 text-center text-xs">
         {p.saved ? (
-          <span className="text-slate-400">✓ Saved to {p.email}</span>
+          <span className="text-slate-400">Saved to {p.email}</span>
         ) : p.games > 0 ? (
           <>
             <button type="button" onClick={() => setSheet("save")} className="font-bold text-amber-300">

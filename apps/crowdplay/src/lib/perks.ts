@@ -1,3 +1,5 @@
+import type { IconName } from "@/components/Icon";
+
 /**
  * Perks: extra power-ups unlocked by leveling up (never sold). A player
  * equips one per game, on top of their character's power, and it can be
@@ -9,7 +11,7 @@ export type PerkKey = "time_freeze" | "streak_saver" | "comeback" | "mirror" | "
 export type PerkInfo = {
   key: PerkKey;
   name: string;
-  icon: string;
+  icon: IconName;
   how: string;
   /** Tapped during a question (others work on their own). */
   active: boolean;
@@ -18,12 +20,12 @@ export type PerkInfo = {
 };
 
 export const PERKS: Record<PerkKey, PerkInfo> = {
-  time_freeze: { key: "time_freeze", name: "Time Freeze", icon: "⏱️", how: "+10 seconds on the clock", active: true, when: "After the first 10 seconds" },
-  streak_saver: { key: "streak_saver", name: "Streak Saver", icon: "🛡️", how: "One wrong answer won't break your 🔥 streak", active: false },
-  comeback: { key: "comeback", name: "Comeback Kid", icon: "📈", how: "+500 if your team is in the bottom half", active: true, when: "From halfway through the game" },
-  mirror: { key: "mirror", name: "Mirror", icon: "🪞", how: "A Void Rift on your team bounces back", active: false },
-  all_in: { key: "all_in", name: "All In", icon: "🎲", how: "Bet half your score: right wins it, wrong loses it", active: true, when: "Before your team answers" },
-  xp_surge: { key: "xp_surge", name: "XP Surge", icon: "⚡", how: "1.5× XP this game", active: false },
+  time_freeze: { key: "time_freeze", name: "Time Freeze", icon: "clock", how: "+10 seconds on the clock", active: true, when: "After the first 10 seconds" },
+  streak_saver: { key: "streak_saver", name: "Streak Saver", icon: "flame", how: "One wrong answer won't break your streak", active: false },
+  comeback: { key: "comeback", name: "Comeback Kid", icon: "up", how: "+500 if your team is in the bottom half", active: true, when: "From halfway through the game" },
+  mirror: { key: "mirror", name: "Mirror", icon: "swap", how: "A Void Rift on your team bounces back", active: false },
+  all_in: { key: "all_in", name: "All In", icon: "target", how: "Bet half your score: right wins it, wrong loses it", active: true, when: "Before your team answers" },
+  xp_surge: { key: "xp_surge", name: "XP Surge", icon: "bolt", how: "1.5× XP this game", active: false },
 };
 
 export function perkInfo(key: string | null | undefined): PerkInfo | null {

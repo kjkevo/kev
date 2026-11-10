@@ -37,7 +37,7 @@ export function SuddenDeathResultList({
                 {p.answer ?? "No answer"}
               </p>
             </div>
-            <span className={big ? "text-4xl" : "text-2xl"}>{p.correct ? "✓" : "✗"}</span>
+            <span className={big ? "text-4xl" : "text-2xl"}>{p.correct ? "Right" : "Wrong"}</span>
           </div>
         );
       })}

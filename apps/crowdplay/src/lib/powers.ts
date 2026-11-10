@@ -99,7 +99,7 @@ export function powerResultLine(key: string, data: PowerData | null | undefined)
       return "Free clue below";
     case "rift":
       return d.mirrored
-        ? `🪞 ${d.target_name ?? "They"} had a Mirror: you lost ${d.amount ?? 0}`
+        ? `${d.target_name ?? "They"} had a Mirror: you lost ${d.amount ?? 0}`
         : `Stole ${d.amount ?? 300} from ${d.target_name ?? "the leader"}`;
     case "overclock":
       return "Double points if right";
@@ -144,7 +144,7 @@ export function powerPublicLine(key: string, amount: number, targetName?: string
  * missing) score explains itself. The team that lost points to a Void Rift
  * gets its own tag. */
 export function powerScoreTag(key: string, amount: number, stolenFrom: boolean): string {
-  if (key === "rift" && amount < 0) return stolenFrom ? `+${-amount} 🪞 Mirror` : `−${-amount} 🪞 mirrored`;
+  if (key === "rift" && amount < 0) return stolenFrom ? `+${-amount} Mirror` : `−${-amount} mirrored`;
   if (key === "rift") return stolenFrom ? `−${amount} stolen` : `+${amount} stolen`;
   const p = powerByKey(key);
   const what: Record<string, string> = {

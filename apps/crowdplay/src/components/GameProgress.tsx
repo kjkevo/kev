@@ -90,7 +90,7 @@ export function GameProgress({
         </div>
         {earned.streak > 0 && (
           <p className="mt-2 text-sm font-black text-orange-300">
-            🔥 {earned.streak}-day streak{earned.streak === 1 ? ". Come back tomorrow!" : ""}
+            {earned.streak}-day streak{earned.streak === 1 ? ". Come back tomorrow!" : ""}
           </p>
         )}
       </div>
