@@ -1,10 +1,7 @@
 /* eslint-disable @next/next/no-img-element -- small static game icon */
 import Link from "next/link";
-import { MyCharacterButton } from "@/components/CharacterLocker";
 import { MonthlyChampion } from "@/components/MonthlyChampion";
 import { Leaderboard } from "@/components/Leaderboard";
-import { ProgressCard } from "@/components/ProgressCard";
-import { ScanCards } from "@/components/ScanCards";
 import { Icon } from "@/components/Icon";
 import { VenueBanner } from "@/components/VenueBanner";
 
@@ -21,11 +18,6 @@ export default function Home() {
       {/* A bar's own logo, welcome line and prize (?venue=...). */}
       <VenueBanner />
 
-      <MyCharacterButton />
-
-      <div className="w-full max-w-sm">
-        <ProgressCard />
-      </div>
 
       <div className="w-full max-w-sm flex flex-col gap-3">
         {/* The games, side by side: Trivia (live) and Mixer (coming soon). */}
@@ -51,12 +43,6 @@ export default function Home() {
 
         <MonthlyChampion />
         <Leaderboard />
-      </div>
-
-      {/* On a laptop or TV: codes people can scan with their phones. */}
-      <div className="hidden md:flex flex-col items-center gap-3 mt-4">
-        <p className="text-sm uppercase tracking-widest text-indigo-200">Or scan with your phone camera</p>
-        <ScanCards />
       </div>
     </main>
   );
