@@ -117,9 +117,10 @@ export function RoundStandings({
         {ranks.map((rank, i) => {
           const r = rows.find((x) => x.rank === rank)!;
           const members = membersOf(r.teamId);
-          // Chest-up frames: one player fills the column; teams share it (3-4 in a 2x2 grid).
+          // A solo player gets one big chest-up frame; a team's players stand
+          // side by side in one row, each as their framed face.
           const n = members.length;
-          const size = Math.round((n <= 1 ? (big ? 170 : 84) : n === 2 ? (big ? 120 : 54) : big ? 90 : 48) * (rank === 1 ? 1.1 : 1));
+          const size = Math.round((n <= 1 ? (big ? 170 : 84) : big ? 110 : 56) * (rank === 1 ? 1.1 : 1));
           const isMine = r.teamId === myTeamId;
           const tookLead = rank === 1 && r.teamId === newLeader;
           return (
@@ -152,35 +153,58 @@ export function RoundStandings({
                   +{r.points.toLocaleString()}
                 </span>
               )}
-              <div
-                className={`mb-1 ${members.length >= 3 ? "grid grid-cols-2 gap-1 justify-items-center" : "flex justify-center gap-1"}`}
-              >
-                {members.map((p) => {
-                  const a = p.avatar_id ? avatars[p.avatar_id] : undefined;
-                  // Each character plays its own first emote when its team takes the lead.
-                  const emote = emotesFor(p.avatar_id)[0];
-                  // Chest up: the full figure scaled up and pinned to the top of a frame.
-                  return (
-                    <div
-                      key={p.id}
-                      className={`relative overflow-hidden rounded-xl bg-gradient-to-b from-white/15 to-white/[0.03] ${
-                        isMine ? "ring-2 ring-white/80" : "ring-1 ring-white/15"
-                      }`}
-                      style={{ width: size, height: Math.round(size * 0.9) }}
-                    >
-                      <div className="absolute left-1/2 top-0 -translate-x-1/2">
-                        <EmoteCharacter
-                          avatarId={p.avatar_id}
-                          emoji={a?.emoji}
-                          imageUrl={a?.imageUrl}
-                          size={Math.round(size * 2.3)}
-                          play={tookLead && leadPlay && emote ? playFor(p.id, emote.id, leadPlay.n) : null}
-                        />
+              {n >= 2 ? (
+                <div className="mb-1 w-full flex justify-center gap-0.5 px-0.5">
+                  {members.map((p) => {
+                    const a = p.avatar_id ? avatars[p.avatar_id] : undefined;
+                    const face = a?.imageUrl?.replace(/-256\.png$/, "-icon.png");
+                    return (
+                      <div
+                        key={p.id}
+                        className={`flex-1 min-w-0 aspect-square overflow-hidden rounded-lg bg-white/10 ${
+                          isMine ? "ring-2 ring-white/80" : "ring-1 ring-white/15"
+                        } ${tookLead ? "animate-bounce" : ""}`}
+                        style={{ maxWidth: size }}
+                      >
+                        {face ? (
+                          // eslint-disable-next-line @next/next/no-img-element -- small face icon
+                          <img src={face} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="w-full h-full flex items-center justify-center text-xl">{a?.emoji ?? "🙂"}</span>
+                        )}
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="mb-1 flex justify-center">
+                  {members.map((p) => {
+                    const a = p.avatar_id ? avatars[p.avatar_id] : undefined;
+                    // Each character plays its own first emote when its team takes the lead.
+                    const emote = emotesFor(p.avatar_id)[0];
+                    // Chest up: the full figure scaled up and pinned to the top of a frame.
+                    return (
+                      <div
+                        key={p.id}
+                        className={`relative overflow-hidden rounded-xl bg-gradient-to-b from-white/15 to-white/[0.03] ${
+                          isMine ? "ring-2 ring-white/80" : "ring-1 ring-white/15"
+                        }`}
+                        style={{ width: size, height: Math.round(size * 0.9) }}
+                      >
+                        <div className="absolute left-1/2 top-0 -translate-x-1/2">
+                          <EmoteCharacter
+                            avatarId={p.avatar_id}
+                            emoji={a?.emoji}
+                            imageUrl={a?.imageUrl}
+                            size={Math.round(size * 2.3)}
+                            play={tookLead && leadPlay && emote ? playFor(p.id, emote.id, leadPlay.n) : null}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
               <div
                 className={`w-full rounded-t-xl flex flex-col items-center gap-0.5 px-1 pt-1.5 ${BLOCK[rank]} ${HEIGHT[rank][big ? 1 : 0]} ${
                   isMine ? "ring-4 ring-white/80" : ""
