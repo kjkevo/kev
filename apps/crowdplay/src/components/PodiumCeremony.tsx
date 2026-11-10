@@ -24,7 +24,7 @@ const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 /**
  * The end-of-game podium, revealed 3rd, 2nd, then 1st. Each podium zips into
  * the middle of the screen, zoomed in with a glow, and its player (or whole
- * team) plays an emote; then it zips to its place (2nd left, 1st middle,
+ * team) plays an emote all the way through; then it zips to its place (2nd left, 1st middle,
  * 3rd right). Podiums already placed wait in the background, dimmed, until
  * the last one lands. 1st place gets a drumroll beat first. Solo players
  * show their own name; teams show the team name.
@@ -86,8 +86,11 @@ export function PodiumCeremony({
         onReveal?.(rank);
         await sleep(650);
         if (cancelled) return;
-        // Everyone on this podium emotes at once.
+        // Everyone on this podium emotes at once, and the podium stays in the
+        // middle until the longest emote has played start to finish.
         const team = top[rank - 1];
+        const emoteMs = Math.max(0, ...membersOf(team).map((p) => emotesFor(p.avatar_id)[0]?.durationMs ?? 0));
+        const holdMs = Math.max(2500, emoteMs + 400);
         setPlays((prev) => {
           const next = { ...prev };
           for (const p of membersOf(team)) {
@@ -96,7 +99,18 @@ export function PodiumCeremony({
           }
           return next;
         });
-        await sleep(rank === 1 ? 4200 : 3600);
+        if (rank === 1) {
+          // 1st stays out front for its whole emote while the rest of the
+          // results (and Play again) come up underneath.
+          await sleep(1200);
+          if (cancelled) return;
+          onDone?.();
+          await sleep(holdMs - 1200);
+          if (cancelled) return;
+          set(rank, "placed");
+          return;
+        }
+        await sleep(holdMs);
         if (cancelled) return;
         set(rank, "placed");
         await sleep(900);
