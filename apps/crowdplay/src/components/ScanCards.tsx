@@ -23,12 +23,12 @@ export function ScanCards({ venue: venueProp, triviaCode, big = false }: { venue
   const size = big ? 220 : 132;
   return (
     <div className={`flex flex-wrap justify-center ${big ? "gap-10" : "gap-4"}`}>
-      <Card title="Trivia" line={triviaCode ? `Game ${triviaCode} · scan to join` : "Solo or teams"} url={trivia} size={size} big={big} accent />
+      <Card title="Trivia" line={triviaCode ? `Game ${triviaCode} · scan to join` : null} url={trivia} size={size} big={big} accent />
     </div>
   );
 }
 
-function Card({ title, line, url, size, big, accent = false }: { title: string; line: string; url: string; size: number; big: boolean; accent?: boolean }) {
+function Card({ title, line, url, size, big, accent = false }: { title: string; line: string | null; url: string; size: number; big: boolean; accent?: boolean }) {
   return (
     <div
       className={`flex flex-col items-center rounded-3xl border ${accent ? "border-amber-400/60 bg-amber-400/10" : "border-white/15 bg-white/5"} ${
@@ -39,7 +39,7 @@ function Card({ title, line, url, size, big, accent = false }: { title: string; 
       <div className={`bg-white rounded-2xl ${big ? "p-4" : "p-2"}`}>
         <QRCodeSVG value={url} size={size} />
       </div>
-      <p className={`text-slate-300 font-semibold ${big ? "text-lg" : "text-xs"}`}>{line}</p>
+      {line && <p className={`text-slate-300 font-semibold ${big ? "text-lg" : "text-xs"}`}>{line}</p>}
     </div>
   );
 }
