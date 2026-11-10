@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { ArrivalTracker } from "@/components/ArrivalTracker";
 import { ActivityPing } from "@/components/ActivityPing";
+import { AccountSync } from "@/components/AccountSync";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -17,7 +18,7 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   title: "Slimpse",
-  description: "Live trivia for bars and events. No app, no login, just a phone.",
+  description: "Live trivia for bars and events. No app needed, just a phone.",
 };
 
 export default function RootLayout({
@@ -32,6 +33,7 @@ export default function RootLayout({
       >
         <ArrivalTracker />
         <ActivityPing />
+        <AccountSync />
         {children}
         {/* Only the staging (test) site sets this, so it can never be
             mistaken for the live one players use at the bar. */}

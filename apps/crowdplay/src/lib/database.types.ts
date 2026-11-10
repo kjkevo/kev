@@ -609,7 +609,64 @@ export type Database = {
       }
       list_avatars: {
         Args: { p_device_key: string }
-        Returns: { o_id: string; o_name: string; o_emoji: string | null; o_image_url: string | null; o_price_cents: number; o_owned: boolean }[]
+        Returns: { o_id: string; o_name: string; o_emoji: string | null; o_image_url: string | null; o_price_cents: number; o_owned: boolean; o_unlock_level: number | null }[]
+      }
+      get_my_progress: {
+        Args: { p_device_key: string }
+        Returns: {
+          o_level: number
+          o_xp: number
+          o_level_xp: number
+          o_next_level_xp: number
+          o_streak: number
+          o_best_streak: number
+          o_played_today: boolean
+          o_games: number
+          o_wins: number
+          o_saved: boolean
+          o_email: string | null
+          o_next_unlock_id: string | null
+          o_next_unlock_name: string | null
+          o_next_unlock_level: number | null
+        }[]
+      }
+      get_game_progress: {
+        Args: { p_room_id: string; p_device_key: string }
+        Returns: {
+          o_xp_gained: number
+          o_correct: number
+          o_place: number | null
+          o_level: number
+          o_level_before: number
+          o_xp: number
+          o_level_xp: number
+          o_next_level_xp: number
+          o_streak: number
+          o_games: number
+          o_saved: boolean
+          o_unlocked_ids: string[]
+          o_unlocked_names: string[]
+        }[]
+      }
+      get_leaderboard: {
+        Args: { p_venue: string; p_scope: string; p_device_key: string }
+        Returns: {
+          o_rank: number
+          o_name: string
+          o_avatar_id: string | null
+          o_image_url: string | null
+          o_emoji: string | null
+          o_xp: number
+          o_games: number
+          o_wins: number
+          o_is_me: boolean
+          o_area: string
+          o_resets_at: string
+        }[]
+      }
+      link_account: {
+        Args: { p_device_key: string }
+        Returns: { o_merged: boolean; o_level: number; o_xp: number }[]
       }
       set_player_avatar: {
         Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_avatar_id: string; p_device_key: string }

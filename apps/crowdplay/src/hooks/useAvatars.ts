@@ -11,6 +11,8 @@ export type AvatarOption = {
   imageUrl: string | null;
   priceCents: number;
   owned: boolean;
+  /** Level that unlocks it for free (null = a starter or buy-only). */
+  unlockLevel: number | null;
 };
 
 /** Every avatar on offer, marked with whether this phone can use it. */
@@ -28,12 +30,17 @@ export function useAvatars() {
             imageUrl: a.o_image_url,
             priceCents: a.o_price_cents,
             owned: a.o_owned,
+            unlockLevel: a.o_unlock_level ?? null,
           }))
         );
     });
   }, []);
 
   useEffect(refresh, [refresh]);
+  useEffect(() => {
+    window.addEventListener("slimpse:progress", refresh);
+    return () => window.removeEventListener("slimpse:progress", refresh);
+  }, [refresh]);
 
   const byId = useMemo(() => Object.fromEntries(avatars.map((a) => [a.id, a])), [avatars]);
   return { avatars, byId, refresh };

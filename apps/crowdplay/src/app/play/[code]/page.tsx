@@ -51,6 +51,7 @@ import { LockInStrip, PickYourCorner, RevealVerdict } from "@/components/RoomCha
 import { JoinDrops } from "@/components/JoinDrops";
 import { PodiumCeremony } from "@/components/PodiumCeremony";
 import { ShareCard } from "@/components/ShareCard";
+import { GameProgress } from "@/components/GameProgress";
 import { EmoteCharacter, EmoteButtons } from "@/components/EmoteCharacter";
 import { useRoomEmotes } from "@/hooks/useRoomEmotes";
 
@@ -1782,6 +1783,8 @@ function PlayPageBody() {
 
         {showRest && (
           <div className="w-full max-w-xs flex flex-col gap-4 mt-6 animate-pop-in">
+            {/* XP, level, streak, new characters, and "Save your progress" for guests. */}
+            <GameProgress roomId={room.id} avatars={avatarsById} />
             {/* Your place is on the card below (Champion, 2nd, ...), so no separate result box. */}
             {/* Personal awards: something for every player, even on a losing team. */}
             {awards && awards.length > 0 && (

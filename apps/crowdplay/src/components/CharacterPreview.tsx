@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { EmoteCharacter, EmoteButtons, type EmotePlay } from "@/components/EmoteCharacter";
-import { formatPrice } from "@/components/AvatarPicker";
+import { unlockLabel } from "@/components/AvatarPicker";
 import { PowerCard } from "@/components/PowerCard";
 import { emotesFor } from "@/lib/emotes";
 import type { AvatarOption } from "@/hooks/useAvatars";
@@ -35,6 +35,9 @@ export function CharacterPreview({
     <div className="fixed inset-0 z-[60] bg-slate-950/95 backdrop-blur-sm flex items-center justify-center px-6" onClick={onClose}>
       <div className="w-full max-w-sm flex flex-col items-center gap-3 text-white" onClick={(e) => e.stopPropagation()}>
         <p className="text-2xl font-black">{avatar.name}</p>
+        {locked && avatar.unlockLevel && (
+          <p className="-mt-2 text-sm font-bold text-amber-300">🔒 Free at Level {avatar.unlockLevel}</p>
+        )}
         <EmoteCharacter
           avatarId={avatar.id}
           emoji={avatar.emoji}
@@ -54,7 +57,7 @@ export function CharacterPreview({
               onClick={onBuy}
               className="flex-1 rounded-2xl bg-amber-400 text-black py-3 font-black active:scale-95 transition"
             >
-              Unlock · {formatPrice(avatar.priceCents)}
+              {unlockLabel(avatar)}
             </button>
           ) : (
             <button
