@@ -49,9 +49,12 @@ export function ProgressCard() {
         {p.saved ? (
           <span className="text-slate-400">✓ Saved to {p.email}</span>
         ) : p.games > 0 ? (
-          <button type="button" onClick={() => setSheet("save")} className="font-bold text-amber-300">
-            Save your progress ›
-          </button>
+          <>
+            <button type="button" onClick={() => setSheet("save")} className="font-bold text-amber-300">
+              Save your progress ›
+            </button>
+            <span className="block text-slate-500">Not saved: resets after 4 hours away</span>
+          </>
         ) : (
           <button type="button" onClick={() => setSheet("signin")} className="text-slate-400 underline">
             Already saved? Sign in

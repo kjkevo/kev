@@ -664,6 +664,10 @@ export type Database = {
           o_resets_at: string
         }[]
       }
+      progress_touch: {
+        Args: { p_device_key: string }
+        Returns: undefined
+      }
       link_account: {
         Args: { p_device_key: string }
         Returns: { o_merged: boolean; o_level: number; o_xp: number }[]
