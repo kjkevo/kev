@@ -19,6 +19,7 @@ import { playerKey, type Player, type Team } from "@/lib/types";
 import { useSeason } from "@/hooks/useSeason";
 import { SeasonChip } from "@/components/SeasonNotice";
 import { LevelChip } from "@/components/LevelChip";
+import { ScanCards } from "@/components/ScanCards";
 
 /**
  * The entry point for anyone without a room code: the venue TV's QR code
@@ -164,6 +165,7 @@ export default function TriviaLandingClient() {
     <Shell>
       <MyCharacterButton />
 
+      <div className="w-full flex flex-col md:flex-row items-center md:items-stretch justify-center gap-6">
       <div className="flex flex-col gap-4 w-full max-w-sm">
         {/* Solo: everyone for themselves, open any time. */}
         <div className="rounded-3xl bg-amber-400/10 border border-amber-400/40 p-4 flex flex-col gap-3">
@@ -224,6 +226,12 @@ export default function TriviaLandingClient() {
         </div>
       </div>
 
+      {/* On a laptop or TV: the code people scan with their phones to get here. */}
+      <div className="hidden md:flex flex-col items-center justify-center gap-3">
+        <p className="text-sm uppercase tracking-widest text-indigo-200">Scan with your phone camera</p>
+        <ScanCards big />
+      </div>
+      </div>
     </Shell>
   );
 }
