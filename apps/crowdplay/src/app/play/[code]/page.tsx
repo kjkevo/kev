@@ -42,7 +42,7 @@ import { Icon } from "@/components/Icon";
 import { usePlayerVenue, useVenueName } from "@/lib/venue";
 import { useSeason } from "@/hooks/useSeason";
 import { Avatar } from "@/components/Avatar";
-import { GetReady } from "@/components/GetReady";
+import { GetReady, GetReadyCharacter } from "@/components/GetReady";
 import { SuddenDeathResultList } from "@/components/SuddenDeath";
 import { useQuestionById } from "@/hooks/useQuestionById";
 import { useAnsweredPlayers } from "@/hooks/useAnsweredPlayers";
@@ -54,6 +54,7 @@ import { ShareCard } from "@/components/ShareCard";
 import { GameProgress } from "@/components/GameProgress";
 import { LevelChip } from "@/components/LevelChip";
 import { StreakMoment, type Streak } from "@/components/StreakMoment";
+import { PerkButton, PerkPicker, useCarryPerk } from "@/components/Perks";
 import { EmoteCharacter, EmoteButtons } from "@/components/EmoteCharacter";
 import { useRoomEmotes } from "@/hooks/useRoomEmotes";
 
@@ -304,7 +305,7 @@ function PlayPageBody() {
   // Right answers in a row for your team (counted once per question while
   // this page is open). At 3 in a row, and every 2 more after that, your
   // character pops up and does its emote.
-  const streakRef = useRef<{ roomId: string; lastIndex: number; count: number }>({ roomId: "", lastIndex: -1, count: 0 });
+  const streakRef = useRef<{ roomId: string; lastIndex: number; count: number; saverUsed: boolean }>({ roomId: "", lastIndex: -1, count: 0, saverUsed: false });
   const [streak, setStreak] = useState<Streak | null>(null);
   useEffect(() => {
     if (revealKey < 0 || !room?.id || !reveal) return;
@@ -313,11 +314,20 @@ function PlayPageBody() {
       s.roomId = room.id;
       s.lastIndex = -1;
       s.count = 0;
+      s.saverUsed = false;
     }
     if (revealKey <= s.lastIndex) return;
     s.lastIndex = revealKey;
-    s.count = myRevealPick?.teamCorrect ? s.count + 1 : 0;
-    if (s.count >= 3 && (s.count - 3) % 2 === 0) setStreak({ count: s.count, n: revealKey });
+    if (myRevealPick?.teamCorrect) {
+      s.count += 1;
+      if (s.count >= 3 && (s.count - 3) % 2 === 0) setStreak({ count: s.count, n: revealKey });
+    } else if (me?.perk === "streak_saver" && !s.saverUsed && s.count >= 2) {
+      // Streak Saver perk: the first miss keeps the streak alive.
+      s.saverUsed = true;
+      setStreak({ count: s.count, n: revealKey, saved: true });
+    } else {
+      s.count = 0;
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [revealKey, room?.id, !!reveal]);
 
@@ -406,6 +416,8 @@ function PlayPageBody() {
   const liveTeams = useLiveTeams(players, teams);
 
   const me = useMemo(() => players.find((p) => p.id === creds?.playerId), [players, creds]);
+  // Bring the perk picked last game into this one.
+  useCarryPerk(room?.id, creds, me);
   // A solo game takes new players right up to its results.
   const soloOpen = !!room && room.mode === "solo" && !room.retired && room.phase !== "final";
   const myTeam = useMemo(() => teams.find((t) => t.id === creds?.teamId), [teams, creds]);
@@ -1194,6 +1206,9 @@ function PlayPageBody() {
             </div>
           )}
 
+          {/* Perks: one extra power-up, unlocked by leveling up. */}
+          <PerkPicker roomId={room.id} creds={creds} me={me} />
+
           {/* Everyone else, with who's ready. */}
           {players.some((p) => !p.left_at && !p.is_bot && p.id !== creds.playerId) && (
             <div className="rounded-2xl bg-white/5 border border-white/10 p-3">
@@ -1216,13 +1231,8 @@ function PlayPageBody() {
         </div>
         <GetReady title="Get Ready" seconds={Math.ceil(questionStart.remainingMs / 1000)} />
         {me?.avatar_id && avatarsById[me.avatar_id] && (
-          <div className="mt-6">
-            <CharacterBuddy
-              emoji={avatarsById[me.avatar_id].emoji}
-              imageUrl={avatarsById[me.avatar_id].imageUrl}
-              mood="hop"
-              size={110}
-            />
+          <div className="mt-4">
+            <GetReadyCharacter emoji={avatarsById[me.avatar_id].emoji} imageUrl={avatarsById[me.avatar_id].imageUrl} />
           </div>
         )}
         {confirmingQuit && <QuitConfirm onCancel={() => setConfirmingQuit(false)} onConfirm={() => leaveRoom("/trivia")} />}
@@ -1562,6 +1572,7 @@ function PlayPageBody() {
             choices={choiceOrder}
             onUse={activatePower}
           />
+          <PerkButton roomId={room.id} questionId={question.id} creds={creds} perk={me?.perk} />
         </div>
 
         <div className="w-full max-w-sm mx-auto">

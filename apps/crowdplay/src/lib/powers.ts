@@ -77,6 +77,8 @@ export type PowerData = {
   amount?: number;
   result?: "right" | "wrong";
   answer?: string;
+  /** Void Rift hit a team with the Mirror perk and bounced back. */
+  mirrored?: boolean;
 };
 
 /** The one-line "what happened" a team sees after a power is used. */
@@ -96,7 +98,9 @@ export function powerResultLine(key: string, data: PowerData | null | undefined)
     case "riddle":
       return "Free clue below";
     case "rift":
-      return `Stole ${d.amount ?? 300} from ${d.target_name ?? "the leader"}`;
+      return d.mirrored
+        ? `🪞 ${d.target_name ?? "They"} had a Mirror: you lost ${d.amount ?? 0}`
+        : `Stole ${d.amount ?? 300} from ${d.target_name ?? "the leader"}`;
     case "overclock":
       return "Double points if right";
     case "second_wind":
@@ -124,7 +128,9 @@ export function powerPublicLine(key: string, amount: number, targetName?: string
     case "riddle":
       return "got a free clue";
     case "rift":
-      return `stole ${amount} from ${targetName ?? "the leader"}`;
+      return amount < 0
+        ? `tried to steal from ${targetName ?? "the leader"}, but it bounced back (−${-amount})`
+        : `stole ${amount} from ${targetName ?? "the leader"}`;
     case "overclock":
       return "double points if right";
     case "second_wind":
@@ -138,6 +144,7 @@ export function powerPublicLine(key: string, amount: number, targetName?: string
  * missing) score explains itself. The team that lost points to a Void Rift
  * gets its own tag. */
 export function powerScoreTag(key: string, amount: number, stolenFrom: boolean): string {
+  if (key === "rift" && amount < 0) return stolenFrom ? `+${-amount} 🪞 Mirror` : `−${-amount} 🪞 mirrored`;
   if (key === "rift") return stolenFrom ? `−${amount} stolen` : `+${amount} stolen`;
   const p = powerByKey(key);
   const what: Record<string, string> = {

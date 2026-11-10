@@ -5,7 +5,7 @@ import { EmoteCharacter, type EmotePlay } from "@/components/EmoteCharacter";
 import { emotesFor } from "@/lib/emotes";
 
 /** A streak to celebrate: how many right in a row, and a counter so each one shows once. */
-export type Streak = { count: number; n: number };
+export type Streak = { count: number; n: number; saved?: boolean };
 
 /**
  * "🔥 3 in a row!": your character pops in at the lower left and does its
@@ -48,8 +48,17 @@ export function StreakMoment({
       <div className="flex items-end gap-2 rounded-2xl bg-gradient-to-br from-orange-500/90 to-rose-600/90 border border-orange-300/70 shadow-xl shadow-orange-500/30 pl-1 pr-3 pt-1 pb-2">
         <EmoteCharacter key={shown.n} avatarId={avatarId} emoji={emoji} imageUrl={imageUrl} size={84} play={play} />
         <div className="pb-1 text-left">
-          <p className="text-xl font-black leading-tight">🔥 {shown.count} in a row!</p>
-          <p className="text-xs font-bold text-orange-100">{team ? "Your team is on fire" : "You're on fire"}</p>
+          {shown.saved ? (
+            <>
+              <p className="text-xl font-black leading-tight">🛡️ Streak saved!</p>
+              <p className="text-xs font-bold text-orange-100">Still 🔥 {shown.count} in a row</p>
+            </>
+          ) : (
+            <>
+              <p className="text-xl font-black leading-tight">🔥 {shown.count} in a row!</p>
+              <p className="text-xs font-bold text-orange-100">{team ? "Your team is on fire" : "You're on fire"}</p>
+            </>
+          )}
         </div>
       </div>
     </div>

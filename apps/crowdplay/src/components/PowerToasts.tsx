@@ -5,9 +5,10 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { powerByKey, powerFace } from "@/lib/powers";
+import { perkInfo } from "@/lib/perks";
 import { playerKey, type PlayerCredentials } from "@/lib/types";
 
-type Toast = { id: string; who: string; power: string; mine: boolean };
+type Toast = { id: string; who: string; power: string; mine: boolean; perk?: boolean };
 
 const SHOW_MS = 5000;
 const MAX_SHOWN = 4;
@@ -46,7 +47,7 @@ export function PowerToasts({ code }: { code: string | null }) {
     if (!creds?.roomId) return;
     const { roomId, teamId, playerId } = creds;
     const names = new Map<string, string>();
-    const show = async (row: { id: string; team_id: string; player_id: string; power: string }) => {
+    const show = async (row: { id: string; team_id: string; player_id: string; power: string }, perk = false) => {
       if (seen.current.has(row.id)) return;
       seen.current.add(row.id);
       let who = "You";
@@ -57,14 +58,18 @@ export function PowerToasts({ code }: { code: string | null }) {
         }
         who = names.get(row.player_id)!;
       }
-      setToasts((prev) => [...prev, { id: row.id, who, power: row.power, mine: row.team_id === teamId }].slice(-MAX_SHOWN));
+      setToasts((prev) => [...prev, { id: row.id, who, power: row.power, mine: row.team_id === teamId, perk }].slice(-MAX_SHOWN));
       setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== row.id)), SHOW_MS);
     };
     // Powers already used before this phone started listening don't pop up.
     let primed = false;
     const roomPowers = () => supabase.from("trivia_powers").select("id, team_id, player_id, power").eq("room_id", roomId);
-    roomPowers().then(({ data }) => {
-      data?.forEach((r) => seen.current.add(r.id));
+    // Perks (Time Freeze, All In, a Mirror going off...) show the same way.
+    const roomPerks = () => supabase.from("trivia_perks").select("id, team_id, player_id, perk").eq("room_id", roomId);
+    const asPower = (r: { id: string; team_id: string; player_id: string; perk: string }) => ({ ...r, power: r.perk });
+    Promise.all([roomPowers(), roomPerks()]).then(([a, b]) => {
+      a.data?.forEach((r) => seen.current.add(r.id));
+      b.data?.forEach((r) => seen.current.add(r.id));
       primed = true;
     });
     const channel = supabase
@@ -72,10 +77,15 @@ export function PowerToasts({ code }: { code: string | null }) {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "trivia_powers", filter: `room_id=eq.${roomId}` }, (payload) =>
         show(payload.new as { id: string; team_id: string; player_id: string; power: string })
       )
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "trivia_perks", filter: `room_id=eq.${roomId}` }, (payload) =>
+        show(asPower(payload.new as { id: string; team_id: string; player_id: string; perk: string }), true)
+      )
       .subscribe();
     // Backup for a phone without a live connection (busy nights): check every few seconds.
     const poll = setInterval(() => {
-      if (primed) roomPowers().then(({ data }) => data?.forEach((r) => show(r)));
+      if (!primed) return;
+      roomPowers().then(({ data }) => data?.forEach((r) => show(r)));
+      roomPerks().then(({ data }) => data?.forEach((r) => show(asPower(r), true)));
     }, 4000);
     return () => {
       clearInterval(poll);
@@ -87,8 +97,9 @@ export function PowerToasts({ code }: { code: string | null }) {
   return (
     <div className="fixed right-2 bottom-20 z-50 flex flex-col items-end gap-1.5 pointer-events-none">
       {toasts.map((t) => {
-        const power = powerByKey(t.power);
-        const face = powerFace(t.power);
+        const power = t.perk ? null : powerByKey(t.power);
+        const face = t.perk ? null : powerFace(t.power);
+        const perk = t.perk ? perkInfo(t.power) : null;
         return (
           <div
             key={t.id}
@@ -97,10 +108,20 @@ export function PowerToasts({ code }: { code: string | null }) {
             }`}
           >
             {face && <img src={face} alt="" className="w-7 h-7 shrink-0 rounded-full bg-black/30 object-cover" />}
+            {perk && <span className="w-7 h-7 shrink-0 rounded-full bg-black/30 flex items-center justify-center text-base">{perk.icon}</span>}
             <p className="min-w-0 truncate text-xs text-white">
-              <span className="font-bold">{t.who}</span>
-              <span className="text-white/70"> used </span>
-              <span className="font-black">{power?.name ?? "a power"}</span>
+              {perk?.key === "mirror" ? (
+                <>
+                  <span className="font-bold">{t.who === "You" ? "Your" : `${t.who}'s`}</span>
+                  <span className="text-white/70"> <span className="font-black text-white">Mirror</span> bounced a Void Rift</span>
+                </>
+              ) : (
+                <>
+                  <span className="font-bold">{t.who}</span>
+                  <span className="text-white/70"> used </span>
+                  <span className="font-black">{perk?.name ?? power?.name ?? "a power"}</span>
+                </>
+              )}
             </p>
           </div>
         );
