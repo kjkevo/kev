@@ -70,6 +70,24 @@ export function twistPersonalLine(twist: Twist, ctx: TwistContext): string | nul
   return null;
 }
 
+/** One plain sentence saying what the twist means, shown under its banner every time. */
+export function twistExplain(twist: Twist): string {
+  switch (twist) {
+    case "lightning":
+      return "Three quick questions in a row, each worth double points.";
+    case "comeback":
+      return "The team in last place earns 1.5 times the points on this question.";
+    case "bounty":
+      return "If the leader gets this wrong, every team that gets it right earns 500 extra points.";
+    case "golden":
+      return "This question is worth triple points.";
+    case "captain":
+      return "Only one player on each team, the captain, can answer this one.";
+    case "sabotage":
+      return "Tap a rival team to cover their answers for 3 seconds.";
+  }
+}
+
 /** The short banner during the question and the reveal. */
 export function twistBanner(twist: Twist, seq: number | null | undefined, ctx: TwistContext): string {
   const targets = (ctx.twistTeams ?? []).map(ctx.teamName);
