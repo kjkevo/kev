@@ -12,7 +12,6 @@ import { powerByKey, powerFace, powerResultLine, type PowerData } from "@/lib/po
 export function PowerPanel({
   myPower,
   myUsedQuestion,
-  questionId,
   teamPower,
   usedByName,
   locked,
@@ -70,9 +69,7 @@ export function PowerPanel({
                 </div>
               );
             })}
-            <p className="text-[11px] text-slate-400 text-center">
-              {total === 0 ? "Waiting for votes… they appear here live" : `${total} ${total === 1 ? "vote" : "votes"} so far · updates live`}
-            </p>
+            <p className="text-sm text-slate-300 text-center">{total === 0 ? "Waiting for votes" : `${total} ${total === 1 ? "vote" : "votes"}`}</p>
           </div>
         )}
       </div>
@@ -82,9 +79,7 @@ export function PowerPanel({
   if (!mine) return null;
   if (myUsedQuestion) {
     return (
-      <p className="text-center text-xs text-slate-500">
-        {mine.name} used{myUsedQuestion === questionId ? "" : " earlier this game"}
-      </p>
+      <p className="text-center text-sm text-slate-400">{mine.name} used</p>
     );
   }
   if (expired) return null;
@@ -140,9 +135,9 @@ export function PowerPanel({
           <Avatar imageUrl={powerFace(mine.key)} size={36} />
           <span className="flex-1 min-w-0">
             <span className="block text-sm font-black text-violet-200">Power: {mine.name}</span>
-            <span className="block text-xs text-slate-300 leading-snug">{reason ?? mine.how}</span>
+            <span className="block text-base text-white leading-snug">{reason ?? mine.how}</span>
           </span>
-          {!reason && <span className="rounded-full bg-violet-400 text-black text-xs font-black px-3 py-1">Use</span>}
+          {!reason && <span className="rounded-full bg-violet-400 text-black text-base font-black px-4 py-1.5">Use</span>}
         </button>
       )}
       {error && <p className="mt-1 text-sm text-rose-300">{error}</p>}

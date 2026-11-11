@@ -72,7 +72,7 @@ export function PerkPicker({ roomId, creds, me }: { roomId: string; creds: Playe
       <div className="flex items-center justify-between mb-2">
         <p className="font-black">Perks</p>
         <p className="text-xs text-slate-400">
-          {equipped ? `Equipped: ${perkInfo(equipped)?.name ?? equipped}` : "Equip 1 per game"}
+          {equipped ? perkInfo(equipped)?.name ?? equipped : "Pick 1"}
         </p>
       </div>
       <div
@@ -98,7 +98,7 @@ export function PerkPicker({ roomId, creds, me }: { roomId: string; creds: Playe
             <Icon name={info?.icon ?? "bolt"} size={40} />
           </span>
           <span className={`font-black ${row.unlocked ? "" : "text-slate-400"}`}>{row.name}</span>
-          <span className="text-xs text-slate-300 leading-snug">{info?.how}</span>
+          <span className="text-lg text-white leading-snug">{info?.how}</span>
           {row.unlocked ? (
             <button
               type="button"

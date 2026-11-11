@@ -24,6 +24,10 @@ Keep migrations in `supabase/migrations/` numbered in order.
 UI text, labels, notifications, perks or database strings. Use the line
 icons in `src/components/Icon.tsx` or plain words instead.
 
+**Write for a 5th grader** (the owner's standing rule): short, simple words in
+big text. No small print or long explanations on game screens; a power or
+perk gets a 2-5 word description ("Mark any square", "+10 seconds").
+
 ## Setting up a bar from the Bar Pitch Profile
 
 The owner fills in the "Bar Pitch Profile" page (claude.ai/artifact/1y4RdtSGhUiUFXk5pgwR4Z)

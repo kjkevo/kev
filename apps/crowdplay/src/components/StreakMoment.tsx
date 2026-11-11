@@ -17,7 +17,6 @@ export function StreakMoment({
   avatarId,
   emoji,
   imageUrl,
-  team,
 }: {
   streak: Streak | null;
   avatarId?: string | null;
@@ -51,12 +50,12 @@ export function StreakMoment({
           {shown.saved ? (
             <>
               <p className="text-xl font-black leading-tight">Streak saved!</p>
-              <p className="text-xs font-bold text-orange-100">Still {shown.count} in a row</p>
+              <p className="text-sm font-bold text-orange-100">Still {shown.count} in a row</p>
             </>
           ) : (
             <>
               <p className="text-xl font-black leading-tight">{shown.count} in a row!</p>
-              <p className="text-xs font-bold text-orange-100">{team ? "Your team is on fire" : "You're on fire"}</p>
+              <p className="text-sm font-bold text-orange-100">On fire!</p>
             </>
           )}
         </div>

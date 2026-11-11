@@ -1130,7 +1130,7 @@ function PlayPageBody() {
                     return (
                       <div key={p.id} className="flex flex-col items-center w-16">
                         <EmoteCharacter avatarId={p.avatar_id} emoji={a?.emoji} imageUrl={a?.imageUrl} size={56} />
-                        <span className="text-[11px] text-slate-200 truncate w-full text-center">{p.nickname}</span>
+                        <span className="text-sm text-slate-200 truncate w-full text-center">{p.nickname}</span>
                       </div>
                     );
                   })}
@@ -1145,12 +1145,11 @@ function PlayPageBody() {
                       <span className="w-14 h-14 rounded-full border-2 border-dashed border-white/30 flex items-center justify-center text-white/50">
                         <Icon name="plus" size={22} />
                       </span>
-                      <span className="text-[11px] text-slate-400 mt-0.5">Open</span>
+                      <span className="text-sm text-slate-300 mt-0.5">Open</span>
                     </button>
                   ))}
                 </div>
-                {openSpots > 0 && <p className="mt-1 text-center text-[11px] text-slate-400">Open spots get bots at the start</p>}
-              </div>
+                              </div>
             )}
           </div>
 
@@ -1188,7 +1187,7 @@ function PlayPageBody() {
               >
                 {t.icon}
                 <span className="text-sm font-black text-white leading-tight">{t.label}</span>
-                <span className="max-w-full truncate text-[10px] font-semibold text-slate-400">{t.sub}</span>
+                <span className="max-w-full truncate text-xs font-bold text-slate-300">{t.sub}</span>
               </button>
             ))}
           </div>
@@ -1455,8 +1454,7 @@ function PlayPageBody() {
         </div>
         {room.mode === "solo" && joinedAtQuestion !== null && joinedAtQuestion > 0 && room.current_question_index === joinedAtQuestion && (
           <p className="self-center rounded-xl bg-sky-500/15 border border-sky-400/40 px-3 py-2 text-center text-sm text-sky-100">
-            You joined at question {joinedAtQuestion + 1}
-            {totalQuestions ? ` of ${totalQuestions}` : ""}. Every answer from here counts.
+            You joined late. Your answers count from now!
           </p>
         )}
         {twist && <TwistBanner twist={twist} text={twistBanner(twist, question.twist_seq, twistCtx)} />}
@@ -1689,8 +1687,8 @@ function PlayPageBody() {
                 );
               })}
               {teammates.some((p) => !questionVotes[p.id]) && (
-                <p className="flex items-center justify-center gap-2 text-xs text-slate-400">
-                  Still thinking:
+                <p className="flex items-center justify-center gap-2 text-sm text-slate-300">
+                  Thinking:
                   <span className="flex -space-x-2">
                     {teammates
                       .filter((p) => !questionVotes[p.id])
