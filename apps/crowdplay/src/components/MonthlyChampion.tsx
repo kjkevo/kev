@@ -15,7 +15,7 @@ const PLACEHOLDER = { nickname: "Quizzly Bear", emoji: null, imageUrl: "/avatars
  * trivia wins at this bar this month (get_monthly_champion), chest up with
  * their name.
  */
-export function MonthlyChampion() {
+export function MonthlyChampion({ compact = false }: { compact?: boolean }) {
   const venue = usePlayerVenue();
   const [champ, setChamp] = useState<Champion | null | undefined>(undefined);
 
@@ -35,9 +35,9 @@ export function MonthlyChampion() {
   const month = champ?.month ?? new Date().toLocaleString("en-US", { month: "long" });
   const shown = champ ?? PLACEHOLDER;
   return (
-    <div className="w-full rounded-3xl bg-gradient-to-b from-amber-400/20 to-amber-400/5 border border-amber-400/40 px-4 py-3 flex flex-col items-center gap-2">
+    <div className={`w-full rounded-3xl bg-gradient-to-b from-amber-400/20 to-amber-400/5 border border-amber-400/40 flex flex-col items-center ${compact ? "px-3 py-2 gap-1" : "px-4 py-3 gap-2"}`}>
       <p className="text-[11px] font-bold uppercase tracking-widest text-amber-300">{month} Champion</p>
-      <ChestUp imageUrl={shown.imageUrl} emoji={shown.emoji} name={shown.nickname} width={96} highlight />
+      <ChestUp imageUrl={shown.imageUrl} emoji={shown.emoji} name={shown.nickname} width={compact ? 64 : 96} highlight />
     </div>
   );
 }

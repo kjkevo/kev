@@ -49,17 +49,22 @@ function Card({ title, line, url, size, big, accent = false }: { title: string; 
  * phone (it opens that game's page at this bar). Not clickable, since the
  * game is played on phones.
  */
-export function GameScanTile({ title, path, accent }: { title: string; path: string; accent: "amber" | "sky" }) {
+export function GameScanTile({ title, path, accent, note }: { title: string; path: string; accent: "amber" | "sky" | "pink"; note?: string }) {
   const [origin, setOrigin] = useState("");
   useEffect(() => setOrigin(window.location.origin), []);
   const venue = usePlayerVenue();
   const url = origin ? `${origin}${path}?venue=${encodeURIComponent(venue ?? "main")}&src=qr` : "";
-  const ring = accent === "amber" ? "border-amber-400/60 bg-amber-400/10 text-amber-300" : "border-sky-400/60 bg-sky-400/10 text-sky-300";
+  const ring =
+    accent === "amber"
+      ? "border-amber-400/60 bg-amber-400/10 text-amber-300"
+      : accent === "sky"
+        ? "border-sky-400/60 bg-sky-400/10 text-sky-300"
+        : "border-pink-400/50 bg-pink-400/10 text-pink-300";
   return (
     <div className={`rounded-3xl border p-4 flex flex-col items-center gap-2 ${ring}`}>
       <div className="font-black text-2xl leading-tight">{title}</div>
       <div className="bg-white rounded-2xl p-2">{url ? <QRCodeSVG value={url} size={130} /> : <div className="w-[130px] h-[130px]" />}</div>
-      <div className="text-xs font-bold text-slate-300">Scan with your phone</div>
+      <div className="text-sm font-bold text-slate-200">{note ?? "Scan with your phone"}</div>
     </div>
   );
 }

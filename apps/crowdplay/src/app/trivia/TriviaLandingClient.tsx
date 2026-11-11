@@ -19,6 +19,8 @@ import { playerKey, type Player, type Team } from "@/lib/types";
 import { useSeason } from "@/hooks/useSeason";
 import { LevelChip } from "@/components/LevelChip";
 import { AccountLink } from "@/components/AccountLink";
+import { MonthlyChampion } from "@/components/MonthlyChampion";
+import { Leaderboard } from "@/components/Leaderboard";
 
 /**
  * The entry point for anyone without a room code: the venue TV's QR code
@@ -227,6 +229,12 @@ export default function TriviaLandingClient() {
           </button>
         </div>
       </div>
+
+      {/* This month's champion and this week's top players, small. */}
+      <div className="w-full max-w-sm flex flex-col gap-2">
+        <MonthlyChampion compact />
+        <Leaderboard compact />
+      </div>
     </Shell>
   );
 }
@@ -271,7 +279,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   // Every trivia visitor sees the monthly season and when it resets.
   const { season } = useSeason(usePlayerVenue());
   return (
-    <main className="relative min-h-screen flex flex-col items-center justify-center gap-6 bg-gradient-to-b from-indigo-950 via-purple-950 to-black text-white px-4 py-8 text-center">
+    <main className="relative min-h-screen flex flex-col items-center justify-center gap-6 bg-gradient-to-b from-indigo-950 via-purple-950 to-black text-white px-4 pt-14 pb-8 text-center">
       <Link href="/" className="absolute top-4 left-4 text-sm text-indigo-300/70 hover:text-indigo-200">
         ← Games
       </Link>
