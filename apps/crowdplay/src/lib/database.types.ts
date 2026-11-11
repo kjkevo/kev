@@ -674,6 +674,38 @@ export type Database = {
           o_resets_at: string
         }[]
       }
+      dl_open: {
+        Args: { p_venue: string; p_mode: string }
+        Returns: { o_code: string }[]
+      }
+      dl_join: {
+        Args: { p_code: string; p_nickname: string; p_avatar_id: string; p_device_key: string; p_team?: number }
+        Returns: { o_room_id: string; o_player_id: string; o_client_token: string; o_seat: number }[]
+      }
+      dl_state: {
+        Args: { p_room_id: string }
+        Returns: Json
+      }
+      dl_drop: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_col: number }
+        Returns: undefined
+      }
+      dl_use_char_power: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_col?: number }
+        Returns: Json
+      }
+      dl_set_power: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_power: string | null; p_device_key: string }
+        Returns: undefined
+      }
+      dl_use_power: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_col?: number }
+        Returns: Json
+      }
+      dl_leave: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string }
+        Returns: undefined
+      }
       wm_open: {
         Args: { p_venue: string; p_mode: string }
         Returns: { o_code: string }[]
