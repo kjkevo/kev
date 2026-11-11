@@ -20,7 +20,7 @@ export default function Home() {
 
 
       <div className="w-full max-w-sm flex flex-col gap-3">
-        {/* The games, side by side: Trivia (live) and Mixer (coming soon). */}
+        {/* The games: Trivia and Bingo are live; Wild Match and Drop Line are on the way. */}
         <div className="grid grid-cols-2 gap-3">
           <Link
             href="/trivia"
@@ -32,13 +32,28 @@ export default function Home() {
             <div className="font-black text-2xl leading-tight">Trivia</div>
             <div className="text-xs font-bold text-black/70">Play now ›</div>
           </Link>
-          <div className="rounded-3xl bg-white/[0.06] border border-white/15 p-4 flex flex-col items-center gap-2">
-            <div className="w-16 h-16 rounded-2xl bg-black/40 flex items-center justify-center text-pink-300">
-              <Icon name="users" size={34} />
+          <Link
+            href="/bingo"
+            className="rounded-3xl bg-sky-400 text-black p-4 flex flex-col items-center gap-2 shadow-lg shadow-sky-400/25 transition active:scale-95"
+          >
+            <div className="w-16 h-16 rounded-2xl bg-black overflow-hidden">
+              <img src="/games/bingo.png" alt="" className="w-full h-full object-cover" />
             </div>
-            <div className="font-black text-2xl leading-tight">Mixer</div>
-            <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Coming soon</div>
-          </div>
+            <div className="font-black text-2xl leading-tight">Bingo</div>
+            <div className="text-xs font-bold text-black/70">Play now ›</div>
+          </Link>
+          {[
+            { name: "Wild Match", icon: "cards" },
+            { name: "Drop Line", icon: "discs" },
+          ].map((g) => (
+            <div key={g.name} className="rounded-3xl bg-white/[0.06] border border-white/15 p-4 flex flex-col items-center gap-2">
+              <div className="w-16 h-16 rounded-2xl bg-black/40 flex items-center justify-center text-pink-300">
+                <Icon name={g.icon} size={34} />
+              </div>
+              <div className="font-black text-2xl leading-tight">{g.name}</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Coming soon</div>
+            </div>
+          ))}
         </div>
 
         <MonthlyChampion />
