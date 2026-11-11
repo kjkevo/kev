@@ -22,6 +22,8 @@ export type WmRoom = {
   now: string;
   venue: string | null;
   full: boolean;
+  private?: boolean;
+  next_code?: string | null;
 };
 export type WmPlayer = {
   id: string;
@@ -142,6 +144,7 @@ const ERRORS: Record<string, string> = {
   NO_RIVAL: "No one to swap with",
   NONE_LEFT: "No Wild cards left",
   TABLE_FULL: "That table is full",
+  PRIVATE_STARTED: "That game already started",
 };
 export function wmError(e: unknown) {
   const msg = (e as { message?: string })?.message ?? String(e);

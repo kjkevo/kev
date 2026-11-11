@@ -20,13 +20,13 @@ export default function DropLineLandingClient() {
   const router = useRouter();
   const venue = usePlayerVenue();
   const { season } = useSeason(venue);
-  const [busy, setBusy] = useState<null | "solo" | "team">(null);
+  const [busy, setBusy] = useState<null | string>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function go(mode: "solo" | "team") {
-    setBusy(mode);
+  async function go(mode: "solo" | "team", priv = false) {
+    setBusy(priv ? `${mode}-friends` : mode);
     setError(null);
-    const { data, error: err } = await supabase.rpc("dl_open", { p_venue: venue ?? "main", p_mode: mode });
+    const { data, error: err } = await supabase.rpc("dl_open", { p_venue: venue ?? "main", p_mode: mode, p_private: priv });
     const code = data?.[0]?.o_code;
     if (err || !code) {
       setBusy(null);
@@ -61,12 +61,19 @@ export default function DropLineLandingClient() {
             <h2 className="text-2xl font-black">Solo</h2>
           </div>
           <p className="text-lg font-bold text-white">Just you.</p>
-                    <button
+          <button
             onClick={() => go("solo")}
             disabled={busy !== null}
             className="rounded-2xl bg-amber-400 text-black font-black text-xl py-5 shadow-lg shadow-amber-400/30 disabled:opacity-50 active:scale-95 transition"
           >
             {busy === "solo" ? "Finding a game…" : "Play Solo"}
+          </button>
+          <button
+            onClick={() => go("solo", true)}
+            disabled={busy !== null}
+            className="rounded-2xl bg-white/10 border border-white/25 text-white font-black text-lg py-3 disabled:opacity-50 active:scale-95 transition"
+          >
+            {busy === "solo-friends" ? "Making your table…" : "Just my friends"}
           </button>
         </div>
 
@@ -81,7 +88,14 @@ export default function DropLineLandingClient() {
             disabled={busy !== null}
             className="rounded-2xl bg-sky-400 text-black font-black text-lg py-4 disabled:opacity-50 active:scale-95 transition"
           >
-            {busy === "team" ? "Finding a game…" : "Play as a Team"}
+            {busy === "team" ? "Finding a game…" : "Play other teams"}
+          </button>
+          <button
+            onClick={() => go("team", true)}
+            disabled={busy !== null}
+            className="rounded-2xl bg-white/10 border border-white/25 text-white font-black text-lg py-3 disabled:opacity-50 active:scale-95 transition"
+          >
+            {busy === "team-friends" ? "Making your table…" : "Just my friends"}
           </button>
         </div>
         {error && <p className="text-sm font-bold text-rose-300">{error}</p>}

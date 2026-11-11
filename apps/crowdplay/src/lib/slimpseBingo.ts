@@ -20,6 +20,8 @@ export type SbRoom = {
   venue: string | null;
   /** Enough real players that the countdown dropped to 10 seconds. */
   full?: boolean;
+  private?: boolean;
+  next_code?: string | null;
 };
 export type SbTeam = {
   id: string;
@@ -158,6 +160,7 @@ export const SB_ERRORS: Record<string, string> = {
   NO_RIVAL: "No rival to aim at yet",
   NOTHING_TO_SWAP: "No called number to swap in yet",
   ALREADY_STARTED: "That team game already started",
+  PRIVATE_STARTED: "That game already started",
 };
 export function sbError(e: unknown) {
   const msg = (e as { message?: string })?.message ?? String(e);
