@@ -75,7 +75,7 @@ export function TwistBanner({ twist, text, big = false }: { twist: Twist; text: 
       >
         {text}
       </div>
-      <p className={`text-slate-300 ${big ? "text-lg" : "text-xs"}`}>{twistExplain(twist)}</p>
+      <p className={`font-bold text-white ${big ? "text-2xl" : "text-base"}`}>{twistExplain(twist)}</p>
     </div>
   );
 }

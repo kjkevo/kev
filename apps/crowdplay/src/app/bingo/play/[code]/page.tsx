@@ -15,7 +15,6 @@ import {
   rememberSbPower,
   rememberedSbPower,
   saveSbCreds,
-  sbBestLine,
   sbError,
   sbHasLine,
   sbLetter,
@@ -403,10 +402,8 @@ export default function BingoPlayPage() {
               <Icon name="clock" size={22} />
               <span className="text-3xl font-black tabular-nums">{secs === null ? "--" : `0:${String(secs).padStart(2, "0")}`}</span>
             </div>
-            <p className="text-xs text-slate-400">
-              {room.full
-                ? "Full game! Starting soon"
-                : `${humans} ${humans === 1 ? "player" : "players"} here · waiting for more, then computer players fill empty seats`}
+            <p className="text-base font-bold text-white">
+              {room.full ? "Starting soon!" : `${humans} ${humans === 1 ? "player" : "players"} here`}
             </p>
           </div>
         </div>
@@ -414,9 +411,9 @@ export default function BingoPlayPage() {
           <div className="w-full max-w-sm flex items-center gap-3 rounded-2xl bg-violet-500/15 border border-violet-400/40 px-4 py-2.5 text-left">
             <Icon name={charPower.icon} size={26} className="text-violet-200" />
             <span className="min-w-0">
-              <span className="block text-[11px] font-bold uppercase tracking-widest text-violet-300">{myChar?.name ?? "Your character"}&apos;s power</span>
-              <span className="block font-black">{charPower.name}</span>
-              <span className="block text-xs text-slate-300">{charPower.how}</span>
+              <span className="block text-sm font-bold text-violet-300">Your power</span>
+              <span className="block text-xl font-black">{charPower.name}</span>
+              <span className="block text-base text-white">{charPower.how}</span>
             </span>
           </div>
         )}
@@ -428,7 +425,7 @@ export default function BingoPlayPage() {
               return (
                 <div key={p.id} className="flex flex-col items-center w-16">
                   <Avatar emoji={a?.emoji} imageUrl={a?.imageUrl} size={52} />
-                  <span className="text-[11px] truncate w-full">{p.nickname}</span>
+                  <span className="text-sm truncate w-full">{p.nickname}</span>
                 </div>
               );
             })}
@@ -437,7 +434,7 @@ export default function BingoPlayPage() {
                 <span className="w-[52px] h-[52px] rounded-full border-2 border-dashed border-white/30 flex items-center justify-center text-white/50">
                   <Icon name="plus" size={20} />
                 </span>
-                <span className="text-[11px] text-slate-400">Open</span>
+                <span className="text-sm text-slate-300">Open</span>
               </button>
             ))}
           </div>
@@ -453,17 +450,14 @@ export default function BingoPlayPage() {
           onOpen={setTile}
         />
 
-        <p className="max-w-sm text-sm text-slate-300">
-          Numbers are called every {SB_CALL_SECONDS} seconds. Tap them on your card. First full line wins.
-          {teamGame ? " Your team shares one card." : ""}
-        </p>
+        <p className="max-w-sm text-xl font-black">Tap the numbers. Get 5 in a row!</p>
         {note && <p className="text-sm font-bold text-amber-300">{note}</p>}
 
         {tile && tile !== "character" && (
           <Sheet title={tile === "power" ? "Perks" : teamGame ? "Invite friends" : "Scan to join"} onClose={() => setTile(null)}>
             {tile === "power" ? (
               <div className="flex flex-col gap-2">
-                <p className="text-xs text-slate-400">Earned by leveling up. Bring one on top of your character&apos;s power, and use it once this game.</p>
+                <p className="text-lg font-bold text-white">Pick 1</p>
                 {Object.values(SB_POWERS).map((pw) => {
                   const locked = level < pw.level;
                   const on = me?.power === pw.key;
@@ -479,9 +473,9 @@ export default function BingoPlayPage() {
                       <Icon name={pw.icon} size={30} className={locked ? "text-slate-500" : "text-amber-300"} />
                       <span className="flex-1 min-w-0">
                         <span className="block font-black">{pw.name}</span>
-                        <span className="block text-xs text-slate-300">{pw.how}</span>
+                        <span className="block text-base text-white">{pw.how}</span>
                       </span>
-                      <span className="text-xs font-bold text-slate-300">{locked ? `Level ${pw.level}` : on ? "Equipped" : "Equip"}</span>
+                      <span className="text-sm font-bold text-slate-200">{locked ? `Level ${pw.level}` : on ? "On" : "Pick"}</span>
                     </button>
                   );
                 })}
@@ -502,8 +496,6 @@ export default function BingoPlayPage() {
   // ---------- Playing ----------
   const sinceCall = room.last_call_at ? (now - Date.parse(room.last_call_at)) / 1000 : 0;
   const nextIn = Math.max(0, Math.ceil(SB_CALL_SECONDS - sinceCall));
-  const rivals = (state?.teams ?? []).filter((t) => t.id !== creds.teamId);
-  const closest = rivals.length ? Math.max(...rivals.map((t) => sbBestLine(t.marks))) : 0;
 
   return (
     <main className="relative min-h-screen bg-gradient-to-b from-indigo-950 via-purple-950 to-black text-white flex flex-col items-center px-4 pt-20 pb-8 gap-3">
@@ -522,7 +514,7 @@ export default function BingoPlayPage() {
           )}
         </div>
         <div className="flex flex-col items-start gap-1">
-          <p className="text-xs text-slate-400">Next number in {nextIn}s · {calls.length}/75 called</p>
+          <p className="text-base font-bold text-slate-200">Next in {nextIn}</p>
           <div className="flex gap-1">
             {calls.slice(-6, -1).reverse().map((n) => (
               <span key={n} className="w-10 h-10 rounded-full bg-white/10 flex flex-col items-center justify-center leading-none">
@@ -532,13 +524,13 @@ export default function BingoPlayPage() {
             ))}
           </div>
           {probeShown.length > 0 && (
-            <p className="rounded-full bg-violet-500/20 border border-violet-400/50 px-3 py-0.5 text-xs font-bold text-violet-100">
-              Mind Probe: next {probeShown.map((n) => `${sbLetter(n)} ${n}`).join(", then ")}
+            <p className="rounded-full bg-violet-500/20 border border-violet-400/50 px-3 py-1 text-base font-bold text-violet-100">
+              Next: {probeShown.map((n) => `${sbLetter(n)} ${n}`).join(", ")}
             </p>
           )}
           {peekShown && (
-            <p className="rounded-full bg-sky-500/20 border border-sky-400/50 px-3 py-0.5 text-xs font-bold text-sky-100">
-              Sneak Peek: next is {sbLetter(peekShown)} {peekShown}
+            <p className="rounded-full bg-sky-500/20 border border-sky-400/50 px-3 py-1 text-base font-bold text-sky-100">
+              Next: {sbLetter(peekShown)} {peekShown}
             </p>
           )}
         </div>
@@ -579,10 +571,10 @@ export default function BingoPlayPage() {
       </div>
 
       {myTeam?.frozen_until && Date.parse(myTeam.frozen_until) > now && (
-        <p className="text-sm font-bold text-sky-200">Your card is frozen by Overgrowth for {Math.ceil((Date.parse(myTeam.frozen_until) - now) / 1000)}s</p>
+        <p className="text-sm font-bold text-sky-200">Frozen! {Math.ceil((Date.parse(myTeam.frozen_until) - now) / 1000)}</p>
       )}
       {(myTeam?.auto_until ?? 0) > calls.length && (
-        <p className="text-sm font-bold text-emerald-200">Marking itself: next {(myTeam?.auto_until ?? 0) - calls.length} numbers</p>
+        <p className="text-sm font-bold text-emerald-200">Auto-marking: {(myTeam?.auto_until ?? 0) - calls.length} left</p>
       )}
       {note && <p className="text-sm font-bold text-amber-300">{note}</p>}
 
@@ -622,8 +614,7 @@ export default function BingoPlayPage() {
           <span className="rounded-2xl bg-white/5 px-3 py-2.5 text-xs text-slate-500 text-center">{power ? `${power.name} used` : "No perk"}</span>
         )}
       </div>
-      <p className="text-xs text-slate-400">Closest rival: {closest}/5 in a line</p>
-      {toasts.length > 0 && (
+            {toasts.length > 0 && (
         <div className="fixed right-2 bottom-6 z-50 flex flex-col items-end gap-1.5 pointer-events-none">
           {toasts.map((t) => (
             <p
@@ -638,7 +629,7 @@ export default function BingoPlayPage() {
         </div>
       )}
       {teamGame && teamMates.length > 0 && (
-        <p className="text-xs text-slate-400">Sharing this card with {teamMates.map((p) => p.nickname).join(", ")}</p>
+        <p className="text-base text-slate-200">Team: {teamMates.map((p) => p.nickname).join(", ")}</p>
       )}
     </main>
   );
@@ -720,7 +711,7 @@ function LobbyTiles({
         >
           {t.icon}
           <span className="text-sm font-black text-white leading-tight">{t.label}</span>
-          <span className="max-w-full truncate text-[10px] font-semibold text-slate-400">{t.sub}</span>
+          <span className="max-w-full truncate text-xs font-bold text-slate-300">{t.sub}</span>
         </button>
       ))}
     </div>

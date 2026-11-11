@@ -60,9 +60,8 @@ export default function BingoLandingClient() {
             <Icon name="user" size={22} className="text-amber-300" />
             <h2 className="text-2xl font-black">Solo</h2>
           </div>
-          <p className="text-base font-bold text-white">Your own card against everyone else.</p>
-          <p className="text-sm text-slate-300">Tap called numbers on your card. First full line wins. Join any time.</p>
-          <button
+          <p className="text-lg font-bold text-white">Just you.</p>
+                    <button
             onClick={() => go("solo")}
             disabled={busy !== null}
             className="rounded-2xl bg-amber-400 text-black font-black text-xl py-5 shadow-lg shadow-amber-400/30 disabled:opacity-50 active:scale-95 transition"
@@ -76,8 +75,7 @@ export default function BingoLandingClient() {
             <Icon name="users" size={22} className="text-sky-300" />
             <h2 className="text-2xl font-black">Team Play</h2>
           </div>
-          <p className="text-base font-bold text-white">Teams of up to 4 share one card. Anyone can mark it.</p>
-          <p className="text-xs text-slate-400">Invite friends with your team&apos;s QR code. Empty seats are filled by computer players.</p>
+          <p className="text-lg font-bold text-white">Play with friends.</p>
           <button
             onClick={() => go("team")}
             disabled={busy !== null}

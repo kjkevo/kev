@@ -176,7 +176,7 @@ export default function TriviaLandingClient() {
               <span className="rounded-full bg-emerald-400 text-black text-xs font-black px-2 py-0.5">No wait</span>
             )}
           </div>
-          <p className="text-base font-bold text-white">Just you against everyone else.</p>
+          <p className="text-lg font-bold text-white">Just you.</p>
           <p className="text-sm text-slate-300">
             {soloRoom === undefined
               ? "Checking…"
@@ -203,8 +203,7 @@ export default function TriviaLandingClient() {
             <Icon name="users" size={22} className="text-sky-300" />
             <h2 className="text-2xl font-black">Team Play</h2>
           </div>
-          <p className="text-base font-bold text-white">Teams of 4. Bring friends, or we&apos;ll team you up with others.</p>
-          <p className="text-xs text-slate-400">Any empty seats are filled by computer players.</p>
+          <p className="text-lg font-bold text-white">Play with friends.</p>
           <p className="text-sm text-slate-300">
             {!canJoinNow ? (
               "A new game opens in a moment"
@@ -217,7 +216,7 @@ export default function TriviaLandingClient() {
             )}
           </p>
           {soloNoWait && teamWaitLong && (
-            <p className="text-xs font-bold text-emerald-300">Don&apos;t want to wait? Play Solo now</p>
+            <p className="text-base font-bold text-emerald-300">Or play Solo now</p>
           )}
           <button
             onClick={teamButton.onClick}

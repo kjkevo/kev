@@ -54,22 +54,22 @@ export const SB_CALL_SECONDS = 6;
 /** Bingo perks: earned by leveling up (like Trivia's), bring one per game. */
 export type SbPowerKey = "peek" | "fresh" | "wild";
 export const SB_POWERS: Record<SbPowerKey, { key: SbPowerKey; name: string; icon: IconName; how: string; level: number }> = {
-  peek: { key: "peek", name: "Sneak Peek", icon: "eye", how: "See the next number before it's called", level: 3 },
-  fresh: { key: "fresh", name: "Fresh Card", icon: "swap", how: "Swap for a brand-new card (first 5 numbers only)", level: 7 },
-  wild: { key: "wild", name: "Lucky Square", icon: "star", how: "Mark any square on your card, called or not", level: 12 },
+  peek: { key: "peek", name: "Sneak Peek", icon: "eye", how: "See the next number", level: 3 },
+  fresh: { key: "fresh", name: "Fresh Card", icon: "swap", how: "Get a new card (early only)", level: 7 },
+  wild: { key: "wild", name: "Lucky Square", icon: "star", how: "Mark any square", level: 12 },
 };
 
 /** Each character's own power in Bingo (once per game; matches sb_char_power). */
 export const SB_CHAR_POWERS: Record<string, { key: string; name: string; icon: IconName; how: string; pick?: "any" | "unmarked" }> = {
-  trailblaze: { key: "trailblaze", name: "Trailblaze", icon: "bolt", how: "The next 3 numbers called mark themselves" },
-  catchup: { key: "catchup", name: "Catch Up", icon: "check", how: "Marks every called number you missed" },
-  probe: { key: "probe", name: "Mind Probe", icon: "eye", how: "See the next 2 numbers before they're called" },
-  rebuild: { key: "rebuild", name: "Rebuild", icon: "swap", how: "Swap one unmarked square for a number already called", pick: "unmarked" },
-  secondwind: { key: "secondwind", name: "Second Wind", icon: "up", how: "A new card with every called number already marked" },
-  rift: { key: "rift", name: "Void Rift", icon: "target", how: "Removes 2 marks from the rival closest to Bingo" },
-  overgrowth: { key: "overgrowth", name: "Overgrowth", icon: "cloud", how: "The rival closest to Bingo can't mark for 15 seconds" },
-  riddle: { key: "riddle", name: "Riddle Sight", icon: "star", how: "Mark any one square, called or not", pick: "any" },
-  overclock: { key: "overclock", name: "Overclock", icon: "bolt", how: "The next 5 numbers called mark themselves" },
+  trailblaze: { key: "trailblaze", name: "Trailblaze", icon: "bolt", how: "Marks 3 numbers for you" },
+  catchup: { key: "catchup", name: "Catch Up", icon: "check", how: "Marks the ones you missed" },
+  probe: { key: "probe", name: "Mind Probe", icon: "eye", how: "See the next 2 numbers" },
+  rebuild: { key: "rebuild", name: "Rebuild", icon: "swap", how: "Swap a square", pick: "unmarked" },
+  secondwind: { key: "secondwind", name: "Second Wind", icon: "up", how: "New card, already marked" },
+  rift: { key: "rift", name: "Void Rift", icon: "target", how: "Erase 2 rival marks" },
+  overgrowth: { key: "overgrowth", name: "Overgrowth", icon: "cloud", how: "Freeze a rival" },
+  riddle: { key: "riddle", name: "Riddle Sight", icon: "star", how: "Mark any square", pick: "any" },
+  overclock: { key: "overclock", name: "Overclock", icon: "bolt", how: "Marks 5 numbers for you" },
 };
 export function sbCharPower(key: string | null | undefined) {
   return key ? SB_CHAR_POWERS[key] ?? null : null;

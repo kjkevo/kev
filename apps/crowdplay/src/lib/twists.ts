@@ -74,17 +74,17 @@ export function twistPersonalLine(twist: Twist, ctx: TwistContext): string | nul
 export function twistExplain(twist: Twist): string {
   switch (twist) {
     case "lightning":
-      return "Three quick questions in a row, each worth double points.";
+      return "3 fast questions. Double points!";
     case "comeback":
-      return "The team in last place earns 1.5 times the points on this question.";
+      return "Last place gets extra points!";
     case "bounty":
-      return "If the leader gets this wrong, every team that gets it right earns 500 extra points.";
+      return "Leader gets it wrong? You get +500!";
     case "golden":
-      return "This question is worth triple points.";
+      return "Triple points!";
     case "captain":
-      return "Only one player on each team, the captain, can answer this one.";
+      return "Only the captain answers.";
     case "sabotage":
-      return "Tap a rival team to cover their answers for 3 seconds.";
+      return "Tap a team to block them!";
   }
 }
 
