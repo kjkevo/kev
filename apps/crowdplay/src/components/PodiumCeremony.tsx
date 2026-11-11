@@ -35,6 +35,7 @@ export function PodiumCeremony({
   avatars,
   myTeamId,
   big = false,
+  teamNamesOnly = false,
   onReveal,
   onSuspense,
   onDone,
@@ -45,6 +46,8 @@ export function PodiumCeremony({
   avatars: Record<string, AvatarOption>;
   myTeamId?: string | null;
   big?: boolean;
+  /** Team Play: show just the team names on the blocks, no characters. */
+  teamNamesOnly?: boolean;
   /** A podium arrives in the middle (for sounds). */
   onReveal?: (rank: number) => void;
   /** The beat before 1st place. */
@@ -100,9 +103,9 @@ export function PodiumCeremony({
         // Everyone on this podium emotes at once, and the podium stays in the
         // middle until the longest emote has played start to finish.
         const team = top[rank - 1];
-        const emoteMs = Math.max(0, ...membersOf(team).map((p) => emotesFor(p.avatar_id)[0]?.durationMs ?? 0));
+        const emoteMs = teamNamesOnly ? 0 : Math.max(0, ...membersOf(team).map((p) => emotesFor(p.avatar_id)[0]?.durationMs ?? 0));
         const holdMs = Math.max(2500, emoteMs + 400);
-        setPlays((prev) => {
+        if (!teamNamesOnly) setPlays((prev) => {
           const next = { ...prev };
           for (const p of membersOf(team)) {
             const emote = emotesFor(p.avatar_id)[0];
@@ -135,7 +138,8 @@ export function PodiumCeremony({
   }, [key]);
 
   const spotlight = ranks.find((r) => stages[r] === "center" || stages[r] === "enter");
-  const stageHeight = big ? 560 : 340;
+  // Without characters only the blocks (and their zoom to the middle) need room.
+  const stageHeight = teamNamesOnly ? (big ? 360 : 220) : big ? 560 : 340;
 
   return (
     <div ref={stageRef} className={`relative w-full ${big ? "max-w-4xl" : "max-w-sm md:max-w-2xl"}`} style={{ height: stageHeight }}>
@@ -193,18 +197,24 @@ export function PodiumCeremony({
                 style={{ background: `radial-gradient(circle at 50% 40%, ${GLOW[rank]}, transparent 70%)` }}
               />
             )}
+            {!teamNamesOnly && (
             <div className="flex justify-center -space-x-0.5">
               {members.map((p) => {
                 const a = p.avatar_id ? avatars[p.avatar_id] : undefined;
                 return <EmoteCharacter key={p.id} avatarId={p.avatar_id} emoji={a?.emoji} imageUrl={a?.imageUrl} size={size} play={plays[p.id]} />;
               })}
             </div>
+            )}
             <div
               className={`w-full rounded-t-xl flex flex-col items-center gap-0.5 px-1 pt-1.5 ${BLOCK[rank]} ${mine ? "ring-4 ring-white/80" : ""}`}
               style={{ height: HEIGHT[rank][big ? 1 : 0] }}
             >
               <span className={`font-black ${big ? "text-4xl" : "text-xl"}`}>{PLACE[rank]}</span>
-              <span className={`font-black text-center leading-tight line-clamp-2 break-words max-w-full ${big ? "text-2xl" : "text-xs"}`}>
+              <span
+                className={`font-black text-center leading-tight line-clamp-2 break-words max-w-full ${
+                  teamNamesOnly ? (big ? "text-3xl" : "text-base") : big ? "text-2xl" : "text-xs"
+                }`}
+              >
                 {mine && !big && members.length === 1 ? "You" : name}
               </span>
               <span className={`font-black tabular-nums text-black/70 ${big ? "text-xl" : "text-xs"}`}>{team.score.toLocaleString()}</span>
