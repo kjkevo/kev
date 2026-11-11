@@ -675,8 +675,16 @@ export type Database = {
         }[]
       }
       dl_open: {
-        Args: { p_venue: string; p_mode: string }
+        Args: { p_venue: string; p_mode: string; p_private?: boolean }
         Returns: { o_code: string }[]
+      }
+      dl_again: {
+        Args: { p_room_id: string }
+        Returns: { o_code: string }[]
+      }
+      dl_start_now: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string }
+        Returns: undefined
       }
       dl_join: {
         Args: { p_code: string; p_nickname: string; p_avatar_id: string; p_device_key: string; p_team?: number }
@@ -707,8 +715,16 @@ export type Database = {
         Returns: undefined
       }
       wm_open: {
-        Args: { p_venue: string; p_mode: string }
+        Args: { p_venue: string; p_mode: string; p_private?: boolean }
         Returns: { o_code: string }[]
+      }
+      wm_again: {
+        Args: { p_room_id: string }
+        Returns: { o_code: string }[]
+      }
+      wm_start_now: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string }
+        Returns: undefined
       }
       wm_join: {
         Args: { p_code: string; p_nickname: string; p_avatar_id: string; p_device_key: string; p_team?: number }
@@ -743,8 +759,16 @@ export type Database = {
         Returns: undefined
       }
       sb_open: {
-        Args: { p_venue: string; p_mode: string }
+        Args: { p_venue: string; p_mode: string; p_private?: boolean }
         Returns: { o_code: string }[]
+      }
+      sb_again: {
+        Args: { p_room_id: string }
+        Returns: { o_code: string }[]
+      }
+      sb_start_now: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string }
+        Returns: undefined
       }
       sb_join: {
         Args: { p_code: string; p_nickname: string; p_avatar_id: string; p_device_key: string; p_team_id?: string }

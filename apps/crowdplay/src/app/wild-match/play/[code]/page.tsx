@@ -113,6 +113,11 @@ export default function WildMatchPlayPage() {
       if (error || !row) {
         joining.current = false;
         const msg = error?.message ?? "";
+        const moved = msg.match(/MOVED_TO_([A-Z0-9]+)/);
+        if (moved) {
+          router.replace(`/wild-match/play/${moved[1]}`);
+          return;
+        }
         if (msg.includes("ALREADY_STARTED") || msg.includes("GAME_OVER") || msg.includes("TABLE_FULL")) {
           const next = await supabase.rpc("wm_open", { p_venue: venue, p_mode: team !== null && team !== undefined ? "team" : "solo" });
           const nextCode = next.data?.[0]?.o_code;
@@ -284,10 +289,18 @@ export default function WildMatchPlayPage() {
   }
 
   async function playAgain() {
-    const { data } = await supabase.rpc("wm_open", { p_venue: room?.venue ?? pageVenue ?? "main", p_mode: room?.mode ?? "solo" });
+    if (!room) return;
+    const { data } = await supabase.rpc("wm_again", { p_room_id: room.id });
     const next = data?.[0]?.o_code;
     if (next) router.push(`/wild-match/play/${next}`);
   }
+
+  async function startNow() {
+    if (!creds) return;
+    await supabase.rpc("wm_start_now", { p_room_id: creds.roomId, p_player_id: creds.playerId, p_client_token: creds.clientToken });
+    load();
+  }
+
 
   async function leave() {
     if (creds) await supabase.rpc("wm_leave", { p_room_id: creds.roomId, p_player_id: creds.playerId, p_client_token: creds.clientToken });
@@ -364,10 +377,14 @@ export default function WildMatchPlayPage() {
               </span>
               <LevelChip />
             </div>
-            <div className="flex items-center gap-1.5 text-amber-400">
-              <Icon name="clock" size={22} />
-              <span className="text-3xl font-black tabular-nums">{secs === null ? "--" : `0:${String(secs).padStart(2, "0")}`}</span>
-            </div>
+            {room.private && secs === null ? (
+              <p className="text-xl font-black text-amber-300">Waiting for friends</p>
+            ) : (
+              <div className="flex items-center gap-1.5 text-amber-400">
+                <Icon name="clock" size={22} />
+                <span className="text-3xl font-black tabular-nums">{secs === null ? "--" : `0:${String(secs).padStart(2, "0")}`}</span>
+              </div>
+            )}
             <p className="text-base font-bold">{room.full ? "Starting soon!" : `${seated.length} of 4 here`}</p>
           </div>
         </div>
@@ -375,6 +392,14 @@ export default function WildMatchPlayPage() {
           <p className="text-lg font-bold">
             Partner: {myTeamMates[0]?.nickname ?? <button onClick={() => setTile("qr")} className="underline text-amber-300">Invite one</button>}
           </p>
+        )}
+        {room.private && (secs === null || secs > 3) && (
+          <button
+            onClick={startNow}
+            className="w-full max-w-sm rounded-2xl bg-emerald-400 text-black font-black text-2xl py-4 shadow-lg shadow-emerald-400/30 active:scale-95 transition"
+          >
+            Start now
+          </button>
         )}
         {charPower && (
           <div className="w-full max-w-sm flex items-center gap-3 rounded-2xl bg-violet-500/15 border border-violet-400/40 px-4 py-2.5 text-left">
@@ -389,7 +414,7 @@ export default function WildMatchPlayPage() {
         <div className="w-full max-w-sm grid grid-cols-3 gap-2">
           {[
             { key: "perks" as const, label: "Perks", icon: <Icon name={perk?.icon ?? "bolt"} size={30} />, sub: perk?.name ?? "None on" },
-            { key: "qr" as const, label: teamGame ? "Invite" : "QR code", icon: <Icon name="qr" size={30} />, sub: "Scan to join" },
+            { key: "qr" as const, label: teamGame || room.private ? "Invite" : "QR code", icon: <Icon name="qr" size={30} />, sub: "Scan to join" },
             { key: "character" as const, label: "Character", icon: <Avatar imageUrl={myChar?.imageUrl} size={38} />, sub: myChar?.name ?? "Pick one" },
           ].map((t) => (
             <button

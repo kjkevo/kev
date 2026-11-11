@@ -88,6 +88,11 @@ export default function BingoPlayPage() {
       if (error || !row) {
         joining.current = false;
         const msg = error?.message ?? "";
+        const moved = msg.match(/MOVED_TO_([A-Z0-9]+)/);
+        if (moved) {
+          router.replace(`/bingo/play/${moved[1]}`);
+          return;
+        }
         // That game is over or (team) already started: hop into the open one.
         if (msg.includes("GAME_OVER") || msg.includes("ALREADY_STARTED") || msg.includes("TEAM_FULL")) {
           const mode = msg.includes("ALREADY_STARTED") || msg.includes("TEAM_FULL") ? "team" : "solo";
@@ -302,11 +307,18 @@ export default function BingoPlayPage() {
   }
 
   async function playAgain() {
-    const venue = room?.venue ?? pageVenue ?? "main";
-    const { data } = await supabase.rpc("sb_open", { p_venue: venue, p_mode: room?.mode ?? "solo" });
+    if (!room) return;
+    const { data } = await supabase.rpc("sb_again", { p_room_id: room.id });
     const next = data?.[0]?.o_code;
     if (next) router.push(`/bingo/play/${next}`);
   }
+
+  async function startNow() {
+    if (!creds) return;
+    await supabase.rpc("sb_start_now", { p_room_id: creds.roomId, p_player_id: creds.playerId, p_client_token: creds.clientToken });
+    load();
+  }
+
 
   async function leave() {
     if (creds) await supabase.rpc("sb_leave", { p_room_id: creds.roomId, p_player_id: creds.playerId, p_client_token: creds.clientToken });
@@ -398,15 +410,27 @@ export default function BingoPlayPage() {
               </span>
               <LevelChip />
             </div>
-            <div className="flex items-center gap-1.5 text-amber-400">
-              <Icon name="clock" size={22} />
-              <span className="text-3xl font-black tabular-nums">{secs === null ? "--" : `0:${String(secs).padStart(2, "0")}`}</span>
-            </div>
+            {room.private && secs === null ? (
+              <p className="text-xl font-black text-amber-300">Waiting for friends</p>
+            ) : (
+              <div className="flex items-center gap-1.5 text-amber-400">
+                <Icon name="clock" size={22} />
+                <span className="text-3xl font-black tabular-nums">{secs === null ? "--" : `0:${String(secs).padStart(2, "0")}`}</span>
+              </div>
+            )}
             <p className="text-base font-bold text-white">
               {room.full ? "Starting soon!" : `${humans} ${humans === 1 ? "player" : "players"} here`}
             </p>
           </div>
         </div>
+        {room.private && (secs === null || secs > 3) && (
+          <button
+            onClick={startNow}
+            className="w-full max-w-sm rounded-2xl bg-emerald-400 text-black font-black text-2xl py-4 shadow-lg shadow-emerald-400/30 active:scale-95 transition"
+          >
+            Start now
+          </button>
+        )}
         {charPower && (
           <div className="w-full max-w-sm flex items-center gap-3 rounded-2xl bg-violet-500/15 border border-violet-400/40 px-4 py-2.5 text-left">
             <Icon name={charPower.icon} size={26} className="text-violet-200" />

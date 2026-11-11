@@ -23,6 +23,8 @@ export type DlRoom = {
   venue: string | null;
   seats: number;
   full: boolean;
+  private?: boolean;
+  next_code?: string | null;
 };
 export type DlPlayer = {
   id: string;
@@ -118,6 +120,7 @@ const ERRORS: Record<string, string> = {
   POWER_USED: "Already used",
   POWER_LOCKED: "Unlocks at a higher level",
   TABLE_FULL: "That table is full",
+  PRIVATE_STARTED: "That game already started",
 };
 export function dlError(e: unknown) {
   const msg = (e as { message?: string })?.message ?? String(e);
