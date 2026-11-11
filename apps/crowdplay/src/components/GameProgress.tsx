@@ -108,7 +108,8 @@ export function GameProgress({
       {showSave && (
         <div className="rounded-2xl bg-indigo-500/20 border border-indigo-400/50 px-4 py-3">
           <p className="font-black">Save your progress</p>
-          <p className="text-sm text-slate-300">Unsaved progress resets after 4 hours away. Keep it with just your email, no password.</p>
+          <p className="text-sm font-bold text-amber-200">Not saved yet: your level and characters reset after 4 hours away.</p>
+          <p className="text-sm text-slate-300">Keep them with just your email. No password.</p>
           <div className="mt-2 flex gap-2">
             <button
               type="button"

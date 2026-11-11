@@ -17,7 +17,6 @@ import { useRoomRealtime } from "@/hooks/useRoomRealtime";
 import { useTriviaQueue, roundsToWaitLabel, currentGameProgress } from "@/hooks/useTriviaQueue";
 import { playerKey, type Player, type Team } from "@/lib/types";
 import { useSeason } from "@/hooks/useSeason";
-import { SeasonChip } from "@/components/SeasonNotice";
 import { LevelChip } from "@/components/LevelChip";
 import { AccountLink } from "@/components/AccountLink";
 
@@ -177,6 +176,7 @@ export default function TriviaLandingClient() {
               <span className="rounded-full bg-emerald-400 text-black text-xs font-black px-2 py-0.5">No wait</span>
             )}
           </div>
+          <p className="text-base font-bold text-white">Just you against everyone else.</p>
           <p className="text-sm text-slate-300">
             {soloRoom === undefined
               ? "Checking…"
@@ -203,6 +203,8 @@ export default function TriviaLandingClient() {
             <Icon name="users" size={22} className="text-sky-300" />
             <h2 className="text-2xl font-black">Team Play</h2>
           </div>
+          <p className="text-base font-bold text-white">Teams of 4. Bring friends, or we&apos;ll team you up with others.</p>
+          <p className="text-xs text-slate-400">Any empty seats are filled by computer players.</p>
           <p className="text-sm text-slate-300">
             {!canJoinNow ? (
               "A new game opens in a moment"
@@ -276,10 +278,11 @@ function Shell({ children }: { children: React.ReactNode }) {
       </Link>
       <div className="flex flex-col items-center gap-2">
         <h1 className="text-5xl sm:text-6xl font-black tracking-tight">Trivia</h1>
-        <div className="flex items-center gap-2 text-sm">
-          {season?.username && <span className="font-bold text-indigo-100">{season.username}</span>}
-          <SeasonChip season={season} />
-        </div>
+        {season?.username && (
+          <p className="text-sm text-indigo-200">
+            Your name this month: <span className="font-bold text-white">{season.username}</span>
+          </p>
+        )}
         <LevelChip bar />
       </div>
       <VenueBanner />

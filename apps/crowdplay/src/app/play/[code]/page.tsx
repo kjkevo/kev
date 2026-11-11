@@ -418,6 +418,28 @@ function PlayPageBody() {
   const me = useMemo(() => players.find((p) => p.id === creds?.playerId), [players, creds]);
   // Bring the perk picked last game into this one.
   useCarryPerk(room?.id, creds, me);
+
+  // The question this phone first saw in this game (-1 = was here from the
+  // lobby), so someone joining a Solo game mid-way is told where they came in.
+  const [joinedAtQuestion, setJoinedAtQuestion] = useState<number | null>(null);
+  useEffect(() => {
+    if (!room?.id || !creds) return;
+    const key = `slimpse_joined_at:${room.id}:${creds.playerId}`;
+    try {
+      const saved = sessionStorage.getItem(key);
+      if (saved !== null) {
+        setJoinedAtQuestion(Number(saved));
+        return;
+      }
+      // Joining between questions (scores, a twist intro) means the next one is your first.
+      const at = room.phase === "lobby" ? -1 : room.phase === "question" ? room.current_question_index : room.current_question_index + 1;
+      sessionStorage.setItem(key, String(at));
+      setJoinedAtQuestion(at);
+    } catch {
+      setJoinedAtQuestion(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- recorded once per game
+  }, [room?.id, creds?.playerId]);
   // A solo game takes new players right up to its results.
   const soloOpen = !!room && room.mode === "solo" && !room.retired && room.phase !== "final";
   const myTeam = useMemo(() => teams.find((t) => t.id === creds?.teamId), [teams, creds]);
@@ -1435,6 +1457,12 @@ function PlayPageBody() {
             style={{ width: `${countdown.fraction * 100}%` }}
           />
         </div>
+        {room.mode === "solo" && joinedAtQuestion !== null && joinedAtQuestion > 0 && room.current_question_index === joinedAtQuestion && (
+          <p className="self-center rounded-xl bg-sky-500/15 border border-sky-400/40 px-3 py-2 text-center text-sm text-sky-100">
+            You joined at question {joinedAtQuestion + 1}
+            {totalQuestions ? ` of ${totalQuestions}` : ""}. Every answer from here counts.
+          </p>
+        )}
         {twist && <TwistBanner twist={twist} text={twistBanner(twist, question.twist_seq, twistCtx)} />}
         {riftOnMe && (
           <p className="rounded-xl bg-rose-500/15 border border-rose-400/50 px-4 py-2 text-center font-bold text-rose-100 animate-pop-in">

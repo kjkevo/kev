@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/Icon";
-import { TWIST_INTRO_SECONDS, TWISTS, type Twist } from "@/lib/twists";
+import { TWIST_INTRO_SECONDS, TWISTS, type Twist, twistExplain } from "@/lib/twists";
 
 /**
  * The 7-second "here comes a twist" screen before a twist question: the
@@ -67,12 +67,15 @@ export function TwistIntro({
 export function TwistBanner({ twist, text, big = false }: { twist: Twist; text: string; big?: boolean }) {
   const t = TWISTS[twist];
   return (
-    <div
-      className={`self-center rounded-full bg-white/10 border border-white/20 font-black ${t.color} ${
-        big ? "px-6 py-2 text-2xl" : "px-3 py-1 text-sm"
-      }`}
-    >
-      {text}
+    <div className="self-center flex flex-col items-center gap-1 text-center">
+      <div
+        className={`rounded-full bg-white/10 border border-white/20 font-black ${t.color} ${
+          big ? "px-6 py-2 text-2xl" : "px-3 py-1 text-sm"
+        }`}
+      >
+        {text}
+      </div>
+      <p className={`text-slate-300 ${big ? "text-lg" : "text-xs"}`}>{twistExplain(twist)}</p>
     </div>
   );
 }
