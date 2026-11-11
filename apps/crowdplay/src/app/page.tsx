@@ -19,7 +19,7 @@ export default function Home() {
 
 
       <div className="w-full max-w-sm flex flex-col gap-3">
-        {/* The games: Trivia and Bingo are live; Wild Match and Drop Line are on the way. */}
+        {/* The games: all four are live. */}
         <div className="grid grid-cols-2 gap-3">
           {/* On a computer or TV the games show scan codes; on a phone they're tappable. */}
           <div className="hidden md:block">
@@ -50,7 +50,7 @@ export default function Home() {
           </Link>
           {[
             { name: "Wild Match", icon: "cards", path: "/wild-match", live: true },
-            { name: "Drop Line", icon: "discs", path: "/drop-line", live: false },
+            { name: "Drop Line", icon: "discs", path: "/drop-line", live: true },
           ].map((g) => [
             <div key={`${g.name}-qr`} className="hidden md:block">
               <GameScanTile title={g.name} path={g.path} accent="pink" note={g.live ? undefined : "Coming soon"} />
