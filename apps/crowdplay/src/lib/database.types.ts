@@ -674,6 +674,42 @@ export type Database = {
           o_resets_at: string
         }[]
       }
+      sb_open: {
+        Args: { p_venue: string; p_mode: string }
+        Returns: { o_code: string }[]
+      }
+      sb_join: {
+        Args: { p_code: string; p_nickname: string; p_avatar_id: string; p_device_key: string; p_team_id?: string }
+        Returns: { o_room_id: string; o_player_id: string; o_client_token: string; o_team_id: string }[]
+      }
+      sb_state: {
+        Args: { p_room_id: string }
+        Returns: Json
+      }
+      sb_mark: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_index: number }
+        Returns: boolean[]
+      }
+      sb_call_bingo: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string }
+        Returns: boolean
+      }
+      sb_set_power: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_power: string | null; p_device_key: string }
+        Returns: undefined
+      }
+      sb_use_power: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_index?: number }
+        Returns: Json
+      }
+      sb_my_power: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string }
+        Returns: Json
+      }
+      sb_leave: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string }
+        Returns: undefined
+      }
       list_perks: {
         Args: { p_device_key: string }
         Returns: { o_key: string; o_name: string; o_unlock_level: number; o_unlocked: boolean }[]
