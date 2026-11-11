@@ -674,6 +674,42 @@ export type Database = {
           o_resets_at: string
         }[]
       }
+      wm_open: {
+        Args: { p_venue: string; p_mode: string }
+        Returns: { o_code: string }[]
+      }
+      wm_join: {
+        Args: { p_code: string; p_nickname: string; p_avatar_id: string; p_device_key: string; p_team?: number }
+        Returns: { o_room_id: string; o_player_id: string; o_client_token: string; o_seat: number }[]
+      }
+      wm_state: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string }
+        Returns: Json
+      }
+      wm_play: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_card: number; p_color?: string }
+        Returns: undefined
+      }
+      wm_draw: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string }
+        Returns: undefined
+      }
+      wm_use_char_power: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_card?: number }
+        Returns: Json
+      }
+      wm_set_power: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_power: string | null; p_device_key: string }
+        Returns: undefined
+      }
+      wm_use_power: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_color?: string }
+        Returns: undefined
+      }
+      wm_leave: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string }
+        Returns: undefined
+      }
       sb_open: {
         Args: { p_venue: string; p_mode: string }
         Returns: { o_code: string }[]

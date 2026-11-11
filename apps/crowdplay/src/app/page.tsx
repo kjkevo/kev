@@ -49,19 +49,33 @@ export default function Home() {
             <div className="text-xs font-bold text-black/70">Play now ›</div>
           </Link>
           {[
-            { name: "Wild Match", icon: "cards", path: "/wild-match" },
-            { name: "Drop Line", icon: "discs", path: "/drop-line" },
+            { name: "Wild Match", icon: "cards", path: "/wild-match", live: true },
+            { name: "Drop Line", icon: "discs", path: "/drop-line", live: false },
           ].map((g) => [
             <div key={`${g.name}-qr`} className="hidden md:block">
-              <GameScanTile title={g.name} path={g.path} accent="pink" note="Coming soon" />
+              <GameScanTile title={g.name} path={g.path} accent="pink" note={g.live ? undefined : "Coming soon"} />
             </div>,
-            <div key={g.name} className="md:hidden rounded-3xl bg-white/[0.06] border border-white/15 p-4 flex flex-col items-center gap-2">
-              <div className="w-16 h-16 rounded-2xl bg-black/40 flex items-center justify-center text-pink-300">
-                <Icon name={g.icon} size={34} />
+            g.live ? (
+              <Link
+                key={g.name}
+                href={g.path}
+                className="md:hidden rounded-3xl bg-pink-400 text-black p-4 flex flex-col items-center gap-2 shadow-lg shadow-pink-400/25 transition active:scale-95"
+              >
+                <div className="w-16 h-16 rounded-2xl bg-black flex items-center justify-center text-pink-300">
+                  <Icon name={g.icon} size={34} />
+                </div>
+                <div className="font-black text-2xl leading-tight">{g.name}</div>
+                <div className="text-xs font-bold text-black/70">Play now ›</div>
+              </Link>
+            ) : (
+              <div key={g.name} className="md:hidden rounded-3xl bg-white/[0.06] border border-white/15 p-4 flex flex-col items-center gap-2">
+                <div className="w-16 h-16 rounded-2xl bg-black/40 flex items-center justify-center text-pink-300">
+                  <Icon name={g.icon} size={34} />
+                </div>
+                <div className="font-black text-2xl leading-tight">{g.name}</div>
+                <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Coming soon</div>
               </div>
-              <div className="font-black text-2xl leading-tight">{g.name}</div>
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Coming soon</div>
-            </div>,
+            ),
           ])}
         </div>
 
