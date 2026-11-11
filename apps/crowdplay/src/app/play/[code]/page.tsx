@@ -1877,6 +1877,7 @@ function PlayPageBody() {
 
         <PodiumCeremony
           key={room.id}
+          teamNamesOnly={room.mode !== "solo"}
           top={topThree}
           players={players}
           avatars={avatarsById}
