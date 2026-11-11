@@ -55,8 +55,7 @@ import { LevelChip } from "@/components/LevelChip";
 import { StreakMoment, type Streak } from "@/components/StreakMoment";
 import { PerkButton, PerkPicker, useCarryPerk } from "@/components/Perks";
 import { perkInfo } from "@/lib/perks";
-import { EmoteCharacter, EmoteButtons } from "@/components/EmoteCharacter";
-import { useRoomEmotes } from "@/hooks/useRoomEmotes";
+import { EmoteCharacter } from "@/components/EmoteCharacter";
 
 const JOIN_ERRORS: Record<string, string> = {
   ROOM_NOT_FOUND: "That game code doesn't exist.",
@@ -140,7 +139,6 @@ function PlayPageBody() {
   const [forwarding, setForwarding] = useState<"looking" | "none" | null>(null);
   const [forwardTry, setForwardTry] = useState(0);
   // Character emotes, shared live with everyone in the game.
-  const { plays: emotePlays, send: sendEmote } = useRoomEmotes(creds?.roomId, creds?.playerId);
   const { avatars, byId: avatarsById, refresh: refreshAvatars } = useAvatars();
   const [buying, setBuying] = useState<AvatarOption | null>(null);
   const venueSlug = usePlayerVenue();
@@ -1089,10 +1087,8 @@ function PlayPageBody() {
                     emoji={myCharacter?.emoji}
                     imageUrl={myCharacter?.imageUrl}
                     size={112}
-                    play={emotePlays[creds.playerId]}
                   />
                 </button>
-                <EmoteButtons avatarId={me?.avatar_id} onPlay={sendEmote} small />
               </div>
               <div className="flex-1 min-w-0 flex flex-col items-center gap-2 text-center">
                 <p className="text-lg font-black truncate max-w-full">{me?.nickname}</p>
@@ -1133,7 +1129,7 @@ function PlayPageBody() {
                     const a = p.avatar_id ? avatarsById[p.avatar_id] : undefined;
                     return (
                       <div key={p.id} className="flex flex-col items-center w-16">
-                        <EmoteCharacter avatarId={p.avatar_id} emoji={a?.emoji} imageUrl={a?.imageUrl} size={56} play={emotePlays[p.id]} />
+                        <EmoteCharacter avatarId={p.avatar_id} emoji={a?.emoji} imageUrl={a?.imageUrl} size={56} />
                         <span className="text-[11px] text-slate-200 truncate w-full text-center">{p.nickname}</span>
                       </div>
                     );
@@ -1480,9 +1476,7 @@ function PlayPageBody() {
                 mood={buddyMood}
                 size={72}
                 avatarId={me?.avatar_id}
-                play={emotePlays[creds.playerId]}
               />
-              <EmoteButtons avatarId={me?.avatar_id} onPlay={sendEmote} small />
             </div>
           )}
           <h2 className="flex-1 text-xl font-bold text-left">{question.prompt}</h2>

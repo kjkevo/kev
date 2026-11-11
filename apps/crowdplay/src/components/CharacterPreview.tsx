@@ -1,10 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { EmoteCharacter, EmoteButtons, type EmotePlay } from "@/components/EmoteCharacter";
+import { EmoteCharacter } from "@/components/EmoteCharacter";
 import { unlockLabel } from "@/components/AvatarPicker";
 import { PowerCard } from "@/components/PowerCard";
-import { emotesFor } from "@/lib/emotes";
 import type { AvatarOption } from "@/hooks/useAvatars";
 
 /**
@@ -26,11 +24,8 @@ export function CharacterPreview({
   onClose: () => void;
   equipLabel?: string;
 }) {
-  const [play, setPlay] = useState<EmotePlay | null>(null);
   const locked = !avatar.owned;
-  // Wide emotes (arms out, floor moves) must fit the screen: shrink the figure if needed.
-  const widest = Math.max(0, ...emotesFor(avatar.id).map((e) => e.aspect * (1 + (e.headroom ?? 0) + (e.footroom ?? 0))));
-  const size = Math.round(Math.min(300, widest > 0 ? 340 / widest : 300));
+  const size = 300;
   return (
     <div className="fixed inset-0 z-[60] bg-slate-950/95 backdrop-blur-sm flex items-center justify-center px-6" onClick={onClose}>
       <div className="w-full max-w-sm flex flex-col items-center gap-3 text-white" onClick={(e) => e.stopPropagation()}>
@@ -43,9 +38,7 @@ export function CharacterPreview({
           emoji={avatar.emoji}
           imageUrl={avatar.imageUrl}
           size={size}
-          play={play}
         />
-        <EmoteButtons avatarId={avatar.id} onPlay={(id) => setPlay((p) => ({ emoteId: id, n: (p?.n ?? 0) + 1 }))} />
         <PowerCard avatarId={avatar.id} />
         <div className="flex gap-2 w-full mt-1">
           <button type="button" onClick={onClose} className="flex-1 rounded-2xl bg-white/10 py-3 font-bold active:scale-95 transition">

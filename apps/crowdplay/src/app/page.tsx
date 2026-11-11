@@ -3,6 +3,7 @@ import Link from "next/link";
 import { MonthlyChampion } from "@/components/MonthlyChampion";
 import { Leaderboard } from "@/components/Leaderboard";
 import { Icon } from "@/components/Icon";
+import { GameScanTile } from "@/components/ScanCards";
 import { VenueBanner } from "@/components/VenueBanner";
 
 export default function Home() {
@@ -22,9 +23,13 @@ export default function Home() {
       <div className="w-full max-w-sm flex flex-col gap-3">
         {/* The games: Trivia and Bingo are live; Wild Match and Drop Line are on the way. */}
         <div className="grid grid-cols-2 gap-3">
+          {/* On a computer or TV the games show scan codes; on a phone they're tappable. */}
+          <div className="hidden md:block">
+            <GameScanTile title="Trivia" path="/trivia" accent="amber" />
+          </div>
           <Link
             href="/trivia"
-            className="rounded-3xl bg-amber-400 text-black p-4 flex flex-col items-center gap-2 shadow-lg shadow-amber-400/25 transition active:scale-95"
+            className="md:hidden rounded-3xl bg-amber-400 text-black p-4 flex flex-col items-center gap-2 shadow-lg shadow-amber-400/25 transition active:scale-95"
           >
             <div className="w-16 h-16 rounded-2xl bg-black overflow-hidden">
               <img src="/games/trivia.png" alt="" className="w-full h-full object-cover" />
@@ -32,9 +37,12 @@ export default function Home() {
             <div className="font-black text-2xl leading-tight">Trivia</div>
             <div className="text-xs font-bold text-black/70">Play now ›</div>
           </Link>
+          <div className="hidden md:block">
+            <GameScanTile title="Bingo" path="/bingo" accent="sky" />
+          </div>
           <Link
             href="/bingo"
-            className="rounded-3xl bg-sky-400 text-black p-4 flex flex-col items-center gap-2 shadow-lg shadow-sky-400/25 transition active:scale-95"
+            className="md:hidden rounded-3xl bg-sky-400 text-black p-4 flex flex-col items-center gap-2 shadow-lg shadow-sky-400/25 transition active:scale-95"
           >
             <div className="w-16 h-16 rounded-2xl bg-black overflow-hidden">
               <img src="/games/bingo.png" alt="" className="w-full h-full object-cover" />
