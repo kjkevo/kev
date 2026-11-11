@@ -10,6 +10,7 @@ import { MyCharacterButton } from "@/components/CharacterLocker";
 import { LevelChip } from "@/components/LevelChip";
 import { AccountLink } from "@/components/AccountLink";
 import { VenueBanner } from "@/components/VenueBanner";
+import { useSeason } from "@/hooks/useSeason";
 
 /**
  * Bingo: Solo (your own card) or Team Play (teams of 4 share one card).
@@ -18,6 +19,7 @@ import { VenueBanner } from "@/components/VenueBanner";
 export default function BingoLandingClient() {
   const router = useRouter();
   const venue = usePlayerVenue();
+  const { season } = useSeason(venue);
   const [busy, setBusy] = useState<null | "solo" | "team">(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,6 +43,11 @@ export default function BingoLandingClient() {
       </Link>
       <div className="flex flex-col items-center gap-2">
         <h1 className="text-5xl sm:text-6xl font-black tracking-tight">Bingo</h1>
+        {season?.username && (
+          <p className="text-sm text-indigo-200">
+            Your name this month: <span className="font-bold text-white">{season.username}</span>
+          </p>
+        )}
         <LevelChip bar />
       </div>
       <VenueBanner />
@@ -48,17 +55,13 @@ export default function BingoLandingClient() {
       <MyCharacterButton />
 
       <div className="flex flex-col gap-4 w-full max-w-sm">
-        <p className="text-sm text-slate-300">
-          Numbers are called every few seconds. Tap them on your card. First full line, row, column or diagonal, wins.
-        </p>
-
         <div className="rounded-3xl bg-amber-400/10 border border-amber-400/40 p-4 flex flex-col gap-3">
           <div className="flex items-center justify-center gap-2">
             <Icon name="user" size={22} className="text-amber-300" />
             <h2 className="text-2xl font-black">Solo</h2>
           </div>
           <p className="text-base font-bold text-white">Your own card against everyone else.</p>
-          <p className="text-sm text-slate-300">Join any time, even mid-game.</p>
+          <p className="text-sm text-slate-300">Tap called numbers on your card. First full line wins. Join any time.</p>
           <button
             onClick={() => go("solo")}
             disabled={busy !== null}

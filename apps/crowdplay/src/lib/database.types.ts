@@ -702,6 +702,10 @@ export type Database = {
         Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_index?: number }
         Returns: Json
       }
+      sb_use_char_power: {
+        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_index?: number }
+        Returns: Json
+      }
       sb_my_power: {
         Args: { p_room_id: string; p_player_id: string; p_client_token: string }
         Returns: Json

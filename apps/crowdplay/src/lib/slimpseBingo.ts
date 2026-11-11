@@ -18,8 +18,20 @@ export type SbRoom = {
   ended_at: string | null;
   now: string;
   venue: string | null;
+  /** Enough real players that the countdown dropped to 10 seconds. */
+  full?: boolean;
 };
-export type SbTeam = { id: string; name: string; is_bot: boolean; card: number[]; marks: boolean[] };
+export type SbTeam = {
+  id: string;
+  name: string;
+  is_bot: boolean;
+  card: number[];
+  marks: boolean[];
+  /** Numbers up to this many calls mark themselves (Trailblaze, Overclock). */
+  auto_until?: number;
+  /** Can't mark until then (hit by Overgrowth). */
+  frozen_until?: string | null;
+};
 export type SbPlayer = {
   id: string;
   team_id: string;
@@ -28,6 +40,9 @@ export type SbPlayer = {
   is_bot: boolean;
   power: string | null;
   power_used: boolean;
+  char_power?: string | null;
+  char_used?: boolean;
+  char_data?: { power?: string; target_name?: string; removed?: number; number?: number } | null;
   left: boolean;
 };
 export type SbState = { room: SbRoom | null; teams: SbTeam[]; players: SbPlayer[] };
@@ -36,12 +51,29 @@ export type SbCreds = { roomId: string; playerId: string; clientToken: string; t
 /** Seconds between called numbers (matches sb_tick). */
 export const SB_CALL_SECONDS = 6;
 
-export type SbPowerKey = "wild" | "peek" | "fresh";
+/** Bingo perks: earned by leveling up (like Trivia's), bring one per game. */
+export type SbPowerKey = "peek" | "fresh" | "wild";
 export const SB_POWERS: Record<SbPowerKey, { key: SbPowerKey; name: string; icon: IconName; how: string; level: number }> = {
-  wild: { key: "wild", name: "Wild Square", icon: "star", how: "Mark any square on your card, called or not", level: 1 },
   peek: { key: "peek", name: "Sneak Peek", icon: "eye", how: "See the next number before it's called", level: 3 },
-  fresh: { key: "fresh", name: "Fresh Card", icon: "swap", how: "Swap for a brand-new card (first 5 numbers only)", level: 6 },
+  fresh: { key: "fresh", name: "Fresh Card", icon: "swap", how: "Swap for a brand-new card (first 5 numbers only)", level: 7 },
+  wild: { key: "wild", name: "Lucky Square", icon: "star", how: "Mark any square on your card, called or not", level: 12 },
 };
+
+/** Each character's own power in Bingo (once per game; matches sb_char_power). */
+export const SB_CHAR_POWERS: Record<string, { key: string; name: string; icon: IconName; how: string; pick?: "any" | "unmarked" }> = {
+  trailblaze: { key: "trailblaze", name: "Trailblaze", icon: "bolt", how: "The next 3 numbers called mark themselves" },
+  catchup: { key: "catchup", name: "Catch Up", icon: "check", how: "Marks every called number you missed" },
+  probe: { key: "probe", name: "Mind Probe", icon: "eye", how: "See the next 2 numbers before they're called" },
+  rebuild: { key: "rebuild", name: "Rebuild", icon: "swap", how: "Swap one unmarked square for a number already called", pick: "unmarked" },
+  secondwind: { key: "secondwind", name: "Second Wind", icon: "up", how: "A new card with every called number already marked" },
+  rift: { key: "rift", name: "Void Rift", icon: "target", how: "Removes 2 marks from the rival closest to Bingo" },
+  overgrowth: { key: "overgrowth", name: "Overgrowth", icon: "cloud", how: "The rival closest to Bingo can't mark for 15 seconds" },
+  riddle: { key: "riddle", name: "Riddle Sight", icon: "star", how: "Mark any one square, called or not", pick: "any" },
+  overclock: { key: "overclock", name: "Overclock", icon: "bolt", how: "The next 5 numbers called mark themselves" },
+};
+export function sbCharPower(key: string | null | undefined) {
+  return key ? SB_CHAR_POWERS[key] ?? null : null;
+}
 export function sbPower(key: string | null | undefined) {
   return key && key in SB_POWERS ? SB_POWERS[key as SbPowerKey] : null;
 }
@@ -122,6 +154,9 @@ export const SB_ERRORS: Record<string, string> = {
   POWER_LOCKED: "Unlocks at a higher level",
   PICK_A_SQUARE: "Tap a square to mark",
   TEAM_FULL: "That team is full",
+  FROZEN: "Your card is frozen for a few seconds",
+  NO_RIVAL: "No rival to aim at yet",
+  NOTHING_TO_SWAP: "No called number to swap in yet",
   ALREADY_STARTED: "That team game already started",
 };
 export function sbError(e: unknown) {

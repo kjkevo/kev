@@ -20,18 +20,18 @@ import {
   sbHasLine,
   sbLetter,
   sbPower,
+  sbCharPower,
   type SbCreds,
   type SbPowerKey,
   type SbState,
 } from "@/lib/slimpseBingo";
 import { Icon } from "@/components/Icon";
 import { Avatar } from "@/components/Avatar";
-import { EmoteCharacter, type EmotePlay } from "@/components/EmoteCharacter";
+import { EmoteCharacter } from "@/components/EmoteCharacter";
 import { CharacterLocker } from "@/components/CharacterLocker";
 import { JoinQRCode } from "@/components/JoinQRCode";
 import { LevelChip } from "@/components/LevelChip";
 import { GameProgress } from "@/components/GameProgress";
-import { emotesFor } from "@/lib/emotes";
 
 export default function BingoPlayPage() {
   const params = useParams<{ code: string }>();
@@ -49,7 +49,11 @@ export default function BingoPlayPage() {
   const [joinError, setJoinError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [tile, setTile] = useState<null | "power" | "qr" | "character">(null);
-  const [wildMode, setWildMode] = useState(false);
+  // Tapping a square uses a power instead of marking (Lucky Square, Riddle Sight, Rebuild).
+  const [pickMode, setPickMode] = useState<null | "perk" | "char">(null);
+  const [probe, setProbe] = useState<{ nums: number[]; afterCalls: number } | null>(null);
+  const [toasts, setToasts] = useState<{ id: string; text: string; mine: boolean }[]>([]);
+  const seenUses = useRef<Set<string> | null>(null);
   const [peek, setPeek] = useState<{ next: number; afterCalls: number } | null>(null);
   const [pending, setPending] = useState<boolean[] | null>(null);
   const [calling, setCalling] = useState(false);
@@ -155,17 +159,55 @@ export default function BingoPlayPage() {
   }, [creds, me?.power_used, me?.power, peek]);
   const peekShown = peek && calls.length <= peek.afterCalls ? peek.next : null;
 
+  // Mind Probe: the next 2 numbers show until they're called.
+  useEffect(() => {
+    if (!creds || !me?.char_used || me.char_power !== "probe" || probe) return;
+    supabase.rpc("sb_my_power", { p_room_id: creds.roomId, p_player_id: creds.playerId, p_client_token: creds.clientToken }).then(({ data }) => {
+      const d = (data as { char_data?: { next?: number[]; after_calls?: number } } | null)?.char_data;
+      if (d?.next) setProbe({ nums: d.next, afterCalls: d.after_calls ?? 0 });
+    });
+  }, [creds, me?.char_used, me?.char_power, probe]);
+  const probeShown = probe ? probe.nums.filter((_, k) => calls.length <= probe.afterCalls + k) : [];
+
+  // Everyone in the game sees a small notice when someone uses a power (5 seconds).
+  useEffect(() => {
+    if (!state) return;
+    const uses: { id: string; text: string; mine: boolean }[] = [];
+    for (const p of state.players) {
+      const who = p.id === creds?.playerId ? "You" : p.nickname;
+      const mine = p.team_id === creds?.teamId;
+      if (p.char_used) {
+        const cp = sbCharPower(p.char_power);
+        const target = p.char_data?.target_name ? ` on ${p.char_data.target_name}` : "";
+        uses.push({ id: `c:${p.id}`, text: `${who} used ${cp?.name ?? "a power"}${target}`, mine });
+      }
+      if (p.power_used) uses.push({ id: `p:${p.id}`, text: `${who} used ${sbPower(p.power)?.name ?? "a perk"}`, mine });
+    }
+    if (seenUses.current === null) {
+      // Uses from before this phone was watching don't pop up.
+      seenUses.current = new Set(uses.map((u) => u.id));
+      return;
+    }
+    const fresh = uses.filter((u) => !seenUses.current!.has(u.id));
+    if (fresh.length === 0) return;
+    fresh.forEach((u) => seenUses.current!.add(u.id));
+    setToasts((prev) => [...prev, ...fresh].slice(-4));
+    const ids = fresh.map((u) => u.id);
+    setTimeout(() => setToasts((prev) => prev.filter((t) => !ids.includes(t.id))), 5000);
+  }, [state, creds?.playerId, creds?.teamId]);
+
   async function mark(i: number) {
     if (!creds || !myTeam || !room || room.phase !== "playing" || i === 12) return;
-    if (wildMode) {
-      setWildMode(false);
-      const { error } = await supabase.rpc("sb_use_power", {
+    if (pickMode) {
+      const which = pickMode;
+      setPickMode(null);
+      const { error } = await supabase.rpc(which === "perk" ? "sb_use_power" : "sb_use_char_power", {
         p_room_id: creds.roomId,
         p_player_id: creds.playerId,
         p_client_token: creds.clientToken,
         p_index: i + 1,
       });
-      if (error) setNote(sbError(error));
+      setNote(error ? sbError(error) : null);
       load();
       return;
     }
@@ -202,7 +244,7 @@ export default function BingoPlayPage() {
   async function usePower() {
     if (!creds || !me?.power) return;
     if (me.power === "wild") {
-      setWildMode(true);
+      setPickMode("perk");
       setNote("Tap any square to mark it");
       return;
     }
@@ -214,6 +256,25 @@ export default function BingoPlayPage() {
     const d = data as { next?: number; after_calls?: number } | null;
     if (me.power === "peek" && d?.next) setPeek({ next: d.next, afterCalls: d.after_calls ?? calls.length });
     if (me.power === "fresh") setNote("New card. Good luck!");
+    load();
+  }
+
+  async function useCharPower() {
+    const cp = sbCharPower(me?.char_power);
+    if (!creds || !cp) return;
+    if (cp.pick) {
+      setPickMode("char");
+      setNote(cp.pick === "any" ? "Tap any square to mark it" : "Tap an unmarked square to swap it");
+      return;
+    }
+    const { data, error } = await supabase.rpc("sb_use_char_power", { p_room_id: creds.roomId, p_player_id: creds.playerId, p_client_token: creds.clientToken });
+    if (error) {
+      setNote(sbError(error));
+      return;
+    }
+    const d = data as { next?: number[]; after_calls?: number; target_name?: string } | null;
+    if (cp.key === "probe" && d?.next) setProbe({ nums: d.next, afterCalls: d.after_calls ?? calls.length });
+    setNote(d?.target_name ? `${cp.name} hit ${d.target_name}` : `${cp.name} is on`);
     load();
   }
 
@@ -255,15 +316,6 @@ export default function BingoPlayPage() {
 
   const winnerTeam = state?.teams.find((t) => t.id === room?.winner_team_id);
   const winnerPlayers = state?.players.filter((p) => p.team_id === room?.winner_team_id) ?? [];
-  const [winPlay, setWinPlay] = useState<EmotePlay | null>(null);
-  useEffect(() => {
-    if (room?.phase !== "final" || winnerPlayers.length !== 1) return;
-    const e = emotesFor(winnerPlayers[0].avatar_id)[0];
-    if (!e) return;
-    const t = setTimeout(() => setWinPlay({ emoteId: e.id, n: 1 }), 700);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [room?.phase, room?.winner_team_id]);
 
   const avatarsList = useMemo(() => byId, [byId]);
 
@@ -288,6 +340,7 @@ export default function BingoPlayPage() {
   const teamGame = room.mode === "team";
   const myChar = me?.avatar_id ? avatarsList[me.avatar_id] : undefined;
   const power = sbPower(me?.power);
+  const charPower = sbCharPower(me?.char_power);
   const level = progress?.level ?? 1;
 
   // ---------- Results ----------
@@ -302,7 +355,7 @@ export default function BingoPlayPage() {
           <>
             <h1 className="text-4xl font-black">{iWon ? "You got Bingo!" : `${teamGame ? winnerTeam.name : winnerPlayers[0]?.nickname ?? winnerTeam.name} got Bingo`}</h1>
             {!teamGame && winnerPlayers[0] && (
-              <EmoteCharacter avatarId={winnerPlayers[0].avatar_id} emoji={winChar?.emoji} imageUrl={winChar?.imageUrl} size={200} play={winPlay} />
+              <EmoteCharacter avatarId={winnerPlayers[0].avatar_id} emoji={winChar?.emoji} imageUrl={winChar?.imageUrl} size={200} play={null} />
             )}
             {teamGame && (
               <div className="rounded-2xl bg-amber-400/15 border border-amber-400/50 px-6 py-4">
@@ -351,10 +404,22 @@ export default function BingoPlayPage() {
               <span className="text-3xl font-black tabular-nums">{secs === null ? "--" : `0:${String(secs).padStart(2, "0")}`}</span>
             </div>
             <p className="text-xs text-slate-400">
-              {humans} {humans === 1 ? "player" : "players"} here · computer players fill empty seats
+              {room.full
+                ? "Full game! Starting soon"
+                : `${humans} ${humans === 1 ? "player" : "players"} here · waiting for more, then computer players fill empty seats`}
             </p>
           </div>
         </div>
+        {charPower && (
+          <div className="w-full max-w-sm flex items-center gap-3 rounded-2xl bg-violet-500/15 border border-violet-400/40 px-4 py-2.5 text-left">
+            <Icon name={charPower.icon} size={26} className="text-violet-200" />
+            <span className="min-w-0">
+              <span className="block text-[11px] font-bold uppercase tracking-widest text-violet-300">{myChar?.name ?? "Your character"}&apos;s power</span>
+              <span className="block font-black">{charPower.name}</span>
+              <span className="block text-xs text-slate-300">{charPower.how}</span>
+            </span>
+          </div>
+        )}
 
         {teamGame && (
           <div className="w-full max-w-sm flex justify-center gap-3">
@@ -395,10 +460,10 @@ export default function BingoPlayPage() {
         {note && <p className="text-sm font-bold text-amber-300">{note}</p>}
 
         {tile && tile !== "character" && (
-          <Sheet title={tile === "power" ? "Power-up" : teamGame ? "Invite friends" : "Scan to join"} onClose={() => setTile(null)}>
+          <Sheet title={tile === "power" ? "Perks" : teamGame ? "Invite friends" : "Scan to join"} onClose={() => setTile(null)}>
             {tile === "power" ? (
               <div className="flex flex-col gap-2">
-                <p className="text-xs text-slate-400">Bring one. You can use it once this game.</p>
+                <p className="text-xs text-slate-400">Earned by leveling up. Bring one on top of your character&apos;s power, and use it once this game.</p>
                 {Object.values(SB_POWERS).map((pw) => {
                   const locked = level < pw.level;
                   const on = me?.power === pw.key;
@@ -466,6 +531,11 @@ export default function BingoPlayPage() {
               </span>
             ))}
           </div>
+          {probeShown.length > 0 && (
+            <p className="rounded-full bg-violet-500/20 border border-violet-400/50 px-3 py-0.5 text-xs font-bold text-violet-100">
+              Mind Probe: next {probeShown.map((n) => `${sbLetter(n)} ${n}`).join(", then ")}
+            </p>
+          )}
           {peekShown && (
             <p className="rounded-full bg-sky-500/20 border border-sky-400/50 px-3 py-0.5 text-xs font-bold text-sky-100">
               Sneak Peek: next is {sbLetter(peekShown)} {peekShown}
@@ -494,7 +564,7 @@ export default function BingoPlayPage() {
                 className={`aspect-square rounded-xl flex items-center justify-center text-2xl font-black tabular-nums transition active:scale-90 ${
                   on
                     ? "bg-amber-400 text-black"
-                    : wildMode
+                    : pickMode
                       ? "bg-white/10 ring-2 ring-sky-400"
                       : called
                         ? "bg-white/10 ring-2 ring-amber-400/70 animate-pulse"
@@ -508,6 +578,12 @@ export default function BingoPlayPage() {
         </div>
       </div>
 
+      {myTeam?.frozen_until && Date.parse(myTeam.frozen_until) > now && (
+        <p className="text-sm font-bold text-sky-200">Your card is frozen by Overgrowth for {Math.ceil((Date.parse(myTeam.frozen_until) - now) / 1000)}s</p>
+      )}
+      {(myTeam?.auto_until ?? 0) > calls.length && (
+        <p className="text-sm font-bold text-emerald-200">Marking itself: next {(myTeam?.auto_until ?? 0) - calls.length} numbers</p>
+      )}
       {note && <p className="text-sm font-bold text-amber-300">{note}</p>}
 
       <button
@@ -521,20 +597,46 @@ export default function BingoPlayPage() {
         {calling ? "Checking…" : "BINGO!"}
       </button>
 
-      <div className="w-full max-w-sm flex items-center justify-between gap-2 text-xs text-slate-400">
+      {/* Your character's power and your perk, once each per game. */}
+      <div className="w-full max-w-sm grid grid-cols-2 gap-2">
+        {charPower && !me?.char_used ? (
+          <button
+            type="button"
+            onClick={useCharPower}
+            className="rounded-2xl bg-violet-500/20 border border-violet-400/60 px-3 py-2.5 text-sm font-bold text-violet-100 flex items-center justify-center gap-1.5 active:scale-95"
+          >
+            <Icon name={charPower.icon} size={16} /> {charPower.name}
+          </button>
+        ) : (
+          <span className="rounded-2xl bg-white/5 px-3 py-2.5 text-xs text-slate-500 text-center">{charPower ? `${charPower.name} used` : "No character power"}</span>
+        )}
         {power && !me?.power_used ? (
           <button
             type="button"
             onClick={usePower}
-            className="rounded-full bg-emerald-500/20 border border-emerald-400/60 px-4 py-2 text-sm font-bold text-emerald-100 flex items-center gap-1.5 active:scale-95"
+            className="rounded-2xl bg-emerald-500/20 border border-emerald-400/60 px-3 py-2.5 text-sm font-bold text-emerald-100 flex items-center justify-center gap-1.5 active:scale-95"
           >
-            <Icon name={power.icon} size={16} /> Use {power.name}
+            <Icon name={power.icon} size={16} /> {power.name}
           </button>
         ) : (
-          <span>{power ? `${power.name} used` : "No power-up"}</span>
+          <span className="rounded-2xl bg-white/5 px-3 py-2.5 text-xs text-slate-500 text-center">{power ? `${power.name} used` : "No perk"}</span>
         )}
-        <span>Closest rival: {closest}/5 in a line</span>
       </div>
+      <p className="text-xs text-slate-400">Closest rival: {closest}/5 in a line</p>
+      {toasts.length > 0 && (
+        <div className="fixed right-2 bottom-6 z-50 flex flex-col items-end gap-1.5 pointer-events-none">
+          {toasts.map((t) => (
+            <p
+              key={t.id}
+              className={`toast-slide-in max-w-[62vw] truncate rounded-full px-3 py-1.5 text-xs font-bold shadow-lg ${
+                t.mine ? "bg-violet-600/95 border border-violet-300/80" : "bg-slate-800/95 border border-white/20"
+              }`}
+            >
+              {t.text}
+            </p>
+          ))}
+        </div>
+      )}
       {teamGame && teamMates.length > 0 && (
         <p className="text-xs text-slate-400">Sharing this card with {teamMates.map((p) => p.nickname).join(", ")}</p>
       )}
@@ -598,7 +700,7 @@ function LobbyTiles({
   onOpen: (t: "power" | "qr" | "character") => void;
 }) {
   const tiles = [
-    { key: "power" as const, label: "Power-up", icon: <Icon name={powerIcon} size={30} />, sub: powerName ?? "None on" },
+    { key: "power" as const, label: "Perks", icon: <Icon name={powerIcon} size={30} />, sub: powerName ?? "None on" },
     {
       key: "qr" as const,
       label: teamGame ? "Invite" : "QR code",
