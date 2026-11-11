@@ -22,7 +22,7 @@ const PLACEHOLDERS: Spot[] = [
  * bar's area, e.g. Chicago), chest up with their names.
  * Resets every Monday.
  */
-export function Leaderboard() {
+export function Leaderboard({ compact = false }: { compact?: boolean }) {
   const venue = usePlayerVenue();
   const [spots, setSpots] = useState<Spot[] | null>(null);
 
@@ -49,13 +49,13 @@ export function Leaderboard() {
   if (spots === null) return null;
 
   return (
-    <div className="w-full rounded-3xl bg-white/[0.06] border border-white/15 px-3 py-3">
+    <div className={`w-full rounded-3xl bg-white/[0.06] border border-white/15 ${compact ? "px-2 py-2" : "px-3 py-3"}`}>
       <div className="px-1">
         <p className="text-[11px] font-bold uppercase tracking-widest text-amber-300">Players of the week</p>
       </div>
-      <div className="mt-3 grid grid-cols-5 gap-1.5 justify-items-center">
+      <div className={`grid grid-cols-5 gap-1.5 justify-items-center ${compact ? "mt-2" : "mt-3"}`}>
         {spots.map((s) => (
-          <ChestUp key={s.key} imageUrl={s.imageUrl} emoji={s.emoji} name={s.name} width={60} highlight={s.isMe} />
+          <ChestUp key={s.key} imageUrl={s.imageUrl} emoji={s.emoji} name={s.name} width={compact ? 46 : 60} highlight={s.isMe} />
         ))}
       </div>
     </div>
