@@ -46,7 +46,12 @@ export const EMOTES: Record<string, Emote[]> = {
   ],
 };
 
+/** Emotes are switched off (the owner's call): characters just stand. Turn
+ * them back on by returning EMOTES[avatarId] here again. */
+export const EMOTES_ON = false;
+
 export function emotesFor(avatarId: string | null | undefined): Emote[] {
+  if (!EMOTES_ON) return [];
   return (avatarId && EMOTES[avatarId]?.slice(0, MAX_EMOTES)) || [];
 }
 
