@@ -463,50 +463,61 @@ export default function DropLinePlayPage() {
   const order = [...players].sort((a, b) => a.seat - b.seat);
 
   return (
-    <main className="relative min-h-screen bg-gradient-to-b from-indigo-950 via-purple-950 to-black text-white flex flex-col items-center px-3 pt-20 pb-6 gap-4">
+    <main className="relative min-h-[100svh] bg-gradient-to-b from-indigo-950 via-purple-950 to-black text-white flex flex-col items-center px-3 pt-16 pb-4 gap-2.5">
       <TopBar onExit={leave} label={label} />
 
       {/* Everyone at the table, in turn order. */}
-      <div className={`w-full max-w-md grid gap-2 ${order.length > 2 ? "grid-cols-4" : "grid-cols-2"}`}>
+      <div className="w-full max-w-md grid gap-1.5 grid-cols-2">
         {order.map((p) => {
           const a = p.avatar_id ? avatarsById[p.avatar_id] : undefined;
           const turn = p.seat === room.turn_seat;
           return (
             <div
               key={p.id}
-              className={`rounded-2xl px-2 py-2 flex flex-col items-center gap-1 border ${turn ? "bg-amber-400/20 border-amber-400" : "bg-white/5 border-white/10"}`}
+              className={`rounded-2xl px-2 py-1.5 flex items-center gap-2 border ${turn ? "bg-amber-400/20 border-amber-400" : "bg-white/5 border-white/10"}`}
             >
-              <Avatar emoji={a?.emoji} imageUrl={a?.imageUrl} size={40} />
-              <span className="max-w-full truncate text-sm font-bold">{p.id === me.id ? "You" : p.nickname}</span>
-              <span className={`w-5 h-5 rounded-full ${DL_PIECE[p.color]}`} />
+              <Avatar emoji={a?.emoji} imageUrl={a?.imageUrl} size={32} />
+              <span className="flex-1 min-w-0 truncate text-base font-bold text-left">{p.id === me.id ? "You" : p.nickname}</span>
+              <span className={`shrink-0 w-5 h-5 rounded-full ${DL_PIECE[p.color]}`} />
             </div>
           );
         })}
       </div>
 
-      <div className={`rounded-full px-5 py-2 text-2xl font-black ${myTurn ? "bg-amber-400 text-black animate-pulse" : "bg-white/10"}`}>
+      <div className={`rounded-full px-5 py-1.5 text-xl font-black ${myTurn ? "bg-amber-400 text-black animate-pulse" : "bg-white/10"}`}>
         {myTurn ? `Your turn! ${turnLeft}` : `${turnPlayer?.nickname ?? ""}'s turn`}
       </div>
-      {pickFor && <p className="text-xl font-black text-emerald-300">Tap a column</p>}
-      {glow && <p className="text-xl font-black text-violet-200">{glow.label}</p>}
-      {note && !pickFor && <p className="text-lg font-bold text-amber-300">{note}</p>}
+      <div className="h-7 flex items-center justify-center gap-3">
+        {pickFor ? (
+          <>
+            <p className="text-xl font-black text-emerald-300">Tap a column</p>
+            <button onClick={() => setPickFor(null)} className="text-lg font-bold text-slate-300 underline">
+              Cancel
+            </button>
+          </>
+        ) : glow ? (
+          <p className="text-xl font-black text-violet-200">{glow.label}</p>
+        ) : note ? (
+          <p className="text-lg font-bold text-amber-300">{note}</p>
+        ) : null}
+      </div>
 
       {/* The board. Tap a column to drop your piece. */}
-      <div className="w-full max-w-md">
-        <div className="grid grid-cols-7 gap-1 mb-1">
+      <div className="w-full" style={{ maxWidth: "min(28rem, calc((100svh - 330px) * 7 / 6))" }}>
+        <div className="grid grid-cols-7 gap-1 mb-0.5">
           {Array.from({ length: DL_COLS }, (_, c) => (
-            <div key={c} className="h-6 flex items-center justify-center">
+            <div key={c} className="h-5 flex items-center justify-center">
               {blockedForMe === c ? (
                 <Icon name="x" size={20} className="text-rose-400" />
               ) : shielded.has(c) ? (
                 <Icon name="check" size={20} className="text-sky-200" />
               ) : glow?.col === c ? (
-                <Icon name="up" size={22} className="text-violet-200 rotate-180" />
+                <Icon name="down" size={22} className="text-violet-200" />
               ) : null}
             </div>
           ))}
         </div>
-        <div className="rounded-3xl bg-indigo-700 border-4 border-indigo-400/60 p-2 shadow-2xl">
+        <div className="rounded-3xl bg-indigo-700 border-4 border-indigo-400/60 p-1.5 shadow-2xl">
           <div className="grid grid-cols-7 gap-1">
             {Array.from({ length: DL_COLS }, (_, c) => (
               <button
@@ -538,7 +549,7 @@ export default function DropLinePlayPage() {
         {charPower && !me.char_used ? (
           <button
             onClick={useCharPower}
-            className="rounded-2xl bg-violet-500/20 border border-violet-400/60 px-3 py-3 text-lg font-bold flex flex-col items-center justify-center active:scale-95"
+            className="rounded-2xl bg-violet-500/20 border border-violet-400/60 px-3 py-2 text-lg font-bold flex flex-col items-center justify-center active:scale-95"
           >
             <span className="flex items-center gap-1.5">
               <Icon name={charPower.icon} size={18} /> {charPower.name}
@@ -546,12 +557,12 @@ export default function DropLinePlayPage() {
             <span className="text-sm font-bold text-violet-200">{charPower.how}</span>
           </button>
         ) : (
-          <span className="rounded-2xl bg-white/5 px-3 py-3 text-base text-slate-400 text-center">{charPower ? "Power used" : "No power"}</span>
+          <span className="rounded-2xl bg-white/5 px-3 py-2 text-base text-slate-400 text-center">{charPower ? "Power used" : "No power"}</span>
         )}
         {perk && !me.power_used ? (
           <button
             onClick={usePerk}
-            className="rounded-2xl bg-emerald-500/20 border border-emerald-400/60 px-3 py-3 text-lg font-bold flex flex-col items-center justify-center active:scale-95"
+            className="rounded-2xl bg-emerald-500/20 border border-emerald-400/60 px-3 py-2 text-lg font-bold flex flex-col items-center justify-center active:scale-95"
           >
             <span className="flex items-center gap-1.5">
               <Icon name={perk.icon} size={18} /> {perk.name}
@@ -559,17 +570,11 @@ export default function DropLinePlayPage() {
             <span className="text-sm font-bold text-emerald-200">{perk.how}</span>
           </button>
         ) : (
-          <span className="rounded-2xl bg-white/5 px-3 py-3 text-base text-slate-400 text-center">{perk ? "Perk used" : "No perk"}</span>
+          <span className="rounded-2xl bg-white/5 px-3 py-2 text-base text-slate-400 text-center">{perk ? "Perk used" : "No perk"}</span>
         )}
       </div>
-      {pickFor && (
-        <button onClick={() => setPickFor(null)} className="text-lg font-bold text-slate-300 underline">
-          Cancel
-        </button>
-      )}
-
       {toasts.length > 0 && (
-        <div className="fixed right-2 bottom-24 z-40 flex flex-col items-end gap-1.5 pointer-events-none">
+        <div className="fixed right-2 top-16 z-40 flex flex-col items-end gap-1.5 pointer-events-none">
           {toasts.map((t) => (
             <p key={t.id} className="toast-slide-in max-w-[70vw] truncate rounded-full bg-slate-800/95 border border-white/20 px-3 py-1.5 text-sm font-bold shadow-lg">
               {t.text}
