@@ -62,15 +62,15 @@ export const SB_POWERS: Record<SbPowerKey, { key: SbPowerKey; name: string; icon
 };
 
 /** Each character's own power in Bingo (once per game; matches sb_char_power). */
-export const SB_CHAR_POWERS: Record<string, { key: string; name: string; icon: IconName; how: string; pick?: "any" | "unmarked" }> = {
+export const SB_CHAR_POWERS: Record<string, { key: string; name: string; icon: IconName; how: string; pick?: "any" | "unmarked"; ready?: { after: number; label: string } }> = {
   trailblaze: { key: "trailblaze", name: "Trailblaze", icon: "bolt", how: "Marks 3 numbers for you" },
   catchup: { key: "catchup", name: "Catch Up", icon: "check", how: "Marks the ones you missed" },
   probe: { key: "probe", name: "Mind Probe", icon: "eye", how: "See the next 2 numbers" },
-  rebuild: { key: "rebuild", name: "Rebuild", icon: "swap", how: "Swap a square", pick: "unmarked" },
+  rebuild: { key: "rebuild", name: "Rebuild", icon: "swap", how: "Swap a square", pick: "unmarked", ready: { after: 10, label: "Ready after 10 numbers" } },
   secondwind: { key: "secondwind", name: "Second Wind", icon: "up", how: "New card, already marked" },
-  rift: { key: "rift", name: "Void Rift", icon: "target", how: "Erase 2 rival marks" },
+  rift: { key: "rift", name: "Void Rift", icon: "target", how: "Erase 2 rival marks", ready: { after: 10, label: "Ready after 10 numbers" } },
   overgrowth: { key: "overgrowth", name: "Overgrowth", icon: "cloud", how: "Freeze a rival" },
-  riddle: { key: "riddle", name: "Riddle Sight", icon: "star", how: "Mark any square", pick: "any" },
+  riddle: { key: "riddle", name: "Riddle Sight", icon: "star", how: "Mark any square", pick: "any", ready: { after: 10, label: "Ready after 10 numbers" } },
   overclock: { key: "overclock", name: "Overclock", icon: "bolt", how: "Marks 5 numbers for you" },
 };
 export function sbCharPower(key: string | null | undefined) {
@@ -160,6 +160,8 @@ export const SB_ERRORS: Record<string, string> = {
   NO_RIVAL: "No rival to aim at yet",
   NOTHING_TO_SWAP: "No called number to swap in yet",
   ALREADY_STARTED: "That team game already started",
+  NOT_YET: "Not ready yet",
+  CANT_WIN_WITH_IT: "It can't finish a line",
   PRIVATE_STARTED: "That game already started",
 };
 export function sbError(e: unknown) {

@@ -54,8 +54,6 @@ import { ShareCard } from "@/components/ShareCard";
 import { GameProgress } from "@/components/GameProgress";
 import { LevelChip } from "@/components/LevelChip";
 import { StreakMoment, type Streak } from "@/components/StreakMoment";
-import { PerkButton, PerkPicker, useCarryPerk } from "@/components/Perks";
-import { perkInfo } from "@/lib/perks";
 import { EmoteCharacter } from "@/components/EmoteCharacter";
 
 const JOIN_ERRORS: Record<string, string> = {
@@ -172,8 +170,8 @@ function PlayPageBody() {
   const [joinMode, setJoinMode] = useState<"solo" | "team">("solo");
   // null = default (open for a first-timer, closed for a returning player).
   // null: follow the default (shown while you're alone on a team you made).
-  // The lobby's three small squares (Perks, QR code, Character) open one at a time.
-  const [lobbyTile, setLobbyTile] = useState<null | "perks" | "qr" | "character">(null);
+  // The lobby's two small squares (QR code, Character) open one at a time.
+  const [lobbyTile, setLobbyTile] = useState<null | "qr" | "character">(null);
   const [rejoining, setRejoining] = useState(false);
   const [rejoinError, setRejoinError] = useState<string | null>(null);
   const [newTeamName, setNewTeamName] = useState("");
@@ -416,8 +414,6 @@ function PlayPageBody() {
   const liveTeams = useLiveTeams(players, teams);
 
   const me = useMemo(() => players.find((p) => p.id === creds?.playerId), [players, creds]);
-  // Bring the perk picked last game into this one.
-  useCarryPerk(room?.id, creds, me);
 
   // The question this phone first saw in this game (-1 = was here from the
   // lobby), so someone joining a Solo game mid-way is told where they came in.
@@ -1157,16 +1153,10 @@ function PlayPageBody() {
 
           {avatarNote && <p className="text-xs text-amber-300/80">{avatarNote}</p>}
 
-          {/* Three small squares: Perks, QR code (invite) and Character. Each opens big. */}
-          <div className="grid grid-cols-3 gap-2">
+          {/* Two small squares: QR code (invite) and Character. Each opens big. */}
+          <div className="grid grid-cols-2 gap-2">
             {(
               [
-                {
-                  key: "perks" as const,
-                  label: "Perks",
-                  icon: <Icon name={perkInfo(me?.perk)?.icon ?? "bolt"} size={30} />,
-                  sub: me?.perk ? perkInfo(me.perk)?.name ?? "Equipped" : "None on",
-                },
                 {
                   key: "qr" as const,
                   label: teamGame ? "Invite" : "QR code",
@@ -1185,7 +1175,7 @@ function PlayPageBody() {
                 key={t.key}
                 type="button"
                 onClick={() => setLobbyTile(t.key)}
-                className="aspect-square rounded-2xl bg-white/[0.07] border border-white/15 hover:border-amber-400/60 flex flex-col items-center justify-center gap-1 px-1 text-amber-300 active:scale-95 transition"
+                className="py-4 rounded-2xl bg-white/[0.07] border border-white/15 hover:border-amber-400/60 flex flex-col items-center justify-center gap-1 px-1 text-amber-300 active:scale-95 transition"
               >
                 {t.icon}
                 <span className="text-sm font-black text-white leading-tight">{t.label}</span>
@@ -1202,13 +1192,12 @@ function PlayPageBody() {
               >
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-lg font-black">
-                    {lobbyTile === "perks" ? "Perks" : lobbyTile === "qr" ? (teamGame ? "Invite friends" : "Scan to join") : "My character"}
+                    {lobbyTile === "qr" ? (teamGame ? "Invite friends" : "Scan to join") : "My character"}
                   </p>
                   <button type="button" onClick={() => setLobbyTile(null)} className="rounded-full bg-white/10 px-3 py-1 text-sm font-bold">
                     Done
                   </button>
                 </div>
-                {lobbyTile === "perks" && <PerkPicker roomId={room.id} creds={creds} me={me} />}
                 {lobbyTile === "qr" && (
                   <div className="flex flex-col items-center gap-2">
                     <JoinQRCode code={room.code} venue={venueSlug ?? "main"} team={teamGame ? creds.teamId : undefined} size={220} />
@@ -1634,7 +1623,6 @@ function PlayPageBody() {
             choices={choiceOrder}
             onUse={activatePower}
           />
-          <PerkButton roomId={room.id} questionId={question.id} creds={creds} perk={me?.perk} />
         </div>
 
         <div className="w-full max-w-sm mx-auto">

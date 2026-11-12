@@ -7,20 +7,15 @@ import { supabase } from "@/lib/supabase";
 import { deviceKey } from "@/lib/device";
 import { usePlayerVenue, rememberPlayerVenue } from "@/lib/venue";
 import { useAvatars, useEquippedAvatar } from "@/hooks/useAvatars";
-import { useProgress } from "@/lib/progress";
 import { ensurePlayName } from "@/lib/slimpseBingo";
 import {
   DL_CHAR_POWERS,
   DL_COLS,
   DL_NAME,
-  DL_PERKS,
   DL_PIECE,
   DL_ROWS,
   dlError,
-  dlPerk,
   loadDlCreds,
-  rememberDlPerk,
-  rememberedDlPerk,
   saveDlCreds,
   type DlCreds,
   type DlState,
@@ -42,15 +37,14 @@ export default function DropLinePlayPage() {
   const pageVenue = usePlayerVenue();
   const { avatars, byId } = useAvatars();
   const { avatarId, equip } = useEquippedAvatar(avatars);
-  const { progress } = useProgress();
 
   const [creds, setCreds] = useState<DlCreds | null>(null);
   const [state, setState] = useState<DlState | null>(null);
   const [offsetMs, setOffsetMs] = useState(0);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
-  const [tile, setTile] = useState<null | "perks" | "qr" | "character">(null);
-  const [pickFor, setPickFor] = useState<null | "char" | "perk">(null);
+  const [tile, setTile] = useState<null | "qr" | "character">(null);
+  const [pickFor, setPickFor] = useState<null | "char">(null);
   const [glow, setGlow] = useState<{ col: number; label: string } | null>(null);
   const [toasts, setToasts] = useState<{ id: number; text: string }[]>([]);
   const lastLog = useRef<number | null>(null);
@@ -106,14 +100,6 @@ export default function DropLinePlayPage() {
       const c = { roomId: row.o_room_id, playerId: row.o_player_id, clientToken: row.o_client_token, seat: row.o_seat };
       saveDlCreds(code, c);
       setCreds(c);
-      const want = rememberedDlPerk();
-      if (want) {
-        supabase
-          .rpc("dl_set_power", { p_room_id: c.roomId, p_player_id: c.playerId, p_client_token: c.clientToken, p_power: want, p_device_key: deviceKey() })
-          .then(({ error: e }) => {
-            if (e?.message.includes("POWER_LOCKED")) rememberDlPerk(null);
-          });
-      }
     })();
   }, [code, avatarId, pageVenue, search, router]);
 
@@ -145,7 +131,7 @@ export default function DropLinePlayPage() {
       lastLog.current = newest;
       return;
     }
-    // Only powers and perks pop up (not every move).
+    // Only powers pop up (not every move).
     const fresh = log.filter((e) => e.id > (lastLog.current ?? 0) && / used |blocked column|blocked it!/.test(e.text));
     lastLog.current = newest;
     if (fresh.length === 0) return;
@@ -195,11 +181,6 @@ export default function DropLinePlayPage() {
       await call("dl_use_char_power", { p_col: col });
       return;
     }
-    if (pickFor === "perk") {
-      setPickFor(null);
-      await call("dl_use_power", { p_col: col });
-      return;
-    }
     if (!myTurn) {
       setNote("Wait for your turn");
       return;
@@ -222,39 +203,6 @@ export default function DropLinePlayPage() {
     const data = await call("dl_use_char_power");
     if (data && me.char_power === "probe") showCol(data, "Their best move", "No big move for them");
     if (data && me.char_power === "riddle") showCol(data, "Win here!", "No win yet");
-  }
-
-  async function usePerk() {
-    const pk = dlPerk(me?.power);
-    if (!pk) return;
-    if (!myTurn) {
-      setNote("Wait for your turn");
-      return;
-    }
-    if (pk.pickCol) {
-      setPickFor("perk");
-      setNote("Tap a column");
-      return;
-    }
-    const data = await call("dl_use_power");
-    if (data && pk.key === "hint") showCol(data, "Try here", "No hint");
-  }
-
-  async function pickPerk(key: string | null) {
-    if (!creds) return;
-    const { error } = await supabase.rpc("dl_set_power", {
-      p_room_id: creds.roomId,
-      p_player_id: creds.playerId,
-      p_client_token: creds.clientToken,
-      p_power: key,
-      p_device_key: deviceKey(),
-    });
-    if (error) {
-      setNote(dlError(error));
-      return;
-    }
-    rememberDlPerk(key);
-    load();
   }
 
   async function changeCharacter(id: string) {
@@ -307,8 +255,6 @@ export default function DropLinePlayPage() {
   const label = teamGame ? "Team Drop Line" : "Drop Line";
   const myChar = me.avatar_id ? avatarsById[me.avatar_id] : undefined;
   const charPower = me.char_power ? DL_CHAR_POWERS[me.char_power] : null;
-  const perk = dlPerk(me.power);
-  const level = progress?.level ?? 1;
   const myName = DL_NAME[me.color];
 
   // ---------- Results ----------
@@ -395,19 +341,19 @@ export default function DropLinePlayPage() {
               <span className="block text-sm font-bold text-violet-300">Your power</span>
               <span className="block text-xl font-black">{charPower.name}</span>
               <span className="block text-base">{charPower.how}</span>
+              {charPower.ready && <span className="block text-sm font-bold text-sky-200">{charPower.ready.label}</span>}
             </span>
           </div>
         )}
-        <div className="w-full max-w-sm grid grid-cols-3 gap-2">
+        <div className="w-full max-w-sm grid grid-cols-2 gap-2">
           {[
-            { key: "perks" as const, label: "Perks", icon: <Icon name={perk?.icon ?? "bolt"} size={30} />, sub: perk?.name ?? "None on" },
             { key: "qr" as const, label: teamGame || room.private ? "Invite" : "QR code", icon: <Icon name="qr" size={30} />, sub: "Scan to join" },
             { key: "character" as const, label: "Character", icon: <Avatar imageUrl={myChar?.imageUrl} size={38} />, sub: myChar?.name ?? "Pick one" },
           ].map((t) => (
             <button
               key={t.key}
               onClick={() => setTile(t.key)}
-              className="aspect-square rounded-2xl bg-white/[0.07] border border-white/15 flex flex-col items-center justify-center gap-1 px-1 text-amber-300 active:scale-95 transition"
+              className="py-4 rounded-2xl bg-white/[0.07] border border-white/15 flex flex-col items-center justify-center gap-1 px-1 text-amber-300 active:scale-95 transition"
             >
               {t.icon}
               <span className="text-sm font-black text-white">{t.label}</span>
@@ -417,32 +363,6 @@ export default function DropLinePlayPage() {
         </div>
         <p className="max-w-sm text-xl font-black">Get 4 in a row to win!</p>
         {note && <p className="text-lg font-bold text-amber-300">{note}</p>}
-        {tile === "perks" && (
-          <Sheet title="Perks" onClose={() => setTile(null)}>
-            <p className="mb-2 text-lg font-bold">Pick 1</p>
-            <div className="flex flex-col gap-2">
-              {DL_PERKS.map((pk) => {
-                const locked = level < pk.level;
-                const on = me.power === pk.key;
-                return (
-                  <button
-                    key={pk.key}
-                    disabled={locked}
-                    onClick={() => pickPerk(on ? null : pk.key)}
-                    className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-left disabled:opacity-50 ${on ? "bg-emerald-400/15 border-emerald-400/60" : "bg-white/5 border-white/10"}`}
-                  >
-                    <Icon name={pk.icon} size={30} className="text-amber-300" />
-                    <span className="flex-1">
-                      <span className="block text-lg font-black">{pk.name}</span>
-                      <span className="block text-base">{pk.how}</span>
-                    </span>
-                    <span className="text-sm font-bold">{locked ? `Level ${pk.level}` : on ? "On" : "Pick"}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </Sheet>
-        )}
         {tile === "qr" && (
           <Sheet title={teamGame ? "Invite your partner" : "Scan to join"} onClose={() => setTile(null)}>
             <div className="flex flex-col items-center gap-2">
@@ -461,6 +381,8 @@ export default function DropLinePlayPage() {
     ? Math.max(0, Math.ceil(room.turn_limit - (now - Date.parse(room.turn_started_at)) / 1000))
     : room.turn_limit;
   const blockedForMe = room.blocked_color === me.color ? room.blocked_col : null;
+  const pieces = room.board.filter((v) => v === 1 || v === 2).length;
+  const powerWaiting = !!charPower?.ready && pieces < charPower.ready.after;
   const shielded = new Set<number>([...(room.protected["1"] ?? []), ...(room.protected["2"] ?? [])]);
   const lastCells = new Set(Object.values(room.last_drop ?? {}).map((d) => d.row * DL_COLS + d.col));
   const order = [...players].sort((a, b) => a.seat - b.seat);
@@ -548,11 +470,11 @@ export default function DropLinePlayPage() {
         </div>
       </div>
 
-      <div className="w-full max-w-md grid grid-cols-2 gap-2">
-        {charPower && !me.char_used ? (
+      <div className="w-full max-w-md">
+        {charPower && !me.char_used && !powerWaiting ? (
           <button
             onClick={useCharPower}
-            className="rounded-2xl bg-violet-500/20 border border-violet-400/60 px-3 py-2 text-lg font-bold flex flex-col items-center justify-center active:scale-95"
+            className="w-full rounded-2xl bg-violet-500/20 border border-violet-400/60 px-3 py-2 text-lg font-bold flex flex-col items-center justify-center active:scale-95"
           >
             <span className="flex items-center gap-1.5">
               <Icon name={charPower.icon} size={18} /> {charPower.name}
@@ -560,20 +482,14 @@ export default function DropLinePlayPage() {
             <span className="text-sm font-bold text-violet-200">{charPower.how}</span>
           </button>
         ) : (
-          <span className="rounded-2xl bg-white/5 px-3 py-2 text-base text-slate-400 text-center">{charPower ? "Power used" : "No power"}</span>
-        )}
-        {perk && !me.power_used ? (
-          <button
-            onClick={usePerk}
-            className="rounded-2xl bg-emerald-500/20 border border-emerald-400/60 px-3 py-2 text-lg font-bold flex flex-col items-center justify-center active:scale-95"
-          >
-            <span className="flex items-center gap-1.5">
-              <Icon name={perk.icon} size={18} /> {perk.name}
-            </span>
-            <span className="text-sm font-bold text-emerald-200">{perk.how}</span>
-          </button>
-        ) : (
-          <span className="rounded-2xl bg-white/5 px-3 py-2 text-base text-slate-400 text-center">{perk ? "Perk used" : "No perk"}</span>
+          <div className="w-full rounded-2xl bg-white/5 px-3 py-2 text-base text-slate-400 text-center">
+            {!charPower ? "No power" : me.char_used ? "Power used" : (
+              <>
+                <span className="block font-bold text-slate-200">{charPower.name}</span>
+                <span className="block text-sm font-bold text-sky-200">{charPower.ready?.label}</span>
+              </>
+            )}
+          </div>
         )}
       </div>
       {toasts.length > 0 && (

@@ -28,6 +28,8 @@ export type Power = {
   timing: PowerTiming;
   /** Only on multiple-choice questions. */
   choicesOnly?: boolean;
+  /** Strong powers wait until later in the game. */
+  ready?: { after: number; label: string };
 };
 
 export const POWERS: Record<string, Power> = {
@@ -44,9 +46,9 @@ export const POWERS: Record<string, Power> = {
   "geo-sphinx": { key: "riddle", name: "Riddle Sight", timing: "before",
     how: "Free clue" },
   "void-walker": { key: "rift", name: "Void Rift", timing: "any",
-    how: "Steal 300 from the leader" },
+    how: "Steal 300 from the leader", ready: { after: 3, label: "Ready after question 3" } },
   "model-z": { key: "overclock", name: "Overclock", timing: "before",
-    how: "Double points if right" },
+    how: "+50% points if right" },
   "stone-golem": { key: "second_wind", name: "Second Wind", timing: "after",
     how: "After you answer: wrong? Try again" },
 };
@@ -102,7 +104,7 @@ export function powerResultLine(key: string, data: PowerData | null | undefined)
         ? `${d.target_name ?? "They"} had a Mirror: you lost ${d.amount ?? 0}`
         : `Stole ${d.amount ?? 300} from ${d.target_name ?? "the leader"}`;
     case "overclock":
-      return "Double points if right";
+      return "+50% points if right";
     case "second_wind":
       return d.result === "right"
         ? "You're right!"
@@ -132,7 +134,7 @@ export function powerPublicLine(key: string, amount: number, targetName?: string
         ? `tried to steal from ${targetName ?? "the leader"}, but it bounced back (−${-amount})`
         : `stole ${amount} from ${targetName ?? "the leader"}`;
     case "overclock":
-      return "double points if right";
+      return "+50% points if right";
     case "second_wind":
       return "checked their answer";
     default:
@@ -163,6 +165,7 @@ export function powerScoreTag(key: string, amount: number, stolenFrom: boolean):
 /** Server errors from use_power, in plain words. */
 export function powerErrorText(message: string): string {
   if (/POWER_USED/.test(message)) return "Already used this game";
+  if (/NOT_YET/.test(message)) return "Ready after question 3";
   if (/TEAM_POWER_TAKEN/.test(message)) return "A teammate used one here";
   if (/TEAM_LOCKED_IN/.test(message)) return "Use it before you answer";
   if (/NOT_LOCKED_YET/.test(message)) return "Answer first, then use it";
