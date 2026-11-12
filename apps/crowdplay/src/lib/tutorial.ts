@@ -10,7 +10,9 @@ import { useCallback, useEffect, useState } from "react";
  */
 export type TutorialGame = "trivia" | "bingo" | "wild-match" | "drop-line";
 
-const key = (g: TutorialGame) => `slimpse_tutorial_done:${g}`;
+// Bump to show every walkthrough again on every phone (e.g. for testing).
+const TUTORIAL_VERSION = 2;
+const key = (g: TutorialGame) => `slimpse_tutorial_done:v${TUTORIAL_VERSION}:${g}`;
 
 export function tutorialSeen(g: TutorialGame) {
   try {
