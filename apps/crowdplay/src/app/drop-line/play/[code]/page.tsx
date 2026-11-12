@@ -145,10 +145,11 @@ export default function DropLinePlayPage() {
       lastLog.current = newest;
       return;
     }
-    const fresh = log.filter((e) => e.id > (lastLog.current ?? 0));
+    // Only powers and perks pop up (not every move).
+    const fresh = log.filter((e) => e.id > (lastLog.current ?? 0) && / used |blocked column|blocked it!/.test(e.text));
     lastLog.current = newest;
     if (fresh.length === 0) return;
-    setToasts((prev) => [...prev, ...fresh].slice(-3));
+    setToasts((prev) => [...prev, ...fresh].slice(-4));
     const ids = fresh.map((e) => e.id);
     setTimeout(() => setToasts((prev) => prev.filter((t) => !ids.includes(t.id))), 5000);
   }, [state?.room?.log]);
@@ -578,8 +579,14 @@ export default function DropLinePlayPage() {
       {toasts.length > 0 && (
         <div className="fixed right-2 top-16 z-40 flex flex-col items-end gap-1.5 pointer-events-none">
           {toasts.map((t) => (
-            <p key={t.id} className="toast-slide-in max-w-[70vw] truncate rounded-full bg-slate-800/95 border border-white/20 px-3 py-1.5 text-sm font-bold shadow-lg">
-              {t.text}
+            <p
+              key={t.id}
+              className={`toast-slide-in max-w-[75vw] truncate rounded-full px-3 py-1.5 text-sm font-bold shadow-lg flex items-center gap-1.5 ${
+                me?.nickname && t.text.startsWith(me?.nickname) ? "bg-violet-600/95 border border-violet-300/80" : "bg-slate-800/95 border border-white/20"
+              }`}
+            >
+              <Icon name="bolt" size={14} className="shrink-0 text-amber-300" />
+              <span className="truncate">{t.text}</span>
             </p>
           ))}
         </div>
