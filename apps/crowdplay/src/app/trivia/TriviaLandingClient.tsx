@@ -1,5 +1,7 @@
 "use client";
 
+import { useFirstTimeTutorial } from "@/lib/tutorial";
+import { GameTutorial } from "@/components/GameTutorial";
 import { useEffect, useState } from "react";
 import { MyCharacterButton } from "@/components/CharacterLocker";
 import Link from "next/link";
@@ -278,8 +280,10 @@ function ChoiceScreen({
 function Shell({ children }: { children: React.ReactNode }) {
   // Every trivia visitor sees the monthly season and when it resets.
   const { season } = useSeason(usePlayerVenue());
+  const tutorial = useFirstTimeTutorial("trivia");
   return (
     <main className="relative min-h-screen flex flex-col items-center justify-center gap-6 bg-gradient-to-b from-indigo-950 via-purple-950 to-black text-white px-4 pt-14 pb-8 text-center">
+      {tutorial.show && <GameTutorial game="trivia" onClose={tutorial.close} />}
       <Link href="/" className="absolute top-4 left-4 text-sm text-indigo-300/70 hover:text-indigo-200">
         ← Games
       </Link>

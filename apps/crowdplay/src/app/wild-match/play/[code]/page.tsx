@@ -1,5 +1,6 @@
 "use client";
 
+import { useMarkTutorialSeen } from "@/lib/tutorial";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -61,6 +62,7 @@ function Card({ c, size = "md", dim = false, lift = false, onClick }: { c: numbe
 }
 
 export default function WildMatchPlayPage() {
+  useMarkTutorialSeen("wild-match");
   const params = useParams<{ code: string }>();
   const code = (params?.code ?? "").toUpperCase();
   const search = useSearchParams();

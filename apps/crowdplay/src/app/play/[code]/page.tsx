@@ -1,5 +1,6 @@
 "use client";
 
+import { useMarkTutorialSeen } from "@/lib/tutorial";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { isOpenFor, secondsFor, shuffledChoices } from "@/lib/questionMode";
 import { fogUntil, isTwist, twistBanner, twistDescription, twistPersonalLine, type TwistContext } from "@/lib/twists";
@@ -88,6 +89,7 @@ function friendlyError(raw: string) {
 
 /** The game page, with your team's power notifications over every screen. */
 export default function PlayPage() {
+  useMarkTutorialSeen("trivia");
   const params = useParams<{ code: string }>();
   return (
     <>

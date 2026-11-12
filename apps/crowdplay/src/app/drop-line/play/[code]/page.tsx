@@ -1,5 +1,6 @@
 "use client";
 
+import { useMarkTutorialSeen } from "@/lib/tutorial";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -33,6 +34,7 @@ import { LevelChip } from "@/components/LevelChip";
 import { GameProgress } from "@/components/GameProgress";
 
 export default function DropLinePlayPage() {
+  useMarkTutorialSeen("drop-line");
   const params = useParams<{ code: string }>();
   const code = (params?.code ?? "").toUpperCase();
   const search = useSearchParams();

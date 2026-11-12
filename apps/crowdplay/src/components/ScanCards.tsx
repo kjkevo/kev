@@ -68,3 +68,21 @@ export function GameScanTile({ title, path, accent, note }: { title: string; pat
     </div>
   );
 }
+
+/**
+ * The main menu's one big code. Scanning it opens the menu on the phone,
+ * where the four games are big buttons to tap.
+ */
+export function MenuScanCode() {
+  const [origin, setOrigin] = useState("");
+  useEffect(() => setOrigin(window.location.origin), []);
+  const venue = usePlayerVenue();
+  const url = origin ? `${origin}/?venue=${encodeURIComponent(venue ?? "main")}&src=menu` : "";
+  return (
+    <div className="rounded-[2rem] border-2 border-amber-400/60 bg-amber-400/10 p-6 flex flex-col items-center gap-4">
+      <p className="text-4xl font-black text-amber-300">Scan to play</p>
+      <div className="bg-white rounded-3xl p-5">{url ? <QRCodeSVG value={url} size={300} /> : <div className="w-[300px] h-[300px]" />}</div>
+      <p className="text-xl font-bold text-slate-200">Use your phone camera</p>
+    </div>
+  );
+}
