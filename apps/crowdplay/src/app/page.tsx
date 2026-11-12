@@ -5,10 +5,10 @@ import { MenuScanCode } from "@/components/ScanCards";
 import { VenueBanner } from "@/components/VenueBanner";
 
 const GAMES = [
-  { name: "Trivia", path: "/trivia", img: "/games/trivia.png", icon: null, color: "bg-amber-400 shadow-amber-400/25", chip: "text-amber-300" },
-  { name: "Bingo", path: "/bingo", img: "/games/bingo.png", icon: null, color: "bg-sky-400 shadow-sky-400/25", chip: "text-sky-300" },
-  { name: "Wild Match", path: "/wild-match", img: null, icon: "cards", color: "bg-pink-400 shadow-pink-400/25", chip: "text-pink-300" },
-  { name: "Drop Line", path: "/drop-line", img: null, icon: "discs", color: "bg-pink-400 shadow-pink-400/25", chip: "text-pink-300" },
+  { name: "Trivia", path: "/trivia", img: "/games/trivia.png", icon: null, color: "bg-amber-400 shadow-amber-400/25", chip: "text-amber-300", iconColor: "" },
+  { name: "Bingo", path: "/bingo", img: "/games/bingo.png", icon: null, color: "bg-sky-400 shadow-sky-400/25", chip: "text-sky-300", iconColor: "" },
+  { name: "Wild Match", path: "/wild-match", img: null, icon: "cards", color: "bg-pink-400 shadow-pink-400/25", chip: "text-pink-300", iconColor: "text-pink-300" },
+  { name: "Drop Line", path: "/drop-line", img: null, icon: "discs", color: "bg-emerald-400 shadow-emerald-400/25", chip: "text-emerald-300", iconColor: "text-emerald-300" },
 ];
 
 export default function Home() {
@@ -44,7 +44,7 @@ export default function Home() {
             href={`${g.path}?src=menu`}
             className={`rounded-3xl ${g.color} text-black p-4 flex flex-col items-center gap-2 shadow-lg transition active:scale-95`}
           >
-            <div className="w-16 h-16 rounded-2xl bg-black overflow-hidden flex items-center justify-center text-pink-300">
+            <div className={`w-16 h-16 rounded-2xl bg-black overflow-hidden flex items-center justify-center ${g.iconColor}`}>
               {g.img ? <img src={g.img} alt="" className="w-full h-full object-cover" /> : <Icon name={g.icon ?? "cards"} size={34} />}
             </div>
             <div className="font-black text-2xl leading-tight">{g.name}</div>
