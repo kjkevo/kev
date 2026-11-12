@@ -522,16 +522,16 @@ export default function BingoPlayPage() {
   const nextIn = Math.max(0, Math.ceil(SB_CALL_SECONDS - sinceCall));
 
   return (
-    <main className="relative min-h-screen bg-gradient-to-b from-indigo-950 via-purple-950 to-black text-white flex flex-col items-center px-4 pt-20 pb-8 gap-3">
+    <main className="relative min-h-[100svh] bg-gradient-to-b from-indigo-950 via-purple-950 to-black text-white flex flex-col items-center px-4 pt-16 pb-4 gap-2">
       <TopBar onExit={leave} label={teamGame ? myTeam?.name ?? "Team Bingo" : "Solo Bingo"} />
 
       {/* The number just called, and the ones before it. */}
       <div className="flex items-center gap-4">
-        <div className="w-28 h-28 rounded-full bg-amber-400 text-black flex flex-col items-center justify-center shadow-lg shadow-amber-400/30">
+        <div className="w-20 h-20 rounded-full bg-amber-400 text-black flex flex-col items-center justify-center shadow-lg shadow-amber-400/30">
           {current ? (
             <>
-              <span className="text-xl font-black leading-none">{sbLetter(current)}</span>
-              <span className="text-5xl font-black leading-none tabular-nums">{current}</span>
+              <span className="text-lg font-black leading-none">{sbLetter(current)}</span>
+              <span className="text-4xl font-black leading-none tabular-nums">{current}</span>
             </>
           ) : (
             <span className="text-sm font-bold">Get ready</span>
@@ -561,10 +561,10 @@ export default function BingoPlayPage() {
       </div>
 
       {/* Your card. Called numbers glow until you tap them. */}
-      <div className="w-full max-w-sm">
-        <div className="grid grid-cols-5 gap-1.5 mb-1.5">
+      <div className="w-full" style={{ maxWidth: "min(24rem, calc(100svh - 360px))" }}>
+        <div className="grid grid-cols-5 gap-1.5 mb-1">
           {"BINGO".split("").map((l) => (
-            <span key={l} className="text-center text-2xl font-black text-amber-300">{l}</span>
+            <span key={l} className="text-center text-xl font-black text-amber-300">{l}</span>
           ))}
         </div>
         <div className="grid grid-cols-5 gap-1.5">
@@ -577,7 +577,7 @@ export default function BingoPlayPage() {
                 key={i}
                 type="button"
                 onClick={() => mark(i)}
-                className={`aspect-square rounded-xl flex items-center justify-center text-2xl font-black tabular-nums transition active:scale-90 ${
+                className={`aspect-square rounded-xl flex items-center justify-center text-xl font-black tabular-nums transition active:scale-90 ${
                   on
                     ? "bg-amber-400 text-black"
                     : pickMode
@@ -606,7 +606,7 @@ export default function BingoPlayPage() {
         type="button"
         onClick={bingo}
         disabled={!lineReady || calling}
-        className={`w-full max-w-sm rounded-2xl py-4 text-3xl font-black transition active:scale-95 ${
+        className={`w-full max-w-sm rounded-2xl py-3 text-2xl font-black transition active:scale-95 ${
           lineReady ? "bg-emerald-400 text-black animate-pulse" : "bg-white/10 text-white/40"
         }`}
       >
@@ -619,27 +619,27 @@ export default function BingoPlayPage() {
           <button
             type="button"
             onClick={useCharPower}
-            className="rounded-2xl bg-violet-500/20 border border-violet-400/60 px-3 py-2.5 text-sm font-bold text-violet-100 flex items-center justify-center gap-1.5 active:scale-95"
+            className="rounded-2xl bg-violet-500/20 border border-violet-400/60 px-3 py-2.5 text-base font-bold text-violet-100 flex items-center justify-center gap-1.5 active:scale-95"
           >
             <Icon name={charPower.icon} size={16} /> {charPower.name}
           </button>
         ) : (
-          <span className="rounded-2xl bg-white/5 px-3 py-2.5 text-xs text-slate-500 text-center">{charPower ? `${charPower.name} used` : "No character power"}</span>
+          <span className="rounded-2xl bg-white/5 px-3 py-2.5 text-base text-slate-400 text-center">{charPower ? "Power used" : "No power"}</span>
         )}
         {power && !me?.power_used ? (
           <button
             type="button"
             onClick={usePower}
-            className="rounded-2xl bg-emerald-500/20 border border-emerald-400/60 px-3 py-2.5 text-sm font-bold text-emerald-100 flex items-center justify-center gap-1.5 active:scale-95"
+            className="rounded-2xl bg-emerald-500/20 border border-emerald-400/60 px-3 py-2.5 text-base font-bold text-emerald-100 flex items-center justify-center gap-1.5 active:scale-95"
           >
             <Icon name={power.icon} size={16} /> {power.name}
           </button>
         ) : (
-          <span className="rounded-2xl bg-white/5 px-3 py-2.5 text-xs text-slate-500 text-center">{power ? `${power.name} used` : "No perk"}</span>
+          <span className="rounded-2xl bg-white/5 px-3 py-2.5 text-base text-slate-400 text-center">{power ? "Perk used" : "No perk"}</span>
         )}
       </div>
             {toasts.length > 0 && (
-        <div className="fixed right-2 bottom-6 z-50 flex flex-col items-end gap-1.5 pointer-events-none">
+        <div className="fixed right-2 top-16 z-50 flex flex-col items-end gap-1.5 pointer-events-none">
           {toasts.map((t) => (
             <p
               key={t.id}
