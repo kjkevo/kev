@@ -94,13 +94,6 @@ export default function WildMatchLandingClient() {
           >
             {busy === "team" ? "Finding a game…" : "Play other teams"}
           </button>
-          <button
-            onClick={() => go("team", true)}
-            disabled={busy !== null}
-            className="rounded-2xl bg-white/10 border border-white/25 text-white font-black text-lg py-3 disabled:opacity-50 active:scale-95 transition"
-          >
-            {busy === "team-friends" ? "Making your table…" : "Just my friends"}
-          </button>
         </div>
         {error && <p className="text-sm font-bold text-rose-300">{error}</p>}
       </div>
