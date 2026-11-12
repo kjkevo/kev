@@ -39,7 +39,7 @@ import { GameProgress } from "@/components/GameProgress";
 function Card({ c, size = "md", dim = false, lift = false, onClick }: { c: number; size?: "sm" | "md" | "lg"; dim?: boolean; lift?: boolean; onClick?: () => void }) {
   const color = wmColor(c);
   const bg = color ? WM_BG[color] : "bg-gradient-to-br from-rose-500 via-amber-400 to-sky-500";
-  const dims = size === "lg" ? "w-28 h-40 text-5xl" : size === "sm" ? "w-10 h-14 text-base" : "w-16 h-24 text-3xl";
+  const dims = size === "lg" ? "w-20 h-28 text-4xl" : size === "sm" ? "w-10 h-14 text-base" : "w-14 h-20 text-2xl";
   return (
     <button
       type="button"
@@ -51,7 +51,7 @@ function Card({ c, size = "md", dim = false, lift = false, onClick }: { c: numbe
     >
       <span
         className={`drop-shadow-[0_2px_2px_rgba(0,0,0,0.5)] leading-none ${
-          wmLabel(c).length > 2 ? (size === "lg" ? "text-3xl" : size === "sm" ? "text-[10px]" : "text-lg") : ""
+          wmLabel(c).length > 2 ? (size === "lg" ? "text-2xl" : size === "sm" ? "text-[10px]" : "text-base") : ""
         }`}
       >
         {wmLabel(c)}
@@ -474,7 +474,7 @@ export default function WildMatchPlayPage() {
   const hand = [...me.hand].sort((a, b) => (wmColor(a) ?? "z").localeCompare(wmColor(b) ?? "z") || a - b);
 
   return (
-    <main className="relative min-h-screen bg-gradient-to-b from-indigo-950 via-purple-950 to-black text-white flex flex-col items-center px-3 pt-20 pb-6 gap-4">
+    <main className="relative min-h-[100svh] bg-gradient-to-b from-indigo-950 via-purple-950 to-black text-white flex flex-col items-center px-3 pt-16 pb-4 gap-2.5">
       <TopBar onExit={leave} label={teamGame ? "Team Wild Match" : "Wild Match"} />
 
       {/* The other three players: whose turn, how many cards. */}
@@ -486,20 +486,22 @@ export default function WildMatchPlayPage() {
           return (
             <div
               key={p.id}
-              className={`rounded-2xl px-2 py-2 flex flex-col items-center gap-1 border ${
+              className={`rounded-2xl px-1.5 py-1.5 flex flex-col items-center gap-0.5 border ${
                 turn ? "bg-amber-400/20 border-amber-400" : partner ? "bg-sky-500/10 border-sky-400/50" : "bg-white/5 border-white/10"
               }`}
             >
-              <Avatar emoji={a?.emoji} imageUrl={a?.imageUrl} size={44} />
+              <span className="flex items-center gap-1.5 max-w-full">
+                <Avatar emoji={a?.emoji} imageUrl={a?.imageUrl} size={28} />
+                <span className="text-lg font-black">{p.cards}</span>
+              </span>
               <span className="max-w-full truncate text-sm font-bold">{partner ? "Partner" : p.nickname}</span>
-              <span className="text-lg font-black">{p.cards} {p.cards === 1 ? "card" : "cards"}</span>
             </div>
           );
         })}
       </div>
 
       {/* The pile and the deck. */}
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-5">
         <div className="flex flex-col items-center gap-1">
           {room.top !== null && <Card c={room.top} size="lg" />}
           <span className={`rounded-full px-3 py-0.5 text-base font-black text-black capitalize ${room.color ? WM_BG[room.color] : "bg-white"}`}>
@@ -508,16 +510,16 @@ export default function WildMatchPlayPage() {
         </div>
         <button
           onClick={() => (myTurn ? call("wm_draw") : setNote("Wait for your turn"))}
-          className={`w-28 h-40 rounded-2xl border-4 border-white/70 bg-slate-800 flex flex-col items-center justify-center gap-1 active:scale-95 transition ${
+          className={`w-20 h-28 rounded-2xl border-4 border-white/70 bg-slate-800 flex flex-col items-center justify-center gap-1 active:scale-95 transition ${
             myTurn ? "ring-4 ring-amber-400" : ""
           }`}
         >
-          <Icon name="cards" size={36} />
+          <Icon name="cards" size={28} />
           <span className="text-xl font-black">Draw</span>
         </button>
       </div>
 
-      <div className={`rounded-full px-5 py-2 text-2xl font-black ${myTurn ? "bg-amber-400 text-black animate-pulse" : "bg-white/10"}`}>
+      <div className={`rounded-full px-5 py-1.5 text-xl font-black ${myTurn ? "bg-amber-400 text-black animate-pulse" : "bg-white/10"}`}>
         {myTurn ? `Your turn! ${turnLeft}` : `${turnPlayer?.nickname ?? ""}'s turn`}
       </div>
       {me.free_play && <p className="text-lg font-bold text-emerald-300">Play any card!</p>}
@@ -535,8 +537,8 @@ export default function WildMatchPlayPage() {
       )}
 
       {/* Your hand. Cards you can play are bright. */}
-      <div className="w-full max-w-md pt-4">
-        <div className="flex flex-wrap justify-center gap-2 gap-y-4 px-1">
+      <div className="w-full max-w-md pt-2">
+        <div className="flex flex-wrap justify-center gap-2 gap-y-3 px-1">
           {hand.map((c) => {
             const ok = myTurn && wmPlayable(c, room.top, room.color, me.free_play);
             return <Card key={c} c={c} dim={myTurn && !ok && !pickCard} lift={ok} onClick={() => tapCard(c)} />;
@@ -548,22 +550,22 @@ export default function WildMatchPlayPage() {
         {charPower && !mine?.char_used ? (
           <button
             onClick={useCharPower}
-            className="rounded-2xl bg-violet-500/20 border border-violet-400/60 px-3 py-3 text-lg font-bold flex items-center justify-center gap-1.5 active:scale-95"
+            className="rounded-2xl bg-violet-500/20 border border-violet-400/60 px-3 py-2.5 text-lg font-bold flex items-center justify-center gap-1.5 active:scale-95"
           >
             <Icon name={charPower.icon} size={18} /> {charPower.name}
           </button>
         ) : (
-          <span className="rounded-2xl bg-white/5 px-3 py-3 text-base text-slate-400 text-center">{charPower ? "Power used" : "No power"}</span>
+          <span className="rounded-2xl bg-white/5 px-3 py-2.5 text-base text-slate-400 text-center">{charPower ? "Power used" : "No power"}</span>
         )}
         {perk && !mine?.power_used ? (
           <button
             onClick={usePerk}
-            className="rounded-2xl bg-emerald-500/20 border border-emerald-400/60 px-3 py-3 text-lg font-bold flex items-center justify-center gap-1.5 active:scale-95"
+            className="rounded-2xl bg-emerald-500/20 border border-emerald-400/60 px-3 py-2.5 text-lg font-bold flex items-center justify-center gap-1.5 active:scale-95"
           >
             <Icon name={perk.icon} size={18} /> {perk.name}
           </button>
         ) : (
-          <span className="rounded-2xl bg-white/5 px-3 py-3 text-base text-slate-400 text-center">{perk ? "Perk used" : "No perk"}</span>
+          <span className="rounded-2xl bg-white/5 px-3 py-2.5 text-base text-slate-400 text-center">{perk ? "Perk used" : "No perk"}</span>
         )}
       </div>
 
@@ -580,7 +582,7 @@ export default function WildMatchPlayPage() {
       )}
 
       {toasts.length > 0 && (
-        <div className="fixed right-2 bottom-24 z-40 flex flex-col items-end gap-1.5 pointer-events-none">
+        <div className="fixed right-2 top-16 z-40 flex flex-col items-end gap-1.5 pointer-events-none">
           {toasts.map((t) => (
             <p key={t.id} className="toast-slide-in max-w-[70vw] truncate rounded-full bg-slate-800/95 border border-white/20 px-3 py-1.5 text-sm font-bold shadow-lg">
               {t.text}
