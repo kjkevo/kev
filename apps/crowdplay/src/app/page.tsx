@@ -18,7 +18,7 @@ export default function Home() {
         <h1 className="text-4xl sm:text-6xl font-black tracking-tight">
           Slim<span className="text-amber-400">pse</span>
         </h1>
-        <p className="mt-2 text-lg sm:text-2xl font-bold text-indigo-200">Pick a game. No app needed.</p>
+        <p className="mt-2 text-lg sm:text-2xl font-bold text-indigo-200">Pick a game.</p>
       </div>
 
       {/* A bar's own logo, welcome line and prize (?venue=...). */}
