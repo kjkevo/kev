@@ -16,6 +16,7 @@ export type WmRoom = {
   direction: number;
   turn_started_at: string | null;
   deck_left: number;
+  plays?: number;
   winner_seat: number | null;
   winner_team: number | null;
   log: { id: number; text: string }[];
@@ -77,16 +78,16 @@ export const WM_BG: Record<WmColor, string> = {
 };
 
 /** Each character's own power in Wild Match (matches wm_char_power). */
-export const WM_CHAR_POWERS: Record<string, { name: string; icon: IconName; how: string; pickCard?: boolean }> = {
+export const WM_CHAR_POWERS: Record<string, { name: string; icon: IconName; how: string; pickCard?: boolean; ready?: { after: number; label: string } }> = {
   trailblaze: { name: "Trailblaze", icon: "bolt", how: "Play any card next" },
   shield: { name: "Crystal Shield", icon: "check", how: "Blocks the next +2 or +4" },
   probe: { name: "Mind Probe", icon: "eye", how: "See the next player's cards" },
   patience: { name: "Patience", icon: "clock", how: "Pass without drawing" },
-  bloom: { name: "Bloom", icon: "up", how: "Toss 1 card", pickCard: true },
+  bloom: { name: "Bloom", icon: "up", how: "Toss 1 card", pickCard: true, ready: { after: 8, label: "Ready after 8 cards" } },
   riddle: { name: "Riddle Sight", icon: "star", how: "Draw a card you can play" },
   rift: { name: "Void Rift", icon: "target", how: "Swap a card with the leader" },
-  overclock: { name: "Overclock", icon: "bolt", how: "Take 2 turns" },
-  secondwind: { name: "Second Wind", icon: "swap", how: "Toss 2 cards, draw 1" },
+  overclock: { name: "Overclock", icon: "bolt", how: "Take 2 turns", ready: { after: 8, label: "Ready after 8 cards" } },
+  secondwind: { name: "Second Wind", icon: "swap", how: "Toss 2 cards, draw 1", ready: { after: 8, label: "Ready after 8 cards" } },
 };
 
 /** Wild Match perks: earned by leveling up, bring one per game. */
@@ -144,6 +145,7 @@ const ERRORS: Record<string, string> = {
   NO_RIVAL: "No one to swap with",
   NONE_LEFT: "No Wild cards left",
   TABLE_FULL: "That table is full",
+  NOT_YET: "Not ready yet",
   PRIVATE_STARTED: "That game already started",
 };
 export function wmError(e: unknown) {

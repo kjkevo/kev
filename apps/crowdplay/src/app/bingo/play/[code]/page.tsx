@@ -7,22 +7,16 @@ import { supabase } from "@/lib/supabase";
 import { deviceKey } from "@/lib/device";
 import { usePlayerVenue, rememberPlayerVenue } from "@/lib/venue";
 import { useAvatars, useEquippedAvatar } from "@/hooks/useAvatars";
-import { useProgress } from "@/lib/progress";
 import {
   SB_CALL_SECONDS,
-  SB_POWERS,
   ensurePlayName,
   loadSbCreds,
-  rememberSbPower,
-  rememberedSbPower,
   saveSbCreds,
   sbError,
   sbHasLine,
   sbLetter,
-  sbPower,
   sbCharPower,
   type SbCreds,
-  type SbPowerKey,
   type SbState,
 } from "@/lib/slimpseBingo";
 import { Icon } from "@/components/Icon";
@@ -42,20 +36,18 @@ export default function BingoPlayPage() {
   const pageVenue = usePlayerVenue();
   const { avatars, byId } = useAvatars();
   const { avatarId, equip } = useEquippedAvatar(avatars);
-  const { progress } = useProgress();
 
   const [creds, setCreds] = useState<SbCreds | null>(null);
   const [state, setState] = useState<SbState | null>(null);
   const [offsetMs, setOffsetMs] = useState(0);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
-  const [tile, setTile] = useState<null | "power" | "qr" | "character">(null);
-  // Tapping a square uses a power instead of marking (Lucky Square, Riddle Sight, Rebuild).
-  const [pickMode, setPickMode] = useState<null | "perk" | "char">(null);
+  const [tile, setTile] = useState<null | "qr" | "character">(null);
+  // Tapping a square uses a power instead of marking (Riddle Sight, Rebuild).
+  const [pickMode, setPickMode] = useState<null | "char">(null);
   const [probe, setProbe] = useState<{ nums: number[]; afterCalls: number } | null>(null);
   const [toasts, setToasts] = useState<{ id: string; text: string; mine: boolean }[]>([]);
   const seenUses = useRef<Set<string> | null>(null);
-  const [peek, setPeek] = useState<{ next: number; afterCalls: number } | null>(null);
   const [pending, setPending] = useState<boolean[] | null>(null);
   const [calling, setCalling] = useState(false);
   const [, setTick] = useState(0);
@@ -111,15 +103,6 @@ export default function BingoPlayPage() {
       const c = { roomId: row.o_room_id, playerId: row.o_player_id, clientToken: row.o_client_token, teamId: row.o_team_id };
       saveSbCreds(code, c);
       setCreds(c);
-      // Bring the power-up picked last game.
-      const want = rememberedSbPower();
-      if (want) {
-        supabase
-          .rpc("sb_set_power", { p_room_id: c.roomId, p_player_id: c.playerId, p_client_token: c.clientToken, p_power: want, p_device_key: deviceKey() })
-          .then(({ error: e }) => {
-            if (e?.message.includes("POWER_LOCKED")) rememberSbPower(null);
-          });
-      }
     })();
   }, [code, avatarId, pageVenue, search, router]);
 
@@ -155,15 +138,6 @@ export default function BingoPlayPage() {
   const teamMates = state?.players.filter((p) => p.team_id === creds?.teamId && p.id !== creds?.playerId && !p.left) ?? [];
   const lineReady = myTeam ? sbHasLine(marks) : false;
 
-  // Sneak Peek: the number shows until it's called.
-  useEffect(() => {
-    if (!creds || !me?.power_used || me.power !== "peek" || peek) return;
-    supabase.rpc("sb_my_power", { p_room_id: creds.roomId, p_player_id: creds.playerId, p_client_token: creds.clientToken }).then(({ data }) => {
-      const d = (data as { data?: { next?: number; after_calls?: number } } | null)?.data;
-      if (d?.next) setPeek({ next: d.next, afterCalls: d.after_calls ?? 0 });
-    });
-  }, [creds, me?.power_used, me?.power, peek]);
-  const peekShown = peek && calls.length <= peek.afterCalls ? peek.next : null;
 
   // Mind Probe: the next 2 numbers show until they're called.
   useEffect(() => {
@@ -187,7 +161,6 @@ export default function BingoPlayPage() {
         const target = p.char_data?.target_name ? ` on ${p.char_data.target_name}` : "";
         uses.push({ id: `c:${p.id}`, text: `${who} used ${cp?.name ?? "a power"}${target}`, mine });
       }
-      if (p.power_used) uses.push({ id: `p:${p.id}`, text: `${who} used ${sbPower(p.power)?.name ?? "a perk"}`, mine });
     }
     if (seenUses.current === null) {
       // Uses from before this phone was watching don't pop up.
@@ -205,9 +178,8 @@ export default function BingoPlayPage() {
   async function mark(i: number) {
     if (!creds || !myTeam || !room || room.phase !== "playing" || i === 12) return;
     if (pickMode) {
-      const which = pickMode;
       setPickMode(null);
-      const { error } = await supabase.rpc(which === "perk" ? "sb_use_power" : "sb_use_char_power", {
+      const { error } = await supabase.rpc("sb_use_char_power", {
         p_room_id: creds.roomId,
         p_player_id: creds.playerId,
         p_client_token: creds.clientToken,
@@ -247,24 +219,6 @@ export default function BingoPlayPage() {
     load();
   }
 
-  async function usePower() {
-    if (!creds || !me?.power) return;
-    if (me.power === "wild") {
-      setPickMode("perk");
-      setNote("Tap any square to mark it");
-      return;
-    }
-    const { data, error } = await supabase.rpc("sb_use_power", { p_room_id: creds.roomId, p_player_id: creds.playerId, p_client_token: creds.clientToken });
-    if (error) {
-      setNote(sbError(error));
-      return;
-    }
-    const d = data as { next?: number; after_calls?: number } | null;
-    if (me.power === "peek" && d?.next) setPeek({ next: d.next, afterCalls: d.after_calls ?? calls.length });
-    if (me.power === "fresh") setNote("New card. Good luck!");
-    load();
-  }
-
   async function useCharPower() {
     const cp = sbCharPower(me?.char_power);
     if (!creds || !cp) return;
@@ -281,23 +235,6 @@ export default function BingoPlayPage() {
     const d = data as { next?: number[]; after_calls?: number; target_name?: string } | null;
     if (cp.key === "probe" && d?.next) setProbe({ nums: d.next, afterCalls: d.after_calls ?? calls.length });
     setNote(d?.target_name ? `${cp.name} hit ${d.target_name}` : `${cp.name} is on`);
-    load();
-  }
-
-  async function pickPower(key: SbPowerKey | null) {
-    if (!creds) return;
-    const { error } = await supabase.rpc("sb_set_power", {
-      p_room_id: creds.roomId,
-      p_player_id: creds.playerId,
-      p_client_token: creds.clientToken,
-      p_power: key,
-      p_device_key: deviceKey(),
-    });
-    if (error) {
-      setNote(sbError(error));
-      return;
-    }
-    rememberSbPower(key);
     load();
   }
 
@@ -352,9 +289,7 @@ export default function BingoPlayPage() {
 
   const teamGame = room.mode === "team";
   const myChar = me?.avatar_id ? avatarsList[me.avatar_id] : undefined;
-  const power = sbPower(me?.power);
   const charPower = sbCharPower(me?.char_power);
-  const level = progress?.level ?? 1;
 
   // ---------- Results ----------
   if (room.phase === "final") {
@@ -440,6 +375,7 @@ export default function BingoPlayPage() {
               <span className="block text-sm font-bold text-violet-300">Your power</span>
               <span className="block text-xl font-black">{charPower.name}</span>
               <span className="block text-base text-white">{charPower.how}</span>
+              {charPower.ready && <span className="block text-sm font-bold text-sky-200">{charPower.ready.label}</span>}
             </span>
           </div>
         )}
@@ -468,8 +404,6 @@ export default function BingoPlayPage() {
 
         <LobbyTiles
           teamGame={teamGame}
-          powerName={power?.name ?? null}
-          powerIcon={power?.icon ?? "bolt"}
           openSpots={openSpots}
           charName={myChar?.name ?? "Pick one"}
           charImage={myChar?.imageUrl ?? null}
@@ -479,39 +413,12 @@ export default function BingoPlayPage() {
         <p className="max-w-sm text-xl font-black">Tap the numbers. Get 5 in a row!</p>
         {note && <p className="text-sm font-bold text-amber-300">{note}</p>}
 
-        {tile && tile !== "character" && (
-          <Sheet title={tile === "power" ? "Perks" : teamGame ? "Invite friends" : "Scan to join"} onClose={() => setTile(null)}>
-            {tile === "power" ? (
-              <div className="flex flex-col gap-2">
-                <p className="text-lg font-bold text-white">Pick 1</p>
-                {Object.values(SB_POWERS).map((pw) => {
-                  const locked = level < pw.level;
-                  const on = me?.power === pw.key;
-                  return (
-                    <button
-                      key={pw.key}
-                      disabled={locked}
-                      onClick={() => pickPower(on ? null : pw.key)}
-                      className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-left transition active:scale-95 disabled:opacity-50 ${
-                        on ? "bg-emerald-400/15 border-emerald-400/60" : "bg-white/5 border-white/10"
-                      }`}
-                    >
-                      <Icon name={pw.icon} size={30} className={locked ? "text-slate-500" : "text-amber-300"} />
-                      <span className="flex-1 min-w-0">
-                        <span className="block font-black">{pw.name}</span>
-                        <span className="block text-base text-white">{pw.how}</span>
-                      </span>
-                      <span className="text-sm font-bold text-slate-200">{locked ? `Level ${pw.level}` : on ? "On" : "Pick"}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-2">
-                <JoinQRCode code={room.code} basePath="/bingo/play" venue={room.venue ?? "main"} team={teamGame ? creds.teamId : undefined} size={220} />
-                <p className="text-sm text-slate-300">{teamGame ? "Scan to join your team" : "Scan to join this game"}</p>
-              </div>
-            )}
+        {tile === "qr" && (
+          <Sheet title={teamGame ? "Invite friends" : "Scan to join"} onClose={() => setTile(null)}>
+            <div className="flex flex-col items-center gap-2">
+              <JoinQRCode code={room.code} basePath="/bingo/play" venue={room.venue ?? "main"} team={teamGame ? creds.teamId : undefined} size={220} />
+              <p className="text-sm text-slate-300">{teamGame ? "Scan to join your team" : "Scan to join this game"}</p>
+            </div>
           </Sheet>
         )}
         {tile === "character" && <CharacterLocker onClose={() => setTile(null)} onEquip={changeCharacter} />}
@@ -520,6 +427,7 @@ export default function BingoPlayPage() {
   }
 
   // ---------- Playing ----------
+  const powerWaiting = !!charPower?.ready && calls.length < charPower.ready.after;
   const sinceCall = room.last_call_at ? (now - Date.parse(room.last_call_at)) / 1000 : 0;
   const nextIn = Math.max(0, Math.ceil(SB_CALL_SECONDS - sinceCall));
 
@@ -552,11 +460,6 @@ export default function BingoPlayPage() {
           {probeShown.length > 0 && (
             <p className="rounded-full bg-violet-500/20 border border-violet-400/50 px-3 py-1 text-base font-bold text-violet-100">
               Next: {probeShown.map((n) => `${sbLetter(n)} ${n}`).join(", ")}
-            </p>
-          )}
-          {peekShown && (
-            <p className="rounded-full bg-sky-500/20 border border-sky-400/50 px-3 py-1 text-base font-bold text-sky-100">
-              Next: {sbLetter(peekShown)} {peekShown}
             </p>
           )}
         </div>
@@ -615,29 +518,28 @@ export default function BingoPlayPage() {
         {calling ? "Checking…" : "BINGO!"}
       </button>
 
-      {/* Your character's power and your perk, once each per game. */}
-      <div className="w-full max-w-sm grid grid-cols-2 gap-2">
-        {charPower && !me?.char_used ? (
+      {/* Your character's power, once per game. */}
+      <div className="w-full max-w-sm">
+        {charPower && !me?.char_used && !powerWaiting ? (
           <button
             type="button"
             onClick={useCharPower}
-            className="rounded-2xl bg-violet-500/20 border border-violet-400/60 px-3 py-2.5 text-base font-bold text-violet-100 flex items-center justify-center gap-1.5 active:scale-95"
+            className="w-full rounded-2xl bg-violet-500/20 border border-violet-400/60 px-3 py-2 text-lg font-bold text-violet-100 flex flex-col items-center justify-center active:scale-95"
           >
-            <Icon name={charPower.icon} size={16} /> {charPower.name}
+            <span className="flex items-center gap-1.5">
+              <Icon name={charPower.icon} size={18} /> {charPower.name}
+            </span>
+            <span className="text-sm font-bold text-violet-200">{charPower.how}</span>
           </button>
         ) : (
-          <span className="rounded-2xl bg-white/5 px-3 py-2.5 text-base text-slate-400 text-center">{charPower ? "Power used" : "No power"}</span>
-        )}
-        {power && !me?.power_used ? (
-          <button
-            type="button"
-            onClick={usePower}
-            className="rounded-2xl bg-emerald-500/20 border border-emerald-400/60 px-3 py-2.5 text-base font-bold text-emerald-100 flex items-center justify-center gap-1.5 active:scale-95"
-          >
-            <Icon name={power.icon} size={16} /> {power.name}
-          </button>
-        ) : (
-          <span className="rounded-2xl bg-white/5 px-3 py-2.5 text-base text-slate-400 text-center">{power ? "Perk used" : "No perk"}</span>
+          <div className="w-full rounded-2xl bg-white/5 px-3 py-2 text-base text-slate-400 text-center">
+            {!charPower ? "No power" : me?.char_used ? "Power used" : (
+              <>
+                <span className="block font-bold text-slate-200">{charPower.name}</span>
+                <span className="block text-sm font-bold text-sky-200">{charPower.ready?.label}</span>
+              </>
+            )}
+          </div>
         )}
       </div>
             {toasts.length > 0 && (
@@ -701,23 +603,18 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
 
 function LobbyTiles({
   teamGame,
-  powerName,
-  powerIcon,
   openSpots,
   charName,
   charImage,
   onOpen,
 }: {
   teamGame: boolean;
-  powerName: string | null;
-  powerIcon: string;
   openSpots: number;
   charName: string;
   charImage: string | null;
-  onOpen: (t: "power" | "qr" | "character") => void;
+  onOpen: (t: "qr" | "character") => void;
 }) {
   const tiles = [
-    { key: "power" as const, label: "Perks", icon: <Icon name={powerIcon} size={30} />, sub: powerName ?? "None on" },
     {
       key: "qr" as const,
       label: teamGame ? "Invite" : "QR code",
@@ -727,13 +624,13 @@ function LobbyTiles({
     { key: "character" as const, label: "Character", icon: <Avatar imageUrl={charImage} size={38} />, sub: charName },
   ];
   return (
-    <div className="w-full max-w-sm grid grid-cols-3 gap-2">
+    <div className="w-full max-w-sm grid grid-cols-2 gap-2">
       {tiles.map((t) => (
         <button
           key={t.key}
           type="button"
           onClick={() => onOpen(t.key)}
-          className="aspect-square rounded-2xl bg-white/[0.07] border border-white/15 hover:border-amber-400/60 flex flex-col items-center justify-center gap-1 px-1 text-amber-300 active:scale-95 transition"
+          className="py-4 rounded-2xl bg-white/[0.07] border border-white/15 hover:border-amber-400/60 flex flex-col items-center justify-center gap-1 px-1 text-amber-300 active:scale-95 transition"
         >
           {t.icon}
           <span className="text-sm font-black text-white leading-tight">{t.label}</span>

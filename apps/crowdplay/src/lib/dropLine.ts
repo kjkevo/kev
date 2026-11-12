@@ -53,15 +53,15 @@ export const DL_PIECE: Record<number, string> = {
 };
 
 /** Each character's own power in Drop Line (matches dl_char_power). */
-export const DL_CHAR_POWERS: Record<string, { name: string; icon: IconName; how: string; pickCol?: boolean }> = {
-  trailblaze: { name: "Trailblaze", icon: "bolt", how: "Knock off a top piece", pickCol: true },
+export const DL_CHAR_POWERS: Record<string, { name: string; icon: IconName; how: string; pickCol?: boolean; ready?: { after: number; label: string } }> = {
+  trailblaze: { name: "Trailblaze", icon: "bolt", how: "Knock off a top piece", pickCol: true, ready: { after: 8, label: "Ready after 8 pieces" } },
   shield: { name: "Crystal Shield", icon: "check", how: "Protect a column", pickCol: true },
   probe: { name: "Mind Probe", icon: "eye", how: "See their best move" },
   patience: { name: "Patience", icon: "clock", how: "+20 seconds" },
   bloom: { name: "Bloom", icon: "up", how: "Drop a block", pickCol: true },
   riddle: { name: "Riddle Sight", icon: "star", how: "Show your winning move" },
-  rift: { name: "Void Rift", icon: "target", how: "Remove their piece" },
-  overclock: { name: "Overclock", icon: "bolt", how: "Take 2 turns" },
+  rift: { name: "Void Rift", icon: "target", how: "Remove their piece", ready: { after: 8, label: "Ready after 8 pieces" } },
+  overclock: { name: "Overclock", icon: "bolt", how: "Take 2 turns", ready: { after: 12, label: "Ready after 12 pieces" } },
   secondwind: { name: "Second Wind", icon: "swap", how: "Undo your last drop" },
 };
 
@@ -120,6 +120,7 @@ const ERRORS: Record<string, string> = {
   POWER_USED: "Already used",
   POWER_LOCKED: "Unlocks at a higher level",
   TABLE_FULL: "That table is full",
+  NOT_YET: "Not ready yet",
   PRIVATE_STARTED: "That game already started",
 };
 export function dlError(e: unknown) {

@@ -17,7 +17,7 @@ const CARD_KEY: Record<string, string> = {
 };
 
 /** The character's power in the game this page belongs to (Trivia anywhere else). */
-export function gamePowerFor(avatarId: string, path: string | null): { name: string; how: string } | null {
+export function gamePowerFor(avatarId: string, path: string | null): { name: string; how: string; ready?: { after: number; label: string } } | null {
   if (path?.startsWith("/bingo")) return SB_CHAR_POWERS[BINGO_KEY[avatarId]] ?? null;
   if (path?.startsWith("/wild-match")) return WM_CHAR_POWERS[CARD_KEY[avatarId]] ?? null;
   if (path?.startsWith("/drop-line")) return DL_CHAR_POWERS[CARD_KEY[avatarId]] ?? null;
@@ -35,6 +35,7 @@ export function PowerCard({ avatarId, className = "" }: { avatarId: string; clas
         {!POWERS_LIVE && <span className="ml-auto text-xs font-bold text-white/60">Coming soon</span>}
       </div>
       <p className="mt-0.5 text-base text-white">{power.how}</p>
+      {power.ready && <p className="mt-0.5 text-sm font-bold text-sky-200">{power.ready.label}</p>}
     </div>
   );
 }

@@ -29,22 +29,19 @@ const CHAR_IMG = "/avatars/jungle-scout-icon.png";
 type GameInfo = {
   title: string;
   power: { name: string; how: string };
-  perk: { name: string; how: string };
   steps: Step[];
   Demo: (p: { done: Set<string> }) => React.ReactElement;
 };
 
-function intro(title: string, power: GameInfo["power"], perk: GameInfo["perk"]): Step[] {
+function intro(title: string, power: GameInfo["power"]): Step[] {
   return [
     { id: "welcome", say: `Welcome to ${title}!`, sub: "Let's learn how to play. It's quick!", button: "Start" },
     { id: "char", target: "char", tap: true, say: "This is you!", sub: "Tap your character." },
     { id: "charInfo", target: "char", say: "You can pick a new character.", sub: "Each one has its own power." },
     { id: "power", target: "power", say: "This is your power!", sub: `${power.name}: ${power.how}` },
-    { id: "powerInfo", target: "power", say: "Use it 1 time each game.", sub: "Save it for a big moment!" },
-    { id: "perk", target: "perk", say: "This is a perk!", sub: `${perk.name}: ${perk.how}` },
-    { id: "perkInfo", target: "perk", say: "Level up to get more perks.", sub: "You pick 1 perk each game." },
+    { id: "powerInfo", target: "power", say: "Use it 1 time each game.", sub: "Strong ones wait until later in the game." },
     { id: "xp", target: "xp", tap: true, say: "This is your XP bar.", sub: "Tap it!" },
-    { id: "xpInfo", target: "xp", say: "Play games to earn XP.", sub: "Fill the bar to level up. Wins earn more!" },
+    { id: "xpInfo", target: "xp", say: "Play games to earn XP.", sub: "Level up to unlock new characters!" },
   ];
 }
 
@@ -52,13 +49,11 @@ const outro: Step = { id: "ready", say: "You're ready!", sub: "Play Solo, or pla
 
 // ---------------------------------------------------------------- Shared demo frame
 
-function Frame({ done, children, powerLabel, perkLabel, powerUsed, perkUsed }: {
+function Frame({ done, children, powerLabel, powerUsed }: {
   done: Set<string>;
   children: React.ReactNode;
   powerLabel: string;
-  perkLabel: string;
   powerUsed?: boolean;
-  perkUsed?: boolean;
 }) {
   const leveled = done.has("xp");
   return (
@@ -79,12 +74,9 @@ function Frame({ done, children, powerLabel, perkLabel, powerUsed, perkUsed }: {
         </div>
       </div>
       <div className="w-full max-w-md flex-1 flex flex-col items-center justify-center gap-3">{children}</div>
-      <div className="w-full max-w-md grid grid-cols-2 gap-2">
+      <div className="w-full max-w-md">
         <div data-tut="power" className={`rounded-2xl border px-3 py-2.5 text-lg font-bold flex items-center justify-center gap-1.5 ${powerUsed ? "bg-white/5 border-white/5 text-slate-400" : "bg-violet-500/20 border-violet-400/60"}`}>
           <Icon name="bolt" size={18} /> {powerUsed ? "Power used" : powerLabel}
-        </div>
-        <div data-tut="perk" className={`rounded-2xl border px-3 py-2.5 text-lg font-bold flex items-center justify-center gap-1.5 ${perkUsed ? "bg-white/5 border-white/5 text-slate-400" : "bg-emerald-500/20 border-emerald-400/60"}`}>
-          <Icon name="star" size={18} /> {perkUsed ? "Perk used" : perkLabel}
         </div>
       </div>
     </div>
@@ -96,18 +88,17 @@ function Frame({ done, children, powerLabel, perkLabel, powerUsed, perkUsed }: {
 const TRIVIA: GameInfo = {
   title: "Trivia",
   power: { name: "Trailblaze", how: "Removes 2 wrong answers" },
-  perk: { name: "Time Freeze", how: "+10 seconds" },
   steps: [],
   Demo: ({ done }) => {
     const answers = ["Mars", "Venus", "Jupiter", "Pluto"];
     const removed = done.has("tUsePower") ? ["Venus", "Pluto"] : [];
     const right = done.has("tAnswer");
     return (
-      <Frame done={done} powerLabel="Trailblaze" perkLabel="Time Freeze" powerUsed={done.has("tUsePower")} perkUsed={done.has("tPerk")}>
+      <Frame done={done} powerLabel="Trailblaze" powerUsed={done.has("tUsePower")}>
         <div className="w-full flex items-center justify-between">
           <div data-tut="score" className="rounded-full bg-white/10 px-3 py-1 text-lg font-black">{right ? 1100 : 1000} points</div>
           <div data-tut="timer" className="w-14 h-14 rounded-full border-4 border-amber-400 flex items-center justify-center text-2xl font-black">
-            {done.has("tPerk") ? 22 : 12}
+            12
           </div>
         </div>
         <div data-tut="question" className="w-full rounded-2xl bg-white/10 px-4 py-4 text-2xl font-black text-center">Which planet is the biggest?</div>
@@ -130,14 +121,12 @@ const TRIVIA: GameInfo = {
   },
 };
 TRIVIA.steps = [
-  ...intro("Trivia", TRIVIA.power, TRIVIA.perk),
+  ...intro("Trivia", TRIVIA.power),
   { id: "tQuestion", target: "question", say: "Read the question.", sub: "Then pick an answer." },
   { id: "tTimer", target: "timer", say: "Watch the clock!", sub: "Fast answers get more points.", round: true },
   { id: "tUsePower", target: "power", tap: true, say: "Not sure? Use your power!", sub: "Tap Trailblaze." },
   { id: "tAnswer", target: "answer", tap: true, say: "2 wrong answers are gone!", sub: "Now tap the right one." },
   { id: "tScore", target: "score", say: "Your points went up!", sub: "Most points at the end wins." },
-  { id: "tPerk", target: "perk", tap: true, say: "Need more time?", sub: "Tap your perk." },
-  { id: "tPerkDone", target: "timer", say: "+10 seconds!", sub: "Perks help when you need it.", round: true },
   outro,
 ];
 
@@ -147,23 +136,21 @@ const CARD = [7, 22, 40, 55, 70, 3, 18, 39, 53, 64, 12, 25, 0, 51, 68, 9, 16, 42
 const BINGO: GameInfo = {
   title: "Bingo",
   power: { name: "Trailblaze", how: "Marks 3 numbers for you" },
-  perk: { name: "Sneak Peek", how: "See the next number" },
   steps: [],
   Demo: ({ done }) => {
     const marked = new Set<number>([12]);
     if (done.has("bMark")) marked.add(10);
     if (done.has("bPower")) [11, 13].forEach((i) => marked.add(i));
     if (done.has("bLast")) marked.add(14);
-    const ball = done.has("bPeek") ? 68 : 12;
+    const ball = done.has("bRow") ? 68 : 12;
     const won = done.has("bBingo");
     return (
-      <Frame done={done} powerLabel="Trailblaze" perkLabel="Sneak Peek" powerUsed={done.has("bPower")} perkUsed={done.has("bPeek")}>
+      <Frame done={done} powerLabel="Trailblaze" powerUsed={done.has("bPower")}>
         <div className="flex items-center gap-3">
           <div data-tut="ball" className="w-16 h-16 rounded-full bg-amber-400 text-black flex flex-col items-center justify-center">
             <span className="text-lg font-black leading-none">{ball > 60 ? "O" : "B"}</span>
             <span className="text-3xl font-black leading-none">{ball}</span>
           </div>
-          {done.has("bPeek") && !done.has("bLast") && <p className="rounded-full bg-sky-500/20 border border-sky-400/50 px-3 py-1 text-lg font-bold">Next: O 68</p>}
         </div>
         <div className="w-full max-w-[15.5rem] grid grid-cols-5 gap-1">
           {CARD.map((n, i) => (
@@ -186,12 +173,11 @@ const BINGO: GameInfo = {
   },
 };
 BINGO.steps = [
-  ...intro("Bingo", BINGO.power, BINGO.perk),
+  ...intro("Bingo", BINGO.power),
   { id: "bBall", target: "ball", say: "Numbers get called here.", sub: "A new one every few seconds.", round: true },
   { id: "bMark", target: "sq12", tap: true, say: "12 was called!", sub: "Find it on your card. Tap it!" },
   { id: "bPower", target: "power", tap: true, say: "Use your power!", sub: "It marks numbers for you." },
   { id: "bRow", target: "sq68", say: "Get 5 in a row to win!", sub: "You need just 1 more: 68." },
-  { id: "bPeek", target: "perk", tap: true, say: "Tap your perk to see what's next.", sub: "Sneak Peek!" },
   { id: "bLast", target: "sq68", tap: true, say: "68 was called!", sub: "Tap it!" },
   { id: "bBingo", target: "bingo", tap: true, say: "5 in a row!", sub: "Tap BINGO! fast!" },
   { id: "bWon", target: "bingo", say: "You win!", sub: "First to call BINGO! wins." },
@@ -204,13 +190,12 @@ const WM_COLOR: Record<string, string> = { red: "bg-rose-500", blue: "bg-sky-500
 const WILD: GameInfo = {
   title: "Wild Match",
   power: { name: "Trailblaze", how: "Play any card next" },
-  perk: { name: "Color Call", how: "Pick the color" },
   steps: [],
   Demo: ({ done }) => {
     let top = { c: "blue", n: "5" };
     if (done.has("wPlay")) top = { c: "blue", n: "2" };
     if (done.has("wAny")) top = { c: "red", n: "9" };
-    const color = done.has("wPerk") ? "green" : top.c;
+    const color = top.c;
     const hand = [
       { k: "b2", c: "blue", n: "2", gone: done.has("wPlay") },
       { k: "r9", c: "red", n: "9", gone: done.has("wAny") },
@@ -219,7 +204,7 @@ const WILD: GameInfo = {
     ];
     if (done.has("wDraw")) hand.push({ k: "g1", c: "green", n: "1", gone: false });
     return (
-      <Frame done={done} powerLabel="Trailblaze" perkLabel="Color Call" powerUsed={done.has("wPower")} perkUsed={done.has("wPerk")}>
+      <Frame done={done} powerLabel="Trailblaze" powerUsed={done.has("wPower")}>
         <div className="flex items-center gap-5">
           <div data-tut="pile" className="flex flex-col items-center gap-1">
             <div className={`w-20 h-28 rounded-2xl border-4 border-white/90 ${WM_COLOR[top.c]} flex items-center justify-center text-4xl font-black`}>{top.n}</div>
@@ -244,13 +229,12 @@ const WILD: GameInfo = {
   },
 };
 WILD.steps = [
-  ...intro("Wild Match", WILD.power, WILD.perk),
+  ...intro("Wild Match", WILD.power),
   { id: "wPile", target: "pile", say: "This is the pile.", sub: "Match its color or number." },
   { id: "wPlay", target: "card-b2", tap: true, say: "Blue matches blue!", sub: "Tap the blue card." },
   { id: "wDraw", target: "draw", tap: true, say: "No match? Draw a card.", sub: "Tap Draw." },
   { id: "wPower", target: "power", tap: true, say: "Use your power!", sub: "Then you can play any card." },
   { id: "wAny", target: "card-r9", tap: true, say: "Red on blue? Yes!", sub: "Tap the red card." },
-  { id: "wPerk", target: "perk", tap: true, say: "Tap your perk!", sub: "You pick the next color." },
   { id: "wWin", target: "hand", say: "Play all your cards first to win!", sub: "Fewest cards is winning." },
   outro,
 ];
@@ -260,21 +244,20 @@ WILD.steps = [
 const DROP: GameInfo = {
   title: "Drop Line",
   power: { name: "Trailblaze", how: "Knock off a top piece" },
-  perk: { name: "Extra Time", how: "+15 seconds" },
   steps: [],
   Demo: ({ done }) => {
     // board[row][col], row 0 = bottom. 1 gold (you), 2 blue (them).
     const b: number[][] = Array.from({ length: 6 }, () => Array(7).fill(0));
-    b[0][0] = 1; b[0][1] = 1; b[0][4] = 2; b[1][4] = 2; b[0][5] = 2; b[0][3] = 2;
+    b[0][0] = 1; b[0][1] = 1; b[0][4] = 2; b[1][4] = 2; b[0][5] = 2; b[0][3] = 2; b[1][0] = 2; b[1][5] = 1;
     if (done.has("dDrop")) b[0][2] = 1;
     if (done.has("dPower")) b[0][3] = 0;
     if (done.has("dWin")) b[0][3] = 1;
     const won = done.has("dWin");
     return (
-      <Frame done={done} powerLabel="Trailblaze" perkLabel="Extra Time" powerUsed={done.has("dPower")} perkUsed={done.has("dPerk")}>
+      <Frame done={done} powerLabel="Trailblaze" powerUsed={done.has("dPower")}>
         <div className="flex items-center gap-3">
           <div data-tut="turn" className="rounded-full bg-amber-400 text-black px-5 py-1.5 text-xl font-black">
-            {won ? "You win!" : `Your turn! ${done.has("dPerk") ? 30 : 15}`}
+            {won ? "You win!" : "Your turn! 15"}
           </div>
         </div>
         <div data-tut="board" className="w-full max-w-[19rem] rounded-3xl bg-indigo-700 border-4 border-indigo-400/60 p-1.5">
@@ -301,12 +284,11 @@ const DROP: GameInfo = {
   },
 };
 DROP.steps = [
-  ...intro("Drop Line", DROP.power, DROP.perk),
+  ...intro("Drop Line", DROP.power),
   { id: "dBoard", target: "board", say: "This is the board.", sub: "You are gold. They are blue." },
   { id: "dDrop", target: "col2", tap: true, say: "Tap a column to drop a piece.", sub: "Tap here!" },
   { id: "dGoal", target: "board", say: "Get 4 in a row to win!", sub: "Across, up, or slanted." },
-  { id: "dPower", target: "power", tap: true, say: "A blue piece is in your way!", sub: "Tap your power to knock it off." },
-  { id: "dPerk", target: "perk", tap: true, say: "Need more time?", sub: "Tap your perk." },
+  { id: "dPower", target: "power", tap: true, say: "A blue piece is in your way!", sub: "8 pieces are down, so your power is ready. Tap it!" },
   { id: "dWin", target: "col3", tap: true, say: "Now drop here!", sub: "Make 4 in a row." },
   { id: "dWon", target: "turn", say: "4 in a row. You win!", sub: "Block them so they can't win first." },
   outro,

@@ -7,22 +7,17 @@ import { supabase } from "@/lib/supabase";
 import { deviceKey } from "@/lib/device";
 import { usePlayerVenue, rememberPlayerVenue } from "@/lib/venue";
 import { useAvatars, useEquippedAvatar } from "@/hooks/useAvatars";
-import { useProgress } from "@/lib/progress";
 import { ensurePlayName } from "@/lib/slimpseBingo";
 import {
   WM_BG,
   WM_CHAR_POWERS,
   WM_COLORS,
-  WM_PERKS,
   WM_TURN_SECONDS,
   loadWmCreds,
-  rememberWmPerk,
-  rememberedWmPerk,
   saveWmCreds,
   wmColor,
   wmError,
   wmLabel,
-  wmPerk,
   wmPlayable,
   type WmColor,
   type WmCreds,
@@ -70,15 +65,14 @@ export default function WildMatchPlayPage() {
   const pageVenue = usePlayerVenue();
   const { avatars, byId } = useAvatars();
   const { avatarId, equip } = useEquippedAvatar(avatars);
-  const { progress } = useProgress();
 
   const [creds, setCreds] = useState<WmCreds | null>(null);
   const [state, setState] = useState<WmState | null>(null);
   const [offsetMs, setOffsetMs] = useState(0);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
-  const [tile, setTile] = useState<null | "perks" | "qr" | "character">(null);
-  const [colorFor, setColorFor] = useState<null | { kind: "card"; card: number } | { kind: "perk" }>(null);
+  const [tile, setTile] = useState<null | "qr" | "character">(null);
+  const [colorFor, setColorFor] = useState<null | { kind: "card"; card: number }>(null);
   const [pickCard, setPickCard] = useState(false);
   const [peek, setPeek] = useState<{ name: string; hand: number[] } | null>(null);
   const [toasts, setToasts] = useState<{ id: number; text: string }[]>([]);
@@ -134,14 +128,6 @@ export default function WildMatchPlayPage() {
       const c = { roomId: row.o_room_id, playerId: row.o_player_id, clientToken: row.o_client_token, seat: row.o_seat };
       saveWmCreds(code, c);
       setCreds(c);
-      const want = rememberedWmPerk();
-      if (want) {
-        supabase
-          .rpc("wm_set_power", { p_room_id: c.roomId, p_player_id: c.playerId, p_client_token: c.clientToken, p_power: want, p_device_key: deviceKey() })
-          .then(({ error: e }) => {
-            if (e?.message.includes("POWER_LOCKED")) rememberWmPerk(null);
-          });
-      }
     })();
   }, [code, avatarId, pageVenue, search, router]);
 
@@ -173,7 +159,7 @@ export default function WildMatchPlayPage() {
       lastLog.current = newest;
       return;
     }
-    // Only powers and perks pop up (not every move).
+    // Only powers pop up (not every move).
     const fresh = log.filter((e) => e.id > (lastLog.current ?? 0) && / used |blocked column|blocked it!/.test(e.text));
     lastLog.current = newest;
     if (fresh.length === 0) return;
@@ -231,8 +217,7 @@ export default function WildMatchPlayPage() {
     const f = colorFor;
     setColorFor(null);
     if (!f) return;
-    if (f.kind === "card") await call("wm_play", { p_card: f.card, p_color: color });
-    else await call("wm_use_power", { p_color: color });
+    await call("wm_play", { p_card: f.card, p_color: color });
   }
 
   async function useCharPower() {
@@ -252,36 +237,6 @@ export default function WildMatchPlayPage() {
       setPeek({ name: data.peek_name ?? "Next player", hand: data.peek_hand });
       setTimeout(() => setPeek(null), 10000);
     }
-  }
-
-  async function usePerk() {
-    if (!mine?.power) return;
-    if (!myTurn) {
-      setNote("Wait for your turn");
-      return;
-    }
-    if (mine.power === "color") {
-      setColorFor({ kind: "perk" });
-      return;
-    }
-    await call("wm_use_power");
-  }
-
-  async function pickPerk(key: string | null) {
-    if (!creds) return;
-    const { error } = await supabase.rpc("wm_set_power", {
-      p_room_id: creds.roomId,
-      p_player_id: creds.playerId,
-      p_client_token: creds.clientToken,
-      p_power: key,
-      p_device_key: deviceKey(),
-    });
-    if (error) {
-      setNote(wmError(error));
-      return;
-    }
-    rememberWmPerk(key);
-    load();
   }
 
   async function changeCharacter(id: string) {
@@ -333,8 +288,6 @@ export default function WildMatchPlayPage() {
   const teamGame = room.mode === "team";
   const myChar = mine?.avatar_id ? avatarsById[mine.avatar_id] : undefined;
   const charPower = mine?.char_power ? WM_CHAR_POWERS[mine.char_power] : null;
-  const perk = wmPerk(mine?.power);
-  const level = progress?.level ?? 1;
   const others = [1, 2, 3].map((k) => players.find((p) => p.seat === (me.seat + k) % 4)).filter(Boolean) as typeof players;
 
   // ---------- Results ----------
@@ -411,19 +364,19 @@ export default function WildMatchPlayPage() {
               <span className="block text-sm font-bold text-violet-300">Your power</span>
               <span className="block text-xl font-black">{charPower.name}</span>
               <span className="block text-base">{charPower.how}</span>
+              {charPower.ready && <span className="block text-sm font-bold text-sky-200">{charPower.ready.label}</span>}
             </span>
           </div>
         )}
-        <div className="w-full max-w-sm grid grid-cols-3 gap-2">
+        <div className="w-full max-w-sm grid grid-cols-2 gap-2">
           {[
-            { key: "perks" as const, label: "Perks", icon: <Icon name={perk?.icon ?? "bolt"} size={30} />, sub: perk?.name ?? "None on" },
             { key: "qr" as const, label: teamGame || room.private ? "Invite" : "QR code", icon: <Icon name="qr" size={30} />, sub: "Scan to join" },
             { key: "character" as const, label: "Character", icon: <Avatar imageUrl={myChar?.imageUrl} size={38} />, sub: myChar?.name ?? "Pick one" },
           ].map((t) => (
             <button
               key={t.key}
               onClick={() => setTile(t.key)}
-              className="aspect-square rounded-2xl bg-white/[0.07] border border-white/15 flex flex-col items-center justify-center gap-1 px-1 text-amber-300 active:scale-95 transition"
+              className="py-4 rounded-2xl bg-white/[0.07] border border-white/15 flex flex-col items-center justify-center gap-1 px-1 text-amber-300 active:scale-95 transition"
             >
               {t.icon}
               <span className="text-sm font-black text-white">{t.label}</span>
@@ -433,32 +386,6 @@ export default function WildMatchPlayPage() {
         </div>
         <p className="max-w-sm text-xl font-black">Match the color or number. First to play all your cards wins!</p>
         {note && <p className="text-lg font-bold text-amber-300">{note}</p>}
-        {tile === "perks" && (
-          <Sheet title="Perks" onClose={() => setTile(null)}>
-            <p className="mb-2 text-lg font-bold">Pick 1</p>
-            <div className="flex flex-col gap-2">
-              {WM_PERKS.map((pk) => {
-                const locked = level < pk.level;
-                const on = mine?.power === pk.key;
-                return (
-                  <button
-                    key={pk.key}
-                    disabled={locked}
-                    onClick={() => pickPerk(on ? null : pk.key)}
-                    className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-left disabled:opacity-50 ${on ? "bg-emerald-400/15 border-emerald-400/60" : "bg-white/5 border-white/10"}`}
-                  >
-                    <Icon name={pk.icon} size={30} className="text-amber-300" />
-                    <span className="flex-1">
-                      <span className="block text-lg font-black">{pk.name}</span>
-                      <span className="block text-base">{pk.how}</span>
-                    </span>
-                    <span className="text-sm font-bold">{locked ? `Level ${pk.level}` : on ? "On" : "Pick"}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </Sheet>
-        )}
         {tile === "qr" && (
           <Sheet title={teamGame ? "Invite your partner" : "Scan to join"} onClose={() => setTile(null)}>
             <div className="flex flex-col items-center gap-2">
@@ -473,6 +400,7 @@ export default function WildMatchPlayPage() {
 
   // ---------- Playing ----------
   const turnPlayer = players.find((p) => p.seat === room.turn_seat);
+  const powerWaiting = !!charPower?.ready && (room.plays ?? 0) < charPower.ready.after;
   const turnLeft = room.turn_started_at ? Math.max(0, Math.ceil(WM_TURN_SECONDS - (now - Date.parse(room.turn_started_at)) / 1000)) : WM_TURN_SECONDS;
   const hand = [...me.hand].sort((a, b) => (wmColor(a) ?? "z").localeCompare(wmColor(b) ?? "z") || a - b);
 
@@ -549,26 +477,26 @@ export default function WildMatchPlayPage() {
         </div>
       </div>
 
-      <div className="w-full max-w-md grid grid-cols-2 gap-2">
-        {charPower && !mine?.char_used ? (
+      <div className="w-full max-w-md">
+        {charPower && !mine?.char_used && !powerWaiting ? (
           <button
             onClick={useCharPower}
-            className="rounded-2xl bg-violet-500/20 border border-violet-400/60 px-3 py-2.5 text-lg font-bold flex items-center justify-center gap-1.5 active:scale-95"
+            className="w-full rounded-2xl bg-violet-500/20 border border-violet-400/60 px-3 py-2 text-lg font-bold flex flex-col items-center justify-center active:scale-95"
           >
-            <Icon name={charPower.icon} size={18} /> {charPower.name}
+            <span className="flex items-center gap-1.5">
+              <Icon name={charPower.icon} size={18} /> {charPower.name}
+            </span>
+            <span className="text-sm font-bold text-violet-200">{charPower.how}</span>
           </button>
         ) : (
-          <span className="rounded-2xl bg-white/5 px-3 py-2.5 text-base text-slate-400 text-center">{charPower ? "Power used" : "No power"}</span>
-        )}
-        {perk && !mine?.power_used ? (
-          <button
-            onClick={usePerk}
-            className="rounded-2xl bg-emerald-500/20 border border-emerald-400/60 px-3 py-2.5 text-lg font-bold flex items-center justify-center gap-1.5 active:scale-95"
-          >
-            <Icon name={perk.icon} size={18} /> {perk.name}
-          </button>
-        ) : (
-          <span className="rounded-2xl bg-white/5 px-3 py-2.5 text-base text-slate-400 text-center">{perk ? "Perk used" : "No perk"}</span>
+          <div className="w-full rounded-2xl bg-white/5 px-3 py-2 text-base text-slate-400 text-center">
+            {!charPower ? "No power" : mine?.char_used ? "Power used" : (
+              <>
+                <span className="block font-bold text-slate-200">{charPower.name}</span>
+                <span className="block text-sm font-bold text-sky-200">{charPower.ready?.label}</span>
+              </>
+            )}
+          </div>
         )}
       </div>
 
