@@ -151,3 +151,8 @@ body {
 .toast-slide-in {
   animation: toast-slide-in 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
 }
+
+/* Tutorial speech bubble. */
+.tut-pop {
+  animation: pop-in 0.3s ease-out;
+}

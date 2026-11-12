@@ -1,5 +1,7 @@
 "use client";
 
+import { useFirstTimeTutorial } from "@/lib/tutorial";
+import { GameTutorial } from "@/components/GameTutorial";
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -17,6 +19,7 @@ import { useSeason } from "@/hooks/useSeason";
  * One tap finds the open game at this bar and joins it.
  */
 export default function BingoLandingClient() {
+  const tutorial = useFirstTimeTutorial("bingo");
   const router = useRouter();
   const venue = usePlayerVenue();
   const { season } = useSeason(venue);
@@ -38,6 +41,7 @@ export default function BingoLandingClient() {
 
   return (
     <main className="relative min-h-screen flex flex-col items-center justify-center gap-6 bg-gradient-to-b from-indigo-950 via-purple-950 to-black text-white px-4 py-8 text-center">
+      {tutorial.show && <GameTutorial game="bingo" onClose={tutorial.close} />}
       <Link href="/" className="absolute top-4 left-4 text-sm text-indigo-300/70 hover:text-indigo-200">
         ← Games
       </Link>
