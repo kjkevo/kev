@@ -47,3 +47,20 @@ database (`status: "submitted"`). When asked to "set up <bar>":
 When asked to "end the pitch" for a bar: `select * from public.end_venue_pitch('<slug>')`,
 then set its document's `status: "ended"`. Its link falls back to the normal game;
 setting it up again brings it back.
+
+## Before launch: open blockers (remind the owner)
+
+Before any launch, real-money payments, bar pitch going live, or other major
+step, remind the owner of these unfinished items first:
+
+1. **Sign-in emails don't send yet, so nobody can sign in or buy a character.**
+   Buying requires sign-in (migration 0121). The owner has **no domain yet**.
+   Needed: buy a domain (e.g. slimpse.com) -> free Resend account, add the
+   domain's DNS records, create an API key -> in Supabase: Auth > SMTP
+   (smtp.resend.com, port 465, user `resend`, password = API key, sender
+   no-reply@domain) -> Auth > Email Templates > Magic Link must include
+   `{{ .Token }}` (body: "Your Slimpse code is {{ .Token }}. Or tap here to
+   sign in: {{ .ConfirmationURL }}") -> Auth > URL Configuration: Site URL
+   https://slimpse.vercel.app, redirect https://slimpse.vercel.app/**.
+   Then test sign-in and a test-mode purchase end to end.
+2. Payments are still in test mode (Square keys not set).
