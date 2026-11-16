@@ -1,6 +1,7 @@
 "use client";
 
 import { useMarkTutorialSeen } from "@/lib/tutorial";
+import { useInGame } from "@/lib/checkin";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -141,6 +142,8 @@ export default function DropLinePlayPage() {
   }, [state?.room?.log]);
 
   const room = state?.room ?? null;
+  // Waiting in the lobby or playing keeps the bar check-in alive.
+  useInGame(room?.phase === "lobby" || room?.phase === "playing");
   const players = state?.players ?? [];
   const me = players.find((p) => p.id === creds?.playerId) ?? null;
   const now = Date.now() + offsetMs;

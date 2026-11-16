@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { usePlayerVenue } from "@/lib/venue";
+import { checkinUrl, useScreenCheckin } from "@/lib/checkin";
 
 /**
  * The "scan to play" code for Trivia: straight into a game when a room
@@ -15,11 +16,12 @@ export function ScanCards({ venue: venueProp, triviaCode, big = false }: { venue
   useEffect(() => setOrigin(window.location.origin), []);
   const pageVenue = usePlayerVenue();
   const venue = venueProp ?? pageVenue;
-  if (!origin || !venue) return null;
+  const code = useScreenCheckin(venue);
+  if (!origin || !venue || code === undefined) return null;
+  if (code === null) return <NotPaired />;
   const v = encodeURIComponent(venue);
-  const trivia = triviaCode
-    ? `${origin}/play/${triviaCode}?venue=${v}&src=qr`
-    : `${origin}/trivia?venue=${v}&src=qr`;
+  // Scanning checks the phone in at this bar, then opens the game.
+  const trivia = checkinUrl(origin, venue, code, triviaCode ? `/play/${triviaCode}?venue=${v}&src=qr` : `/trivia?venue=${v}&src=qr`);
   const size = big ? 220 : 132;
   return (
     <div className={`flex flex-wrap justify-center ${big ? "gap-10" : "gap-4"}`}>
@@ -45,31 +47,6 @@ function Card({ title, line, url, size, big, accent = false }: { title: string; 
 }
 
 /**
- * A game's tile on a computer or TV: its name and the code to scan with a
- * phone (it opens that game's page at this bar). Not clickable, since the
- * game is played on phones.
- */
-export function GameScanTile({ title, path, accent, note }: { title: string; path: string; accent: "amber" | "sky" | "pink"; note?: string }) {
-  const [origin, setOrigin] = useState("");
-  useEffect(() => setOrigin(window.location.origin), []);
-  const venue = usePlayerVenue();
-  const url = origin ? `${origin}${path}?venue=${encodeURIComponent(venue ?? "main")}&src=qr` : "";
-  const ring =
-    accent === "amber"
-      ? "border-amber-400/60 bg-amber-400/10 text-amber-300"
-      : accent === "sky"
-        ? "border-sky-400/60 bg-sky-400/10 text-sky-300"
-        : "border-pink-400/50 bg-pink-400/10 text-pink-300";
-  return (
-    <div className={`rounded-3xl border p-4 flex flex-col items-center gap-2 ${ring}`}>
-      <div className="font-black text-2xl leading-tight">{title}</div>
-      <div className="bg-white rounded-2xl p-2">{url ? <QRCodeSVG value={url} size={130} /> : <div className="w-[130px] h-[130px]" />}</div>
-      <div className="text-sm font-bold text-slate-200">{note ?? "Scan with your phone"}</div>
-    </div>
-  );
-}
-
-/**
  * The main menu's one big code. Scanning it opens the menu on the phone,
  * where the four games are big buttons to tap.
  */
@@ -77,12 +54,25 @@ export function MenuScanCode() {
   const [origin, setOrigin] = useState("");
   useEffect(() => setOrigin(window.location.origin), []);
   const venue = usePlayerVenue();
-  const url = origin ? `${origin}/?venue=${encodeURIComponent(venue ?? "main")}&src=menu` : "";
+  const code = useScreenCheckin(venue);
+  if (code === null) return <NotPaired />;
+  // Scanning checks the phone in at this bar, then opens the games menu.
+  const url = origin && venue && code ? checkinUrl(origin, venue, code, `/?venue=${encodeURIComponent(venue)}&src=menu`) : "";
   return (
     <div className="rounded-[2rem] border-2 border-amber-400/60 bg-amber-400/10 p-6 flex flex-col items-center gap-4">
       <p className="text-4xl font-black text-amber-300">Scan to play</p>
       <div className="bg-white rounded-3xl p-5">{url ? <QRCodeSVG value={url} size={300} /> : <div className="w-[300px] h-[300px]" />}</div>
       <p className="text-xl font-bold text-slate-200">Use your phone camera</p>
+    </div>
+  );
+}
+
+/** A TV that hasn't been paired with the bar's setup link shows no code. */
+function NotPaired() {
+  return (
+    <div className="rounded-[2rem] border-2 border-white/15 bg-white/5 p-8 flex flex-col items-center gap-3 max-w-md">
+      <p className="text-3xl font-black text-amber-300">Screen not set up</p>
+      <p className="text-xl font-bold text-slate-200">Open this bar&apos;s setup link on this screen once to show the code.</p>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMarkTutorialSeen } from "@/lib/tutorial";
+import { useInGame } from "@/lib/checkin";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { isOpenFor, secondsFor, shuffledChoices } from "@/lib/questionMode";
 import { fogUntil, isTwist, twistBanner, twistDescription, twistPersonalLine, type TwistContext } from "@/lib/twists";
@@ -102,6 +103,8 @@ function PlayPageBody() {
   const router = useRouter();
   const code = params.code?.toUpperCase();
   const { room, players, teams, loading, notFound } = useRoomRealtime(code ?? null);
+  // Being in a game (any phase but the results) keeps the bar check-in alive.
+  useInGame(!!room && room.phase !== "final");
   const question = useCurrentQuestion(room?.id, room?.current_question_index, room?.phase);
   const countdown = useCountdown(room?.question_started_at ?? null, secondsFor(question));
   const scheduledCountdown = useCountdownTo(room?.starts_at ?? null);

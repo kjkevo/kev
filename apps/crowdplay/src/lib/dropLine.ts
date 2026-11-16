@@ -121,6 +121,7 @@ const ERRORS: Record<string, string> = {
   POWER_LOCKED: "Unlocks at a higher level",
   TABLE_FULL: "That table is full",
   NOT_YET: "Not ready yet",
+  CHECK_IN: "Scan the code on the TV to play",
   PRIVATE_STARTED: "That game already started",
 };
 export function dlError(e: unknown) {

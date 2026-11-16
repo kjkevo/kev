@@ -43,6 +43,19 @@ database (`status: "submitted"`). When asked to "set up <bar>":
    `fun_fact`). It creates/updates the venue and replaces its House pack.
 4. Update the document: `status: "live"`,
    `liveUrl: "https://slimpse.vercel.app/?venue=<slug>"`.
+5. Give the owner the bar's **TV setup link** (open it once on the bar's TV
+   or computer to pair it; only paired screens show the check-in code):
+   `https://slimpse.vercel.app/?venue=<slug>&pair=<screen_secret>` (main menu)
+   or `https://slimpse.vercel.app/screen?venue=<slug>&pair=<screen_secret>`
+   (Trivia screen). Get it with `select screen_secret from venues where slug = '<slug>'`.
+
+## Play only at the bar (migration 0123)
+
+Joining any game needs a check-in from scanning a paired TV's code (changes
+daily at noon, bar time); 20 minutes idle ends it. The owner tests from
+anywhere with `https://slimpse.vercel.app/in?v=main&c=<owner code>`, where the
+code is `select value from app_secrets where name = 'owner_pass_code'`. Never
+put that code or a screen secret in the repo.
 
 When asked to "end the pitch" for a bar: `select * from public.end_venue_pitch('<slug>')`,
 then set its document's `status: "ended"`. Its link falls back to the normal game;

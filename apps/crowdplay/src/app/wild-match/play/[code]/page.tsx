@@ -1,6 +1,7 @@
 "use client";
 
 import { useMarkTutorialSeen } from "@/lib/tutorial";
+import { useInGame } from "@/lib/checkin";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -169,6 +170,8 @@ export default function WildMatchPlayPage() {
   }, [state?.room?.log]);
 
   const room = state?.room ?? null;
+  // Waiting in the lobby or playing keeps the bar check-in alive.
+  useInGame(room?.phase === "lobby" || room?.phase === "playing");
   const me = state?.me ?? null;
   const players = state?.players ?? [];
   const mine = players.find((p) => p.id === creds?.playerId);

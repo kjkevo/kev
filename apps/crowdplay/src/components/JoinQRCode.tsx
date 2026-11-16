@@ -1,6 +1,7 @@
 "use client";
 
 import { QRCodeSVG } from "qrcode.react";
+import { checkinUrl } from "@/lib/checkin";
 
 /**
  * Straight into the game, no sign-up form. With a venue, the link is tagged
@@ -13,12 +14,15 @@ export function JoinQRCode({
   venue,
   size = 220,
   team,
+  checkinCode,
 }: {
   code: string;
   basePath?: string;
   venue?: string;
   size?: number;
   team?: string | null;
+  /** On the bar's TV: also check the phone in at this bar (today's code). */
+  checkinCode?: string | null;
 }) {
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const gamePath = `${basePath}/${code}`;
@@ -28,7 +32,8 @@ export function JoinQRCode({
     params.set("src", "qr");
   }
   if (team) params.set("team", team);
-  const url = params.size > 0 ? `${origin}${gamePath}?${params}` : `${origin}${gamePath}`;
+  const path = params.size > 0 ? `${gamePath}?${params}` : gamePath;
+  const url = checkinCode && venue ? checkinUrl(origin, venue, checkinCode, path) : `${origin}${path}`;
 
   return (
     <div className={`bg-white rounded-2xl inline-block ${size < 150 ? "p-2" : "p-4"}`}>
