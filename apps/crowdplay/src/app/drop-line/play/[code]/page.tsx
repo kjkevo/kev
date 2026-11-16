@@ -217,7 +217,7 @@ export default function DropLinePlayPage() {
 
   async function playAgain() {
     if (!room) return;
-    const { data } = await supabase.rpc("dl_again", { p_room_id: room.id });
+    const { data } = await supabase.rpc("dl_again", { p_room_id: room.id, p_device_key: deviceKey() });
     const next = data?.[0]?.o_code;
     if (next) router.push(`/drop-line/play/${next}`);
   }

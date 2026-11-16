@@ -250,7 +250,7 @@ export default function BingoPlayPage() {
 
   async function playAgain() {
     if (!room) return;
-    const { data } = await supabase.rpc("sb_again", { p_room_id: room.id });
+    const { data } = await supabase.rpc("sb_again", { p_room_id: room.id, p_device_key: deviceKey() });
     const next = data?.[0]?.o_code;
     if (next) router.push(`/bingo/play/${next}`);
   }

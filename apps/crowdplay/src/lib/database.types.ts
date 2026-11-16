@@ -703,11 +703,11 @@ export type Database = {
         Returns: { o_game: string; o_delta: number; o_label: string; o_rp: number }[]
       }
       dl_open: {
-        Args: { p_venue: string; p_mode: string; p_private?: boolean }
+        Args: { p_venue: string; p_mode: string; p_private?: boolean; p_device_key?: string }
         Returns: { o_code: string }[]
       }
       dl_again: {
-        Args: { p_room_id: string }
+        Args: { p_room_id: string; p_device_key?: string }
         Returns: { o_code: string }[]
       }
       dl_start_now: {
@@ -743,11 +743,11 @@ export type Database = {
         Returns: undefined
       }
       wm_open: {
-        Args: { p_venue: string; p_mode: string; p_private?: boolean }
+        Args: { p_venue: string; p_mode: string; p_private?: boolean; p_device_key?: string }
         Returns: { o_code: string }[]
       }
       wm_again: {
-        Args: { p_room_id: string }
+        Args: { p_room_id: string; p_device_key?: string }
         Returns: { o_code: string }[]
       }
       wm_start_now: {
@@ -787,11 +787,11 @@ export type Database = {
         Returns: undefined
       }
       sb_open: {
-        Args: { p_venue: string; p_mode: string; p_private?: boolean }
+        Args: { p_venue: string; p_mode: string; p_private?: boolean; p_device_key?: string }
         Returns: { o_code: string }[]
       }
       sb_again: {
-        Args: { p_room_id: string }
+        Args: { p_room_id: string; p_device_key?: string }
         Returns: { o_code: string }[]
       }
       sb_start_now: {
