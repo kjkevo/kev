@@ -147,6 +147,7 @@ const ERRORS: Record<string, string> = {
   TABLE_FULL: "That table is full",
   NOT_YET: "Not ready yet",
   CHECK_IN: "Scan the code on the TV to play",
+  TOO_FAST: "Slow down. Try again in a minute.",
   PRIVATE_STARTED: "That game already started",
 };
 export function wmError(e: unknown) {

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { deviceKey } from "@/lib/device";
 import { usePlayerVenue } from "@/lib/venue";
 import { Icon } from "@/components/Icon";
 import { MyCharacterButton } from "@/components/CharacterLocker";
@@ -29,11 +30,12 @@ export default function DropLineLandingClient() {
   async function go(mode: "solo" | "team", priv = false) {
     setBusy(priv ? `${mode}-friends` : mode);
     setError(null);
-    const { data, error: err } = await supabase.rpc("dl_open", { p_venue: venue ?? "main", p_mode: mode, p_private: priv });
+    const { data, error: err } = await supabase.rpc("dl_open", { p_venue: venue ?? "main", p_mode: mode, p_private: priv, p_device_key: deviceKey() });
     const code = data?.[0]?.o_code;
     if (err || !code) {
       setBusy(null);
-      setError("Couldn't find a game. Try again.");
+      const m = err?.message ?? "";
+      setError(m.includes("TOO_FAST") ? "Slow down. Try again in a minute." : m.includes("CHECK_IN") ? "Scan the code on the TV to play." : "Couldn't find a game. Try again.");
       return;
     }
     router.push(`/drop-line/play/${code}`);

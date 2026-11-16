@@ -162,6 +162,7 @@ export const SB_ERRORS: Record<string, string> = {
   ALREADY_STARTED: "That team game already started",
   NOT_YET: "Not ready yet",
   CHECK_IN: "Scan the code on the TV to play",
+  TOO_FAST: "Slow down. Try again in a minute.",
   CANT_WIN_WITH_IT: "It can't finish a line",
   PRIVATE_STARTED: "That game already started",
 };
