@@ -109,7 +109,7 @@ export function AccountSheet({ onClose, signIn = false }: { onClose: () => void;
           <>
             <p className="text-2xl font-black">Check your email</p>
             <p className="mt-1 text-sm text-slate-300">
-              We sent a code to <span className="font-bold text-white">{email}</span>
+              We sent an email to <span className="font-bold text-white">{email}</span>. Type the code, or tap the link in it.
             </p>
             <input
               inputMode="numeric"
