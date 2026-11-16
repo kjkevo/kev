@@ -674,6 +674,14 @@ export type Database = {
           o_resets_at: string
         }[]
       }
+      get_my_rank: {
+        Args: { p_device_key: string; p_game: string }
+        Returns: { o_label: string; o_tier: number; o_rp: number; o_step_rp: number; o_supernova: number | null; o_games: number; o_season: string }[]
+      }
+      get_room_rank: {
+        Args: { p_room_id: string; p_device_key: string }
+        Returns: { o_game: string; o_delta: number; o_label: string; o_rp: number }[]
+      }
       dl_open: {
         Args: { p_venue: string; p_mode: string; p_private?: boolean }
         Returns: { o_code: string }[]

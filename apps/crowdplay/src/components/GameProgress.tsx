@@ -36,6 +36,16 @@ export function GameProgress({
   const [sheet, setSheet] = useState(false);
   const [hidePrompt, setHidePrompt] = useState(false);
   const [fill, setFill] = useState(0);
+  const [rank, setRank] = useState<{ delta: number; label: string } | null>(null);
+
+  // What this game did to your Space rank (only games with other real people count).
+  useEffect(() => {
+    if (!earned) return;
+    supabase.rpc("get_room_rank", { p_room_id: roomId, p_device_key: deviceKey() }).then(({ data }) => {
+      const r = data?.[0];
+      if (r) setRank({ delta: r.o_delta, label: r.o_label });
+    });
+  }, [earned, roomId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -94,6 +104,15 @@ export function GameProgress({
           </p>
         )}
       </div>
+
+      {rank && (
+        <div className="flex items-center justify-between rounded-2xl bg-white/5 border border-white/10 px-4 py-2.5">
+          <span className={`text-xl font-black ${rank.delta > 0 ? "text-emerald-300" : rank.delta < 0 ? "text-rose-300" : "text-slate-300"}`}>
+            {rank.delta > 0 ? `+${rank.delta}` : rank.delta} rank points
+          </span>
+          <span className="text-base font-black">{rank.label}</span>
+        </div>
+      )}
 
       {earned.unlocked.map((u) => (
         <div key={u.id} className="flex items-center gap-3 rounded-2xl bg-amber-400/15 border border-amber-400/50 px-4 py-2.5 text-left animate-pop-in">

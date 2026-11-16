@@ -5,6 +5,8 @@ import { Avatar } from "@/components/Avatar";
 import { formatPrice } from "@/components/AvatarPicker";
 import { squareMode } from "@/lib/payments";
 import { deviceKey } from "@/lib/device";
+import { useProgress } from "@/lib/progress";
+import { AccountSheet } from "@/components/AccountSheet";
 
 type SquareToken = { status: string; token?: string; errors?: { message: string }[] };
 type WalletMethod = { attach?: (selector: string) => Promise<void>; tokenize: () => Promise<SquareToken>; destroy?: () => Promise<void> };
@@ -40,6 +42,7 @@ const PAY_ERRORS: Record<string, string> = {
   ALREADY_OWNED: "You already own this one.",
   PAYMENT_DECLINED: "The payment didn't go through. Nothing was charged.",
   PAYMENTS_NOT_SET_UP: "Payments aren't switched on yet.",
+  SIGN_IN_FIRST: "Sign in first so you never lose it.",
 };
 
 function loadSquareScript(mode: "sandbox" | "production") {
@@ -74,6 +77,10 @@ export function BuySheet({
   onPaid: () => void;
 }) {
   const mode = squareMode();
+  // Buying needs an account, so the character follows you to any phone.
+  const { progress } = useProgress();
+  const signedIn = !!progress?.saved;
+  const [signingIn, setSigningIn] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [wallets, setWallets] = useState<{ apple?: WalletMethod; google?: WalletMethod }>({});
@@ -103,7 +110,7 @@ export function BuySheet({
   }
 
   useEffect(() => {
-    if (mode === "practice") return;
+    if (mode === "practice" || !signedIn) return;
     let cancelled = false;
     const found: { apple?: WalletMethod; google?: WalletMethod } = {};
     (async () => {
@@ -144,7 +151,7 @@ export function BuySheet({
       found.apple?.destroy?.();
       found.google?.destroy?.();
     };
-  }, [mode, item.priceCents, item.name]);
+  }, [mode, item.priceCents, item.name, signedIn]);
 
   async function payWith(method?: WalletMethod) {
     if (!method) return;
@@ -164,11 +171,23 @@ export function BuySheet({
           <p className="text-lg font-bold">{item.name}</p>
           <p className="text-3xl font-black text-amber-400">{formatPrice(item.priceCents)}</p>
           <p className="text-xs text-slate-400">
-            {item.itemType === "avatar" ? "Yours to use on this phone in every game." : "One premium shoutout."}
+            {item.itemType === "avatar" ? "Yours in every game, on any phone you sign in on." : "One premium shoutout."}
           </p>
         </div>
 
-        {mode === "practice" ? (
+        {!signedIn ? (
+          <div className="flex flex-col gap-2">
+            <p className="text-xl font-black">Sign in first</p>
+            <p className="text-base font-bold text-slate-200">So you never lose it, even on a new phone.</p>
+            <button
+              type="button"
+              onClick={() => setSigningIn(true)}
+              className="rounded-2xl bg-amber-400 text-black font-black text-xl py-3 active:scale-95 transition"
+            >
+              Sign in
+            </button>
+          </div>
+        ) : mode === "practice" ? (
           <div className="flex flex-col gap-2">
             <p className="text-[11px] font-bold uppercase tracking-widest text-sky-300">Test mode · no real money</p>
             <button
@@ -224,6 +243,7 @@ export function BuySheet({
           Not now
         </button>
       </div>
+      {signingIn && <AccountSheet onClose={() => setSigningIn(false)} />}
     </div>
   );
 }
