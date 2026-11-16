@@ -37,6 +37,7 @@ import { ScanCards } from "@/components/ScanCards";
 import { VenueBanner } from "@/components/VenueBanner";
 import { ReadyLineup } from "@/components/ReadyLineup";
 import { PodiumCeremony } from "@/components/PodiumCeremony";
+import { useScreenCheckin } from "@/lib/checkin";
 
 /**
  * The venue's TV/projector view — leave this open all night. It always
@@ -50,6 +51,7 @@ import { PodiumCeremony } from "@/components/PodiumCeremony";
 export default function ScreenClient() {
   const venue = useScreenVenue();
   const venueId = useVenueId(venue);
+  const checkinCode = useScreenCheckin(venue);
   const activeRoom = useActiveRoom(venueId, "team", true);
   const code = activeRoom?.code ?? null;
   const { room, players, teams } = useRoomRealtime(code);
@@ -172,7 +174,7 @@ export default function ScreenClient() {
       <ScreenAgent venue={venue} page="/screen" />
       {nextGame && (room.phase !== "lobby" || activePlayers.length >= 40) && (
         <div className="fixed bottom-6 right-6 z-10 flex items-center gap-4 rounded-2xl bg-slate-900/95 border border-amber-400/40 p-3 pr-5 shadow-2xl">
-          <JoinQRCode code={nextGame.o_code} venue={venue} size={110} />
+          <JoinQRCode code={nextGame.o_code} venue={venue} size={110} checkinCode={checkinCode} />
           <div className="text-left">
             <p className="text-xs uppercase tracking-widest text-amber-400">Next game</p>
             <p className="text-2xl font-black tracking-widest">{nextGame.o_code}</p>

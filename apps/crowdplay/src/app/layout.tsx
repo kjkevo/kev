@@ -4,6 +4,7 @@ import "./globals.css";
 import { ArrivalTracker } from "@/components/ArrivalTracker";
 import { ActivityPing } from "@/components/ActivityPing";
 import { AccountSync } from "@/components/AccountSync";
+import { PlayGate } from "@/components/PlayGate";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -35,6 +36,7 @@ export default function RootLayout({
         <ActivityPing />
         <AccountSync />
         {children}
+        <PlayGate />
         {/* Only the staging (test) site sets this, so it can never be
             mistaken for the live one players use at the bar. */}
         {process.env.NEXT_PUBLIC_STAGING === "1" && (

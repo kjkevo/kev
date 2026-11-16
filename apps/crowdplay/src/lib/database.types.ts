@@ -674,6 +674,26 @@ export type Database = {
           o_resets_at: string
         }[]
       }
+      check_in: {
+        Args: { p_venue: string; p_code: string; p_device_key: string }
+        Returns: boolean
+      }
+      pass_status: {
+        Args: { p_device_key: string }
+        Returns: { o_valid: boolean; o_venue: string | null; o_had_pass: boolean }[]
+      }
+      touch_pass: {
+        Args: { p_device_key: string }
+        Returns: boolean
+      }
+      get_checkin_code: {
+        Args: { p_venue: string; p_screen_key: string }
+        Returns: string | null
+      }
+      pair_screen: {
+        Args: { p_venue: string; p_screen_key: string; p_secret: string }
+        Returns: boolean
+      }
       get_my_rank: {
         Args: { p_device_key: string; p_game: string }
         Returns: { o_label: string; o_tier: number; o_rp: number; o_step_rp: number; o_supernova: number | null; o_games: number; o_season: string }[]
