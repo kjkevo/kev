@@ -84,3 +84,17 @@ step, remind the owner of these unfinished items first:
    this itself once phones connect); phones then fall back to checking every
    3 seconds, which works but costs more. Check Realtime is enabled with
    public channels allowed in the Supabase dashboard.
+4. **Outside monitor for the game clocks** (migration 0126): an uptime
+   monitor must check https://slimpse.vercel.app/api/health every minute and
+   alert the owner when it isn't 200 (it returns 503 with the problems when a
+   game clock stops, the watchdog goes quiet, or a game is frozen). Confirm
+   it's set up and that a test alert reached the owner's phone.
+
+## Later: game timing in its own service
+
+All game clocks (sb-tick, wm-tick, dl-tick, trivia/feud ticks) run as
+1-second pg_cron jobs inside the one database. When the owner is ready to
+scale, move turn timers and bot moves into a separate always-on worker (for
+example a small Node service on Fly.io or Railway, or Supabase Edge Functions
+on a schedule) that calls the same *_tick functions, keeps pg_cron as a
+backup, and reports to /api/health.

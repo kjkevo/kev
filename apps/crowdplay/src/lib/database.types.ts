@@ -674,6 +674,10 @@ export type Database = {
           o_resets_at: string
         }[]
       }
+      game_health: {
+        Args: Record<string, never>
+        Returns: Json
+      }
       check_in: {
         Args: { p_venue: string; p_code: string; p_device_key: string }
         Returns: boolean
