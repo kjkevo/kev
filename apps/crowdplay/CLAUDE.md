@@ -77,3 +77,10 @@ step, remind the owner of these unfinished items first:
    https://slimpse.vercel.app, redirect https://slimpse.vercel.app/**.
    Then test sign-in and a test-mode purchase end to end.
 2. Payments are still in test mode (Square keys not set).
+3. **Confirm live table updates reach phones** (migration 0125). During a
+   real test game, `select topic, inserted_at from realtime.messages order by
+   inserted_at desc limit 5` should show `dl:`/`wm:`/`sb:` rows. If it's empty,
+   Supabase hasn't made today's `realtime.messages_YYYY_MM_DD` slot (it does
+   this itself once phones connect); phones then fall back to checking every
+   3 seconds, which works but costs more. Check Realtime is enabled with
+   public channels allowed in the Supabase dashboard.
