@@ -2,6 +2,7 @@
 
 import { useMarkTutorialSeen } from "@/lib/tutorial";
 import { useInGame } from "@/lib/checkin";
+import { useLiveTable } from "@/lib/liveTable";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -112,12 +113,8 @@ export default function DropLinePlayPage() {
     if (s.room?.now) setOffsetMs(Date.parse(s.room.now) - Date.now());
     setState(s);
   }, [creds]);
-  useEffect(() => {
-    if (!creds) return;
-    load();
-    const t = setInterval(load, state?.room?.phase === "final" ? 4000 : 1000);
-    return () => clearInterval(t);
-  }, [creds, load, state?.room?.phase]);
+  // The server tells this phone when the table changes (no asking every second).
+  useLiveTable(creds ? `dl:${creds.roomId}` : null, load);
   useEffect(() => {
     const t = setInterval(() => setTick((n) => n + 1), 250);
     return () => clearInterval(t);
