@@ -108,10 +108,11 @@ export default function DropLinePlayPage() {
   const load = useCallback(async () => {
     if (!creds) return;
     const { data } = await supabase.rpc("dl_state", { p_room_id: creds.roomId });
-    if (!data) return;
+    if (!data) return false;
     const s = data as unknown as DlState;
     if (s.room?.now) setOffsetMs(Date.parse(s.room.now) - Date.now());
     setState(s);
+    return true;
   }, [creds]);
   // The server tells this phone when the table changes (no asking every second).
   useLiveTable(creds ? `dl:${creds.roomId}` : null, load);
@@ -130,7 +131,7 @@ export default function DropLinePlayPage() {
       return;
     }
     // Only powers pop up (not every move).
-    const fresh = log.filter((e) => e.id > (lastLog.current ?? 0) && / used |blocked column|blocked it!/.test(e.text));
+    const fresh = log.filter((e) => e.id > (lastLog.current ?? 0) && / used |blocked column|blocked it!|extra time/.test(e.text));
     lastLog.current = newest;
     if (fresh.length === 0) return;
     setToasts((prev) => [...prev, ...fresh].slice(-4));
