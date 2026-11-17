@@ -112,11 +112,12 @@ export default function BingoPlayPage() {
   const load = useCallback(async () => {
     if (!creds) return;
     const { data } = await supabase.rpc("sb_state", { p_room_id: creds.roomId });
-    if (!data) return;
+    if (!data) return false;
     const s = data as unknown as SbState;
     if (s.room?.now) setOffsetMs(Date.parse(s.room.now) - Date.now());
     setState(s);
     setPending(null);
+    return true;
   }, [creds]);
   // The server tells this phone when the table changes (no asking every second).
   useLiveTable(creds ? `sb:${creds.roomId}` : null, load);
