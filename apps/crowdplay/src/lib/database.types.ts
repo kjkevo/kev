@@ -27,12 +27,6 @@ export type Database = {
         Update: { name?: string; emoji?: string | null; image_url?: string | null; price_cents?: number; active?: boolean; sort?: number }
         Relationships: []
       }
-      shoutout_presets: {
-        Row: { id: string; text: string; price_cents: number; active: boolean; sort: number }
-        Insert: { id: string; text: string; price_cents?: number; active?: boolean; sort?: number }
-        Update: { text?: string; price_cents?: number; active?: boolean; sort?: number }
-        Relationships: []
-      }
       answers: {
         Row: {
           answer_text: string | null
@@ -862,14 +856,6 @@ export type Database = {
         Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_avatar_id: string; p_device_key: string }
         Returns: undefined
       }
-      send_shoutout: {
-        Args: { p_room_id: string; p_player_id: string; p_client_token: string; p_preset_id: string }
-        Returns: { o_show_at: string }[]
-      }
-      my_shoutouts_left: {
-        Args: { p_room_id: string; p_player_id: string; p_client_token: string }
-        Returns: { o_preset_id: string; o_text: string; o_left: number }[]
-      }
       touch_activity: {
         Args: { p_venue: string }
         Returns: undefined
@@ -907,10 +893,6 @@ export type Database = {
       claim_season_username: {
         Args: { p_device_key: string; p_venue: string; p_username: string }
         Returns: { o_username: string }[]
-      }
-      get_shoutouts: {
-        Args: { p_room_id: string }
-        Returns: { o_id: number; o_text: string; o_nickname: string; o_team_name: string | null; o_emoji: string | null; o_image_url: string | null; o_at: string }[]
       }
       get_carousel: {
         Args: { p_venue: string }

@@ -202,21 +202,19 @@ export default function FeudPlayPage() {
           ) : (
             <MyCharacterButton onEquip={equipAvatar} />
           )}
-          <div className="relative">
-            <input
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              maxLength={30}
-              placeholder="Your name"
-              className="w-full text-center text-xl font-bold bg-white/10 border border-white/20 rounded-2xl py-4 pr-14 outline-none focus:border-amber-400"
-            />
+          <div className="flex items-center gap-2">
+            <p
+              aria-label="Your name"
+              className="flex-1 text-center text-xl font-bold bg-white/10 border border-white/20 rounded-2xl py-4"
+            >
+              {nickname || "…"}
+            </p>
             <button
               type="button"
               onClick={() => setNickname(randomFunName())}
-              aria-label="Shuffle name"
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-bold w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white/10 active:scale-90 transition"
+              className="text-sm font-black text-amber-300 rounded-2xl bg-white/10 border border-white/20 px-3 py-4 active:scale-95 transition"
             >
-              Shuffle
+              New name
             </button>
           </div>
 

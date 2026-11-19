@@ -22,7 +22,7 @@ declare global {
 }
 
 export type BuyItem = {
-  itemType: "avatar" | "shoutout";
+  itemType: "avatar";
   itemId: string;
   name: string;
   priceCents: number;
@@ -171,7 +171,7 @@ export function BuySheet({
           <p className="text-lg font-bold">{item.name}</p>
           <p className="text-3xl font-black text-amber-400">{formatPrice(item.priceCents)}</p>
           <p className="text-xs text-slate-400">
-            {item.itemType === "avatar" ? "Yours in every game, on any phone you sign in on." : "One premium shoutout."}
+            Yours in every game, on any phone you sign in on.
           </p>
         </div>
 
