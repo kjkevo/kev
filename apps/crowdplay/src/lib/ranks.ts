@@ -29,12 +29,12 @@ export function rankGameFor(path: string | null): RankGame | null {
   return null;
 }
 
-/** The next rank up ("Comet I" after "Comet II", "Star III" after "Comet I"). */
+/** The next rank up ("Comet III" after "Comet II", "Star I" after "Comet III"). */
 export function nextRankLabel(rp: number): string | null {
   if (rp >= 1400) return null;
   const next = Math.floor(rp / 100) * 100 + 100;
   const tier = Math.min(4, Math.floor(next / 300));
-  const step = ["III", "II", "I"][Math.min(2, Math.floor((next - tier * 300) / 100))];
+  const step = ["I", "II", "III"][Math.min(2, Math.floor((next - tier * 300) / 100))];
   return `${RANK_NAMES[tier]} ${step}`;
 }
 
