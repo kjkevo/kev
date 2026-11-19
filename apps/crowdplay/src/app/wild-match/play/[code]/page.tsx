@@ -34,10 +34,16 @@ import { LevelChip } from "@/components/LevelChip";
 import { GameProgress } from "@/components/GameProgress";
 
 /** One card, big and simple: its color and what's on it. */
-function Card({ c, size = "md", dim = false, lift = false, onClick }: { c: number; size?: "sm" | "md" | "lg"; dim?: boolean; lift?: boolean; onClick?: () => void }) {
+function Card({ c, size = "md", dim = false, lift = false, onClick }: { c: number; size?: "sm" | "mid" | "md" | "lg"; dim?: boolean; lift?: boolean; onClick?: () => void }) {
   const color = wmColor(c);
   const bg = color ? WM_BG[color] : "bg-gradient-to-br from-rose-500 via-amber-400 to-sky-500";
-  const dims = size === "lg" ? "w-20 h-28 text-4xl" : size === "sm" ? "w-10 h-14 text-base" : "w-14 h-20 text-2xl";
+  const dims = size === "lg"
+      ? "w-24 h-36 text-6xl"
+      : size === "sm"
+        ? "w-10 h-14 text-base"
+        : size === "mid"
+          ? "w-14 h-20 text-3xl"
+          : "w-16 h-24 text-4xl";
   return (
     <button
       type="button"
@@ -49,7 +55,7 @@ function Card({ c, size = "md", dim = false, lift = false, onClick }: { c: numbe
     >
       <span
         className={`drop-shadow-[0_2px_2px_rgba(0,0,0,0.5)] leading-none ${
-          wmLabel(c).length > 2 ? (size === "lg" ? "text-2xl" : size === "sm" ? "text-[10px]" : "text-base") : ""
+          wmLabel(c).length > 2 ? (size === "lg" ? "text-3xl" : size === "sm" ? "text-[10px]" : size === "mid" ? "text-base" : "text-xl") : ""
         }`}
       >
         {wmLabel(c)}
@@ -423,35 +429,35 @@ export default function WildMatchPlayPage() {
               }`}
             >
               <span className="flex items-center gap-1.5 max-w-full">
-                <Avatar emoji={a?.emoji} imageUrl={a?.imageUrl} size={28} />
-                <span className="text-lg font-black">{p.cards}</span>
+                <Avatar emoji={a?.emoji} imageUrl={a?.imageUrl} size={36} />
+                <span className="text-2xl font-black">{p.cards}</span>
               </span>
-              <span className="max-w-full truncate text-sm font-bold">{partner ? "Partner" : p.nickname}</span>
+              <span className="max-w-full truncate text-base font-bold">{partner ? "Partner" : p.nickname}</span>
             </div>
           );
         })}
       </div>
 
       {/* The pile and the deck. */}
-      <div className="flex items-center gap-5">
+      <div className="flex items-center gap-6 pt-2">
         <div className="flex flex-col items-center gap-1">
           {room.top !== null && <Card c={room.top} size="lg" />}
-          <span className={`rounded-full px-3 py-0.5 text-base font-black text-black capitalize ${room.color ? WM_BG[room.color] : "bg-white"}`}>
+          <span className={`rounded-full px-4 py-1 text-xl font-black text-black capitalize ${room.color ? WM_BG[room.color] : "bg-white"}`}>
             {room.color}
           </span>
         </div>
         <button
           onClick={() => (myTurn ? call("wm_draw") : setNote("Wait for your turn"))}
-          className={`w-20 h-28 rounded-2xl border-4 border-white/70 bg-slate-800 flex flex-col items-center justify-center gap-1 active:scale-95 transition ${
+          className={`w-24 h-36 rounded-2xl border-4 border-white/70 bg-slate-800 flex flex-col items-center justify-center gap-1 active:scale-95 transition ${
             myTurn ? "ring-4 ring-amber-400" : ""
           }`}
         >
-          <Icon name="cards" size={28} />
-          <span className="text-xl font-black">Draw</span>
+          <Icon name="cards" size={40} />
+          <span className="text-3xl font-black">Draw</span>
         </button>
       </div>
 
-      <div className={`rounded-full px-5 py-1.5 text-xl font-black ${myTurn ? "bg-amber-400 text-black animate-pulse" : "bg-white/10"}`}>
+      <div className={`rounded-full px-6 py-2 text-2xl font-black ${myTurn ? "bg-amber-400 text-black animate-pulse" : "bg-white/10"}`}>
         {myTurn ? `Your turn! ${turnLeft}` : `${turnPlayer?.nickname ?? ""}'s turn`}
       </div>
       {me.free_play && <p className="text-lg font-bold text-emerald-300">Play any card!</p>}
@@ -469,11 +475,11 @@ export default function WildMatchPlayPage() {
       )}
 
       {/* Your hand. Cards you can play are bright. */}
-      <div className="w-full max-w-md pt-2">
-        <div className="flex flex-wrap justify-center gap-2 gap-y-3 px-1">
+      <div className="w-full max-w-md flex-1 flex items-center pt-3">
+        <div className="w-full flex flex-wrap justify-center gap-2 gap-y-4">
           {hand.map((c) => {
             const ok = myTurn && wmPlayable(c, room.top, room.color, me.free_play);
-            return <Card key={c} c={c} dim={myTurn && !ok && !pickCard} lift={ok} onClick={() => tapCard(c)} />;
+            return <Card key={c} c={c} size={hand.length > 5 ? "mid" : "md"} dim={myTurn && !ok && !pickCard} lift={ok} onClick={() => tapCard(c)} />;
           })}
         </div>
       </div>
@@ -482,19 +488,19 @@ export default function WildMatchPlayPage() {
         {charPower && !mine?.char_used && !powerWaiting ? (
           <button
             onClick={useCharPower}
-            className="w-full rounded-2xl bg-violet-500/20 border border-violet-400/60 px-3 py-2 text-lg font-bold flex flex-col items-center justify-center active:scale-95"
+            className="w-full rounded-2xl bg-violet-500/20 border border-violet-400/60 px-3 py-4 text-2xl font-black flex flex-col items-center justify-center gap-1 active:scale-95"
           >
-            <span className="flex items-center gap-1.5">
-              <Icon name={charPower.icon} size={18} /> {charPower.name}
+            <span className="flex items-center gap-2">
+              <Icon name={charPower.icon} size={24} /> {charPower.name}
             </span>
-            <span className="text-sm font-bold text-violet-200">{charPower.how}</span>
+            <span className="text-lg font-bold text-violet-200">{charPower.how}</span>
           </button>
         ) : (
-          <div className="w-full rounded-2xl bg-white/5 px-3 py-2 text-base text-slate-400 text-center">
+          <div className="w-full rounded-2xl bg-white/5 px-3 py-4 text-xl text-slate-400 text-center">
             {!charPower ? "No power" : mine?.char_used ? "Power used" : (
               <>
                 <span className="block font-bold text-slate-200">{charPower.name}</span>
-                <span className="block text-sm font-bold text-sky-200">{charPower.ready?.label}</span>
+                <span className="block text-lg font-bold text-sky-200">{charPower.ready?.label}</span>
               </>
             )}
           </div>

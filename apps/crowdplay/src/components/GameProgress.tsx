@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { AccountSheet } from "@/components/AccountSheet";
 import { Avatar } from "@/components/Avatar";
 import { supabase } from "@/lib/supabase";
 import { deviceKey } from "@/lib/device";
-import { announceProgress, dismissSavePrompt, levelFraction, shouldPromptSave } from "@/lib/progress";
+import { announceProgress, dismissSavePrompt, shouldPromptSave } from "@/lib/progress";
+import { RANK_STYLE, nextRankLabel, rankGameFor, useMyRank } from "@/lib/ranks";
 
 type Earned = {
   xpGained: number;
@@ -36,6 +38,7 @@ export function GameProgress({
   const [sheet, setSheet] = useState(false);
   const [hidePrompt, setHidePrompt] = useState(false);
   const [fill, setFill] = useState(0);
+  const myRank = useMyRank(rankGameFor(usePathname()));
   const [rank, setRank] = useState<{ delta: number; label: string } | null>(null);
 
   // What this game did to your Space rank (only games with other real people count).
@@ -73,7 +76,6 @@ export function GameProgress({
           unlocked: r.o_unlocked_ids.map((id, i) => ({ id, name: r.o_unlocked_names[i] ?? id })),
         };
         setEarned(e);
-        setTimeout(() => setFill(levelFraction(e)), 300);
         announceProgress();
       });
     };
@@ -82,6 +84,13 @@ export function GameProgress({
       cancelled = true;
     };
   }, [roomId]);
+
+  // The bar fills toward the next rank step (100 rank points a step).
+  useEffect(() => {
+    if (!myRank) return;
+    const t = setTimeout(() => setFill(myRank.supernova !== null ? 1 : Math.min(1, myRank.stepRp / 100)), 300);
+    return () => clearTimeout(t);
+  }, [myRank]);
 
   if (!earned) return null;
   const leveledUp = earned.level > earned.levelBefore;
@@ -93,15 +102,17 @@ export function GameProgress({
       <div className="rounded-2xl bg-white/5 border border-white/10 px-4 py-3">
         <div className="flex items-baseline justify-between">
           <span className="text-2xl font-black text-amber-300">+{earned.xpGained} XP</span>
-          <span className="text-sm font-bold">{leveledUp ? `Level up! Level ${earned.level}` : `Level ${earned.level}`}</span>
+          {myRank && (
+            <span className={`rounded-full border px-3 py-1 text-lg font-black ${RANK_STYLE[myRank.tier] ?? RANK_STYLE[0]}`}>
+              {myRank.label}
+            </span>
+          )}
         </div>
         <div className="mt-2 h-2.5 rounded-full bg-white/10 overflow-hidden">
           <div className="h-full rounded-full bg-amber-400 transition-all duration-1000" style={{ width: `${fill * 100}%` }} />
         </div>
-        {earned.streak > 0 && (
-          <p className="mt-2 text-sm font-black text-orange-300">
-            {earned.streak}-day streak{earned.streak === 1 ? ". Come back tomorrow!" : ""}
-          </p>
+        {myRank && nextRankLabel(myRank.rp) && (
+          <p className="mt-2 text-base font-black text-slate-200">Next: {nextRankLabel(myRank.rp)}</p>
         )}
       </div>
 
@@ -110,7 +121,6 @@ export function GameProgress({
           <span className={`text-xl font-black ${rank.delta > 0 ? "text-emerald-300" : rank.delta < 0 ? "text-rose-300" : "text-slate-300"}`}>
             {rank.delta > 0 ? `+${rank.delta}` : rank.delta} rank points
           </span>
-          <span className="text-base font-black">{rank.label}</span>
         </div>
       )}
 
