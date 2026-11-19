@@ -7,6 +7,7 @@ import { Avatar } from "@/components/Avatar";
 import { supabase } from "@/lib/supabase";
 import { deviceKey } from "@/lib/device";
 import { announceProgress, dismissSavePrompt, shouldPromptSave } from "@/lib/progress";
+import { RankUp } from "@/components/RankUp";
 import { RANK_STYLE, nextRankLabel, rankGameFor, useMyRank } from "@/lib/ranks";
 
 type Earned = {
@@ -39,14 +40,15 @@ export function GameProgress({
   const [hidePrompt, setHidePrompt] = useState(false);
   const [fill, setFill] = useState(0);
   const myRank = useMyRank(rankGameFor(usePathname()));
-  const [rank, setRank] = useState<{ delta: number; label: string } | null>(null);
+  const [rank, setRank] = useState<{ delta: number; label: string; before: string; tier: number; tierBefore: number } | null>(null);
+  const [rankUpSeen, setRankUpSeen] = useState(false);
 
   // What this game did to your Space rank (only games with other real people count).
   useEffect(() => {
     if (!earned) return;
     supabase.rpc("get_room_rank", { p_room_id: roomId, p_device_key: deviceKey() }).then(({ data }) => {
       const r = data?.[0];
-      if (r) setRank({ delta: r.o_delta, label: r.o_label });
+      if (r) setRank({ delta: r.o_delta, label: r.o_label, before: r.o_label_before, tier: r.o_tier, tierBefore: r.o_tier_before });
     });
   }, [earned, roomId]);
 
@@ -97,8 +99,13 @@ export function GameProgress({
   const bigMoment = leveledUp || earned.unlocked.length > 0 || earned.streak >= 3;
   const showSave = !earned.saved && !hidePrompt && shouldPromptSave(earned.games, bigMoment);
 
+  const rankedUp = !!rank && rank.delta > 0 && rank.label !== rank.before;
+
   return (
     <div className="flex flex-col gap-2">
+      {rankedUp && !rankUpSeen && (
+        <RankUp from={rank.before} to={rank.label} fromTier={rank.tierBefore} toTier={rank.tier} onClose={() => setRankUpSeen(true)} />
+      )}
       <div className="rounded-2xl bg-white/5 border border-white/10 px-4 py-3">
         <div className="flex items-baseline justify-between">
           <span className="text-2xl font-black text-amber-300">+{earned.xpGained} XP</span>

@@ -698,7 +698,7 @@ export type Database = {
       }
       get_room_rank: {
         Args: { p_room_id: string; p_device_key: string }
-        Returns: { o_game: string; o_delta: number; o_label: string; o_rp: number }[]
+        Returns: { o_game: string; o_delta: number; o_label: string; o_rp: number; o_label_before: string; o_tier: number; o_tier_before: number }[]
       }
       dl_open: {
         Args: { p_venue: string; p_mode: string; p_private?: boolean; p_device_key?: string }
