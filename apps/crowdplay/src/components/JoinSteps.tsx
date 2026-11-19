@@ -22,7 +22,6 @@ export function JoinSteps({
   heading,
   timing,
   nickname,
-  setNickname,
   nameStatus,
   rerollName,
   avatars,
@@ -38,7 +37,6 @@ export function JoinSteps({
   heading: string;
   timing?: ReactNode;
   nickname: string;
-  setNickname: (name: string) => void;
   nameStatus: "checking" | "free" | "taken" | null;
   rerollName: () => void;
   avatars: AvatarOption[];
@@ -82,13 +80,12 @@ export function JoinSteps({
             <Icon name="user" size={20} className="text-amber-300" />
             {playedBefore ? "Welcome back" : "Your name"}
           </p>
-          <input
-            value={nickname}
-            onChange={(e) => setNickname(e.target.value)}
-            maxLength={20}
+          <p
             aria-label="Your name"
-            className="w-full text-center text-2xl font-black bg-white/10 border border-white/20 rounded-xl px-3 py-3 outline-none focus:border-amber-400"
-          />
+            className="w-full text-center text-2xl font-black bg-white/10 border border-white/20 rounded-xl px-3 py-3"
+          >
+            {nickname || "…"}
+          </p>
           <div className="flex items-center justify-between gap-2 min-h-[1.5rem]">
             <span className="text-xs font-bold">
               {nameStatus === "taken" ? (
@@ -99,7 +96,12 @@ export function JoinSteps({
                 <span className="text-slate-400">Checking…</span>
               ) : null}
             </span>
-            <button type="button" onClick={rerollName} className="text-xs font-bold text-amber-300 underline">
+            <button
+              type="button"
+              onClick={rerollName}
+              className="flex items-center gap-1 rounded-xl bg-white/10 border border-white/20 px-3 py-2 text-sm font-black text-amber-300"
+            >
+              <Icon name="swap" size={16} />
               New name
             </button>
           </div>

@@ -52,7 +52,7 @@ function statusSlides(c: Carousel): Slide[] {
 
 /**
  * A slim rotating strip of what's happening at the venue: countdowns, points
- * as teams earn them, winners and shoutouts. Scores show here live on
+ * as teams earn them, and winners. Scores show here live on
  * purpose (phones keep them hidden until the end).
  */
 export function GameCarousel({ venue }: { venue: string }) {

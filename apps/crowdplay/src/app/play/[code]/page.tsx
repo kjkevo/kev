@@ -1041,7 +1041,6 @@ function PlayPageBody() {
           heading={invitedTeam && lobbyOpen ? `Join ${invitedTeam.name}` : room.mode === "solo" ? "Solo trivia" : "Join trivia"}
           timing={timing}
           nickname={nickname}
-          setNickname={setNickname}
           nameStatus={nameStatus}
           rerollName={rerollName}
           avatars={avatars}
