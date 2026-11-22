@@ -10,10 +10,12 @@ import { DL_CHAR_POWERS } from "@/lib/dropLine";
 const BINGO_KEY: Record<string, string> = {
   "jungle-scout": "trailblaze", "crystal-titan": "catchup", "alien-buddy": "probe", "forest-guardian": "rebuild",
   "stone-golem": "secondwind", "void-walker": "rift", "sylvan-entity": "overgrowth", "geo-sphinx": "riddle", "model-z": "overclock",
+  thicket: "tangle", rivet: "lockon",
 };
 const CARD_KEY: Record<string, string> = {
   "jungle-scout": "trailblaze", "crystal-titan": "shield", "alien-buddy": "probe", "forest-guardian": "patience",
   "sylvan-entity": "bloom", "geo-sphinx": "riddle", "void-walker": "rift", "model-z": "overclock", "stone-golem": "secondwind",
+  thicket: "tangle", rivet: "lockon",
 };
 
 /** The character's power in the game this page belongs to (Trivia anywhere else). */
