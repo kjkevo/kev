@@ -63,6 +63,8 @@ export const DL_CHAR_POWERS: Record<string, { name: string; icon: IconName; how:
   rift: { name: "Void Rift", icon: "target", how: "Remove their piece", ready: { after: 8, label: "Ready after 8 pieces" } },
   overclock: { name: "Overclock", icon: "bolt", how: "Take 2 turns", ready: { after: 12, label: "Ready after 12 pieces" } },
   secondwind: { name: "Second Wind", icon: "swap", how: "Undo your last drop" },
+  tangle: { name: "Tangle", icon: "cloud", how: "Block their best column" },
+  lockon: { name: "Lock On", icon: "target", how: "Turn their top piece into a block", pickCol: true, ready: { after: 8, label: "Ready after 8 pieces" } },
 };
 
 /** Drop Line perks: earned by leveling up, bring one per game. */
@@ -115,7 +117,7 @@ const ERRORS: Record<string, string> = {
   PICK_A_COLUMN: "Tap a column",
   PROTECTED: "That column is protected",
   EMPTY_COLUMN: "That column is empty",
-  NOTHING_TO_TAKE: "Nothing to remove",
+  NOTHING_TO_TAKE: "Nothing to take there",
   NOTHING_TO_UNDO: "Nothing to undo",
   POWER_USED: "Already used",
   POWER_LOCKED: "Unlocks at a higher level",
