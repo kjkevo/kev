@@ -44,13 +44,20 @@ export type DlCreds = { roomId: string; playerId: string; clientToken: string; s
 
 export const DL_COLS = 7;
 export const DL_ROWS = 6;
-/** 1 Gold, 2 Blue, 3 a block. */
-export const DL_NAME: Record<number, string> = { 1: "Gold", 2: "Blue" };
+/**
+ * Drop Line's own look (kept far from other drop games): square tiles, not
+ * round discs, on a dark slate board. 1 Lime, 2 Pink, 3 a block.
+ */
+export const DL_NAME: Record<number, string> = { 1: "Lime", 2: "Pink" };
 export const DL_PIECE: Record<number, string> = {
-  1: "bg-amber-400 shadow-[inset_0_-4px_0_rgba(0,0,0,0.25)]",
-  2: "bg-sky-400 shadow-[inset_0_-4px_0_rgba(0,0,0,0.25)]",
+  1: "bg-lime-400 shadow-[inset_0_-4px_0_rgba(0,0,0,0.25),inset_0_3px_0_rgba(255,255,255,0.35)]",
+  2: "bg-pink-500 shadow-[inset_0_-4px_0_rgba(0,0,0,0.25),inset_0_3px_0_rgba(255,255,255,0.3)]",
   3: "bg-slate-500 shadow-[inset_0_-4px_0_rgba(0,0,0,0.3)]",
 };
+/** The board, an empty slot, and the tile shape. */
+export const DL_BOARD = "bg-slate-800 border-slate-500/60";
+export const DL_SLOT = "bg-slate-950/90";
+export const DL_SHAPE = "rounded-md";
 
 /** Each character's own power in Drop Line (matches dl_char_power). */
 export const DL_CHAR_POWERS: Record<string, { name: string; icon: IconName; how: string; pickCol?: boolean; ready?: { after: number; label: string } }> = {

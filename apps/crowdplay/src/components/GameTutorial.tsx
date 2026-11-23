@@ -3,6 +3,9 @@
 /* eslint-disable @next/next/no-img-element -- small static character art */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
+import { WmCardFace } from "@/components/WmCard";
+import { WM_BG, WM_NAME, type WmColor } from "@/lib/wildMatch";
+import { DL_BOARD, DL_PIECE, DL_SHAPE, DL_SLOT } from "@/lib/dropLine";
 import type { TutorialGame } from "@/lib/tutorial";
 
 /**
@@ -186,17 +189,16 @@ BINGO.steps = [
 
 // ---------------------------------------------------------------- Wild Match
 
-const WM_COLOR: Record<string, string> = { red: "bg-rose-500", blue: "bg-sky-500", green: "bg-emerald-500", yellow: "bg-amber-400" };
 const WILD: GameInfo = {
   title: "Wild Match",
   power: { name: "Trailblaze", how: "Play any card next" },
   steps: [],
   Demo: ({ done }) => {
-    let top = { c: "blue", n: "5" };
+    let top: { c: WmColor; n: string } = { c: "blue", n: "5" };
     if (done.has("wPlay")) top = { c: "blue", n: "2" };
     if (done.has("wAny")) top = { c: "red", n: "9" };
     const color = top.c;
-    const hand = [
+    const hand: { k: string; c: WmColor; n: string; gone: boolean }[] = [
       { k: "b2", c: "blue", n: "2", gone: done.has("wPlay") },
       { k: "r9", c: "red", n: "9", gone: done.has("wAny") },
       { k: "y7", c: "yellow", n: "7", gone: false },
@@ -207,10 +209,10 @@ const WILD: GameInfo = {
       <Frame done={done} powerLabel="Trailblaze" powerUsed={done.has("wPower")}>
         <div className="flex items-center gap-5">
           <div data-tut="pile" className="flex flex-col items-center gap-1">
-            <div className={`w-20 h-28 rounded-2xl border-4 border-white/90 ${WM_COLOR[top.c]} flex items-center justify-center text-4xl font-black`}>{top.n}</div>
-            <span className={`rounded-full px-3 py-0.5 text-base font-black text-black capitalize ${WM_COLOR[color]}`}>{color}</span>
+            <WmCardFace color={top.c} label={top.n} size="lg" />
+            <span className={`rounded-full px-3 py-0.5 text-base font-black text-black ${WM_BG[color]}`}>{WM_NAME[color]}</span>
           </div>
-          <div data-tut="draw" className="w-20 h-28 rounded-2xl border-4 border-white/70 bg-slate-800 flex flex-col items-center justify-center gap-1">
+          <div data-tut="draw" className="w-24 h-36 rounded-2xl border-4 border-white/70 bg-slate-800 flex flex-col items-center justify-center gap-1">
             <Icon name="cards" size={28} />
             <span className="text-xl font-black">Draw</span>
           </div>
@@ -219,8 +221,8 @@ const WILD: GameInfo = {
           {hand
             .filter((h) => !h.gone)
             .map((h) => (
-              <div key={h.k} data-tut={`card-${h.k}`} className={`w-14 h-20 rounded-2xl border-4 border-white/90 ${WM_COLOR[h.c]} flex items-center justify-center text-2xl font-black`}>
-                {h.n}
+              <div key={h.k} data-tut={`card-${h.k}`} className="rounded-xl">
+                <WmCardFace color={h.c} label={h.n} size="md" />
               </div>
             ))}
         </div>
@@ -231,10 +233,10 @@ const WILD: GameInfo = {
 WILD.steps = [
   ...intro("Wild Match", WILD.power),
   { id: "wPile", target: "pile", say: "This is the pile.", sub: "Match its color or number." },
-  { id: "wPlay", target: "card-b2", tap: true, say: "Blue matches blue!", sub: "Tap the blue card." },
+  { id: "wPlay", target: "card-b2", tap: true, say: "Purple matches purple!", sub: "Tap the purple card." },
   { id: "wDraw", target: "draw", tap: true, say: "No match? Draw a card.", sub: "Tap Draw." },
   { id: "wPower", target: "power", tap: true, say: "Use your power!", sub: "Then you can play any card." },
-  { id: "wAny", target: "card-r9", tap: true, say: "Red on blue? Yes!", sub: "Tap the red card." },
+  { id: "wAny", target: "card-r9", tap: true, say: "Pink on purple? Yes!", sub: "Tap the pink card." },
   { id: "wWin", target: "hand", say: "Play all your cards first to win!", sub: "Fewest cards is winning." },
   outro,
 ];
@@ -246,7 +248,7 @@ const DROP: GameInfo = {
   power: { name: "Trailblaze", how: "Knock off a top piece" },
   steps: [],
   Demo: ({ done }) => {
-    // board[row][col], row 0 = bottom. 1 gold (you), 2 blue (them).
+    // board[row][col], row 0 = bottom. 1 lime (you), 2 pink (them).
     const b: number[][] = Array.from({ length: 6 }, () => Array(7).fill(0));
     b[0][0] = 1; b[0][1] = 1; b[0][4] = 2; b[1][4] = 2; b[0][5] = 2; b[0][3] = 2; b[1][0] = 2; b[1][5] = 1;
     if (done.has("dDrop")) b[0][2] = 1;
@@ -260,7 +262,7 @@ const DROP: GameInfo = {
             {won ? "You win!" : "Your turn! 15"}
           </div>
         </div>
-        <div data-tut="board" className="w-full max-w-[19rem] rounded-3xl bg-indigo-700 border-4 border-indigo-400/60 p-1.5">
+        <div data-tut="board" className={`w-full max-w-[19rem] rounded-2xl border-4 p-1.5 ${DL_BOARD}`}>
           <div className="grid grid-cols-7 gap-1">
             {Array.from({ length: 7 }, (_, c) => (
               <div key={c} data-tut={`col${c}`} className="flex flex-col gap-1 rounded-xl p-0.5">
@@ -269,7 +271,7 @@ const DROP: GameInfo = {
                   return (
                     <span
                       key={i}
-                      className={`aspect-square w-full rounded-full ${v === 1 ? "bg-amber-400" : v === 2 ? "bg-sky-400" : "bg-indigo-950/80"} ${
+                      className={`aspect-square w-full ${DL_SHAPE} ${v ? DL_PIECE[v] : DL_SLOT} ${
                         won && 5 - i === 0 && c <= 3 ? "ring-2 ring-white" : ""
                       }`}
                     />
@@ -285,10 +287,10 @@ const DROP: GameInfo = {
 };
 DROP.steps = [
   ...intro("Drop Line", DROP.power),
-  { id: "dBoard", target: "board", say: "This is the board.", sub: "You are gold. They are blue." },
+  { id: "dBoard", target: "board", say: "This is the board.", sub: "You are lime. They are pink." },
   { id: "dDrop", target: "col2", tap: true, say: "Tap a column to drop a piece.", sub: "Tap here!" },
   { id: "dGoal", target: "board", say: "Get 4 in a row to win!", sub: "Across, up, or slanted." },
-  { id: "dPower", target: "power", tap: true, say: "A blue piece is in your way!", sub: "8 pieces are down, so your power is ready. Tap it!" },
+  { id: "dPower", target: "power", tap: true, say: "A pink piece is in your way!", sub: "8 pieces are down, so your power is ready. Tap it!" },
   { id: "dWin", target: "col3", tap: true, say: "Now drop here!", sub: "Make 4 in a row." },
   { id: "dWon", target: "turn", say: "4 in a row. You win!", sub: "Block them so they can't win first." },
   outro,

@@ -48,7 +48,7 @@ export type WmCreds = { roomId: string; playerId: string; clientToken: string; s
 export const WM_TURN_SECONDS = 25;
 export const WM_COLORS: WmColor[] = ["red", "blue", "green", "yellow"];
 
-/** Card ids match the server: 0-99 colored (color = id / 25), 100-103 Wild, 104-107 Wild +4. */
+/** Card ids match the server: 0-99 colored (color = id / 25), 100-103 Pick (choose the color), 104-107 Take 4. */
 export function wmColor(c: number): WmColor | null {
   return c < 100 ? WM_COLORS[Math.floor(c / 25)] : null;
 }
@@ -65,22 +65,41 @@ export function wmKind(c: number): string {
 /** What's printed on the card, big. */
 export function wmLabel(c: number): string {
   const k = wmKind(c);
-  return k === "wild4" ? "+4" : k === "wild" ? "Wild" : k === "skip" ? "Skip" : k === "flip" ? "Flip" : k === "draw2" ? "+2" : k;
+  return k === "wild4" ? "Take 4" : k === "wild" ? "Pick" : k === "skip" ? "Block" : k === "flip" ? "Flip" : k === "draw2" ? "Take 2" : k;
 }
 export function wmPlayable(c: number, top: number | null, color: WmColor | null, free: boolean) {
   return free || c >= 100 || wmColor(c) === color || (top !== null && top < 100 && wmKind(c) === wmKind(top));
 }
+/**
+ * Wild Match's own look (kept far from other card games): the four colors
+ * are Pink, Purple, Teal and Orange, each with its own symbol. The server
+ * still calls them red, blue, green and yellow.
+ */
+export const WM_NAME: Record<WmColor, string> = { red: "Pink", blue: "Purple", green: "Teal", yellow: "Orange" };
 export const WM_BG: Record<WmColor, string> = {
-  red: "bg-rose-500",
-  blue: "bg-sky-500",
-  green: "bg-emerald-500",
-  yellow: "bg-amber-400",
+  red: "bg-pink-500",
+  blue: "bg-violet-600",
+  green: "bg-teal-400",
+  yellow: "bg-orange-500",
 };
+export const WM_BORDER: Record<WmColor, string> = {
+  red: "border-pink-400",
+  blue: "border-violet-400",
+  green: "border-teal-300",
+  yellow: "border-orange-400",
+};
+export const WM_TEXT: Record<WmColor, string> = {
+  red: "text-pink-300",
+  blue: "text-violet-300",
+  green: "text-teal-200",
+  yellow: "text-orange-300",
+};
+export const WM_SYMBOL: Record<WmColor, IconName> = { red: "star", blue: "crown", green: "bolt", yellow: "flame" };
 
 /** Each character's own power in Wild Match (matches wm_char_power). */
 export const WM_CHAR_POWERS: Record<string, { name: string; icon: IconName; how: string; pickCard?: boolean; ready?: { after: number; label: string } }> = {
   trailblaze: { name: "Trailblaze", icon: "bolt", how: "Play any card next" },
-  shield: { name: "Crystal Shield", icon: "check", how: "Blocks the next +2 or +4" },
+  shield: { name: "Crystal Shield", icon: "check", how: "Blocks the next Take 2 or Take 4" },
   probe: { name: "Mind Probe", icon: "eye", how: "See the next player's cards" },
   patience: { name: "Patience", icon: "clock", how: "Pass without drawing" },
   bloom: { name: "Bloom", icon: "up", how: "Toss 1 card", pickCard: true, ready: { after: 8, label: "Ready after 8 cards" } },

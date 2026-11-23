@@ -15,6 +15,9 @@ import {
   DL_COLS,
   DL_NAME,
   DL_PIECE,
+  DL_BOARD,
+  DL_SLOT,
+  DL_SHAPE,
   DL_ROWS,
   dlError,
   loadDlCreds,
@@ -301,7 +304,7 @@ export default function DropLinePlayPage() {
             <p className="text-xl font-black truncate max-w-full">{me.nickname}</p>
             <div className="flex flex-wrap justify-center gap-1.5">
               <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-0.5 text-sm font-bold">
-                <span className={`w-3 h-3 rounded-full ${DL_PIECE[me.color]}`} />
+                <span className={`w-3 h-3 rounded-sm ${DL_PIECE[me.color]}`} />
                 {teamGame ? `Team ${myName}` : myName}
               </span>
               <LevelChip />
@@ -404,7 +407,7 @@ export default function DropLinePlayPage() {
             >
               <Avatar emoji={a?.emoji} imageUrl={a?.imageUrl} size={32} />
               <span className="flex-1 min-w-0 truncate text-base font-bold text-left">{p.id === me.id ? "You" : p.nickname}</span>
-              <span className={`shrink-0 w-5 h-5 rounded-full ${DL_PIECE[p.color]}`} />
+              <span className={`shrink-0 w-5 h-5 rounded ${DL_PIECE[p.color]}`} />
             </div>
           );
         })}
@@ -443,7 +446,7 @@ export default function DropLinePlayPage() {
             </div>
           ))}
         </div>
-        <div className="rounded-3xl bg-indigo-700 border-4 border-indigo-400/60 p-1.5 shadow-2xl">
+        <div className={`rounded-2xl border-4 p-1.5 shadow-2xl ${DL_BOARD}`}>
           <div className="grid grid-cols-7 gap-1">
             {Array.from({ length: DL_COLS }, (_, c) => (
               <button
@@ -459,7 +462,7 @@ export default function DropLinePlayPage() {
                   return (
                     <span
                       key={r}
-                      className={`aspect-square w-full rounded-full ${v ? DL_PIECE[v] : "bg-indigo-950/80"} ${
+                      className={`aspect-square w-full ${DL_SHAPE} ${v ? DL_PIECE[v] : DL_SLOT} ${
                         v && lastCells.has(r * DL_COLS + c) ? "ring-2 ring-white" : ""
                       }`}
                     />
@@ -514,12 +517,12 @@ export default function DropLinePlayPage() {
 
 function MiniBoard({ board }: { board: number[] }) {
   return (
-    <div className="rounded-2xl bg-indigo-700 border-2 border-indigo-400/60 p-1.5 grid grid-cols-7 gap-0.5 w-48">
+    <div className={`rounded-xl border-2 p-1.5 grid grid-cols-7 gap-0.5 w-48 ${DL_BOARD}`}>
       {Array.from({ length: DL_ROWS * DL_COLS }, (_, i) => {
         const r = DL_ROWS - 1 - Math.floor(i / DL_COLS);
         const c = i % DL_COLS;
         const v = board[r * DL_COLS + c] ?? 0;
-        return <span key={i} className={`aspect-square rounded-full ${v ? DL_PIECE[v] : "bg-indigo-950/80"}`} />;
+        return <span key={i} className={`aspect-square ${DL_SHAPE} ${v ? DL_PIECE[v] : DL_SLOT}`} />;
       })}
     </div>
   );

@@ -12,6 +12,8 @@ import { useAvatars, useEquippedAvatar } from "@/hooks/useAvatars";
 import { ensurePlayName } from "@/lib/slimpseBingo";
 import {
   WM_BG,
+  WM_NAME,
+  WM_SYMBOL,
   WM_CHAR_POWERS,
   WM_COLORS,
   WM_TURN_SECONDS,
@@ -26,6 +28,7 @@ import {
   type WmState,
 } from "@/lib/wildMatch";
 import { Icon } from "@/components/Icon";
+import { WmCardFace, type WmCardSize } from "@/components/WmCard";
 import { Avatar } from "@/components/Avatar";
 import { EmoteCharacter } from "@/components/EmoteCharacter";
 import { CharacterLocker } from "@/components/CharacterLocker";
@@ -33,33 +36,17 @@ import { JoinQRCode } from "@/components/JoinQRCode";
 import { LevelChip } from "@/components/LevelChip";
 import { GameProgress } from "@/components/GameProgress";
 
-/** One card, big and simple: its color and what's on it. */
-function Card({ c, size = "md", dim = false, lift = false, onClick }: { c: number; size?: "sm" | "mid" | "md" | "lg"; dim?: boolean; lift?: boolean; onClick?: () => void }) {
-  const color = wmColor(c);
-  const bg = color ? WM_BG[color] : "bg-gradient-to-br from-rose-500 via-amber-400 to-sky-500";
-  const dims = size === "lg"
-      ? "w-24 h-36 text-6xl"
-      : size === "sm"
-        ? "w-10 h-14 text-base"
-        : size === "mid"
-          ? "w-14 h-20 text-3xl"
-          : "w-16 h-24 text-4xl";
+
+/** One card, big and simple: its color, its symbol and what's on it. */
+function Card({ c, size = "md", dim = false, lift = false, onClick }: { c: number; size?: WmCardSize; dim?: boolean; lift?: boolean; onClick?: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={!onClick}
-      className={`${dims} ${bg} shrink-0 rounded-2xl border-4 border-white/90 text-white font-black flex items-center justify-center shadow-lg transition ${
-        dim ? "opacity-40" : ""
-      } ${lift ? "-translate-y-3 ring-4 ring-white" : ""} active:scale-95`}
+      className={`shrink-0 rounded-xl transition ${dim ? "opacity-40" : ""} ${lift ? "-translate-y-3 ring-4 ring-white" : ""} active:scale-95`}
     >
-      <span
-        className={`drop-shadow-[0_2px_2px_rgba(0,0,0,0.5)] leading-none ${
-          wmLabel(c).length > 2 ? (size === "lg" ? "text-3xl" : size === "sm" ? "text-[10px]" : size === "mid" ? "text-base" : "text-xl") : ""
-        }`}
-      >
-        {wmLabel(c)}
-      </span>
+      <WmCardFace color={wmColor(c)} label={wmLabel(c)} size={size} />
     </button>
   );
 }
@@ -155,7 +142,7 @@ export default function WildMatchPlayPage() {
     return () => clearInterval(t);
   }, []);
 
-  // What just happened, for everyone ("Kev played Red +2"), 5 seconds each.
+  // What just happened, for everyone ("Kev played Pink Take 2"), 5 seconds each.
   useEffect(() => {
     const log = state?.room?.log ?? [];
     if (log.length === 0) return;
@@ -442,8 +429,8 @@ export default function WildMatchPlayPage() {
       <div className="flex items-center gap-6 pt-2">
         <div className="flex flex-col items-center gap-1">
           {room.top !== null && <Card c={room.top} size="lg" />}
-          <span className={`rounded-full px-4 py-1 text-xl font-black text-black capitalize ${room.color ? WM_BG[room.color] : "bg-white"}`}>
-            {room.color}
+          <span className={`rounded-full px-4 py-1 text-xl font-black text-black ${room.color ? WM_BG[room.color] : "bg-white"}`}>
+            {room.color ? WM_NAME[room.color] : ""}
           </span>
         </div>
         <button
@@ -511,8 +498,9 @@ export default function WildMatchPlayPage() {
         <Sheet title="Pick a color" onClose={() => setColorFor(null)}>
           <div className="grid grid-cols-2 gap-3">
             {WM_COLORS.map((c) => (
-              <button key={c} onClick={() => chooseColor(c)} className={`${WM_BG[c]} rounded-2xl py-6 text-2xl font-black capitalize text-white active:scale-95`}>
-                {c}
+              <button key={c} onClick={() => chooseColor(c)} className={`${WM_BG[c]} rounded-2xl py-6 text-2xl font-black text-white active:scale-95 flex items-center justify-center gap-2`}>
+                <Icon name={WM_SYMBOL[c]} size={26} />
+                {WM_NAME[c]}
               </button>
             ))}
           </div>

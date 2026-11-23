@@ -28,6 +28,15 @@ icons in `src/components/Icon.tsx` or plain words instead.
 big text. No small print or long explanations on game screens; a power or
 perk gets a 2-5 word description ("Mark any square", "+10 seconds").
 
+**Keep Wild Match and Drop Line far from UNO and Connect 4** (to avoid a
+takedown): no matching colors, card layouts, piece shapes, card names or logos.
+Wild Match cards are dark with a colored edge and a symbol per color (Pink
+star, Purple crown, Teal bolt, Orange flame; silver "Pick" and "Take 4"), and
+the actions are Block, Flip, Take 2. Drop Line uses square Lime and Pink tiles
+on a dark slate board. Never use red/yellow/green/blue card sets, white-bordered
+solid cards, "Skip", "Reverse", "Draw Two", "Wild Draw Four", round red and
+yellow discs, or a blue grid.
+
 ## Setting up a bar from the Bar Pitch Profile
 
 The owner fills in the "Bar Pitch Profile" page (claude.ai/artifact/1y4RdtSGhUiUFXk5pgwR4Z)
