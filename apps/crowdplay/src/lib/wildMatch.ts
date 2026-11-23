@@ -88,8 +88,6 @@ export const WM_CHAR_POWERS: Record<string, { name: string; icon: IconName; how:
   rift: { name: "Void Rift", icon: "target", how: "Swap a card with the leader" },
   overclock: { name: "Overclock", icon: "bolt", how: "Take 2 turns", ready: { after: 8, label: "Ready after 8 cards" } },
   secondwind: { name: "Second Wind", icon: "swap", how: "Toss 2 cards, draw 1", ready: { after: 8, label: "Ready after 8 cards" } },
-  tangle: { name: "Tangle", icon: "cloud", how: "Everyone else draws 1" },
-  lockon: { name: "Lock On", icon: "target", how: "Change the color to your best" },
 };
 
 /** Wild Match perks: earned by leveling up, bring one per game. */
@@ -145,7 +143,6 @@ const ERRORS: Record<string, string> = {
   TOO_FEW_CARDS: "You need 3 cards",
   LAST_CARD: "Not your last card",
   NO_RIVAL: "No one to swap with",
-  NO_COLOR: "You have no colored cards",
   NONE_LEFT: "No Wild cards left",
   TABLE_FULL: "That table is full",
   NOT_YET: "Not ready yet",

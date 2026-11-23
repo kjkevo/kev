@@ -15,9 +15,7 @@ export type PowerKey =
   | "riddle"
   | "rift"
   | "overclock"
-  | "second_wind"
-  | "tangle"
-  | "lockon";
+  | "second_wind";
 
 /** When it can be used: before the team locks in, after, or any time. */
 export type PowerTiming = "before" | "after" | "any";
@@ -53,10 +51,6 @@ export const POWERS: Record<string, Power> = {
     how: "+50% points if right" },
   "stone-golem": { key: "second_wind", name: "Second Wind", timing: "after",
     how: "After you answer: wrong? Try again" },
-  thicket: { key: "tangle", name: "Tangle", timing: "any",
-    how: "Cut the leader's points in half", ready: { after: 3, label: "Ready after question 3" } },
-  rivet: { key: "lockon", name: "Lock On", timing: "before",
-    how: "Right: double points. Wrong: -200" },
 };
 
 const BY_KEY = Object.fromEntries(Object.values(POWERS).map((p) => [p.key, p])) as Record<PowerKey, Power>;
@@ -115,10 +109,6 @@ export function powerResultLine(key: string, data: PowerData | null | undefined)
       return d.result === "right"
         ? "You're right!"
         : `"${d.answer ?? "That"}" is wrong. Try again (half points)`;
-    case "tangle":
-      return `${d.target_name ?? "The leader"} gets half points`;
-    case "lockon":
-      return "Double if right. -200 if wrong";
     default:
       return "";
   }
@@ -147,10 +137,6 @@ export function powerPublicLine(key: string, amount: number, targetName?: string
       return "+50% points if right";
     case "second_wind":
       return "checked their answer";
-    case "tangle":
-      return `tangled ${targetName ?? "the leader"}: half points`;
-    case "lockon":
-      return "locked on: double or -200";
     default:
       return "";
   }
@@ -172,8 +158,6 @@ export function powerScoreTag(key: string, amount: number, stolenFrom: boolean):
     riddle: "Free clue",
     overclock: "Overclock",
     second_wind: "Second Wind",
-    tangle: "Tangle",
-    lockon: "Lock On",
   };
   return what[key] ?? p?.name ?? "";
 }
@@ -189,7 +173,6 @@ export function powerErrorText(message: string): string {
   if (/NO_VOTES_YET/.test(message)) return "Try again in a moment";
   if (/HINT_ALREADY_USED/.test(message)) return "You already have the clue";
   if (/NOTHING_TO_STEAL/.test(message)) return "Nobody has points yet";
-  if (/NO_RIVAL/.test(message)) return "No other team yet";
   if (/FOGGED/.test(message)) return "Fogged! Wait a second";
   if (/TIME_EXPIRED|NOT_ACCEPTING_ANSWERS|STALE_QUESTION/.test(message)) return "Too late";
   if (/NO_POWER/.test(message)) return "Your character has no power.";
