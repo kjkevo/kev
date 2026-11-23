@@ -72,8 +72,6 @@ export const SB_CHAR_POWERS: Record<string, { key: string; name: string; icon: I
   overgrowth: { key: "overgrowth", name: "Overgrowth", icon: "cloud", how: "Freeze a rival" },
   riddle: { key: "riddle", name: "Riddle Sight", icon: "star", how: "Mark any square", pick: "any", ready: { after: 10, label: "Ready after 10 numbers" } },
   overclock: { key: "overclock", name: "Overclock", icon: "bolt", how: "Marks 5 numbers for you" },
-  tangle: { key: "tangle", name: "Tangle", icon: "cloud", how: "Rivals can't mark for 8 seconds" },
-  lockon: { key: "lockon", name: "Lock On", icon: "target", how: "Next number is on your card", ready: { after: 10, label: "Ready after 10 numbers" } },
 };
 export function sbCharPower(key: string | null | undefined) {
   return key ? SB_CHAR_POWERS[key] ?? null : null;
@@ -152,7 +150,6 @@ export async function ensurePlayName(venue: string): Promise<string> {
 
 export const SB_ERRORS: Record<string, string> = {
   NOT_CALLED: "That number hasn't been called yet",
-  NOTHING_TO_PULL: "No number to pull right now",
   NO_LINE: "Not yet. You need a full line.",
   TOO_LATE: "Fresh Card only works in the first 5 numbers",
   POWER_USED: "Already used this game",
