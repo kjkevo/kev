@@ -5,10 +5,10 @@ import { MenuScanCode } from "@/components/ScanCards";
 import { VenueBanner } from "@/components/VenueBanner";
 
 const GAMES = [
-  { name: "Trivia", path: "/trivia", img: "/games/trivia.png", icon: null, color: "bg-amber-400 shadow-amber-400/25", chip: "text-amber-300", iconColor: "" },
-  { name: "Bingo", path: "/bingo", img: "/games/bingo.png", icon: null, color: "bg-sky-400 shadow-sky-400/25", chip: "text-sky-300", iconColor: "" },
-  { name: "Wild Match", path: "/wild-match", img: null, icon: "cards", color: "bg-pink-400 shadow-pink-400/25", chip: "text-pink-300", iconColor: "text-pink-300" },
-  { name: "Drop Line", path: "/drop-line", img: null, icon: "discs", color: "bg-emerald-400 shadow-emerald-400/25", chip: "text-emerald-300", iconColor: "text-emerald-300" },
+  { name: "Trivia", path: "/trivia", img: "/games/trivia.png", icon: null, color: "bg-amber-400 shadow-amber-400/25", iconColor: "" },
+  { name: "Bingo", path: "/bingo", img: "/games/bingo.png", icon: null, color: "bg-sky-400 shadow-sky-400/25", iconColor: "" },
+  { name: "Wild Match", path: "/wild-match", img: null, icon: "cards", color: "bg-pink-400 shadow-pink-400/25", iconColor: "text-pink-300" },
+  { name: "Drop Line", path: "/drop-line", img: null, icon: "discs", color: "bg-emerald-400 shadow-emerald-400/25", iconColor: "text-emerald-300" },
 ];
 
 export default function Home() {
@@ -27,13 +27,6 @@ export default function Home() {
       {/* On a computer or TV: one big code. Scanning it opens this menu on the phone. */}
       <div className="hidden md:flex flex-col items-center gap-5">
         <MenuScanCode />
-        <div className="flex gap-3">
-          {GAMES.map((g) => (
-            <span key={g.name} className={`rounded-full bg-white/10 px-4 py-1.5 text-lg font-black ${g.chip}`}>
-              {g.name}
-            </span>
-          ))}
-        </div>
       </div>
 
       {/* On a phone: the four games, tap one. */}

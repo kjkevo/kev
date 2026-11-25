@@ -62,7 +62,6 @@ export function MenuScanCode() {
     <div className="rounded-[2rem] border-2 border-amber-400/60 bg-amber-400/10 p-6 flex flex-col items-center gap-4">
       <p className="text-4xl font-black text-amber-300">Scan to play</p>
       <div className="bg-white rounded-3xl p-5">{url ? <QRCodeSVG value={url} size={300} /> : <div className="w-[300px] h-[300px]" />}</div>
-      <p className="text-xl font-bold text-slate-200">Use your phone camera</p>
     </div>
   );
 }
