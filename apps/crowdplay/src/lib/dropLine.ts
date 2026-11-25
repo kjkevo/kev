@@ -43,7 +43,7 @@ export type DlState = { room: DlRoom | null; players: DlPlayer[] };
 export type DlCreds = { roomId: string; playerId: string; clientToken: string; seat: number };
 
 export const DL_COLS = 7;
-export const DL_ROWS = 6;
+export const DL_ROWS = 7;
 /**
  * Drop Line's own look (kept far from other drop games): square tiles, not
  * round discs, on a dark slate board. 1 Lime, 2 Pink, 3 a block.

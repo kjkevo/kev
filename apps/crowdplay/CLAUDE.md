@@ -32,8 +32,9 @@ perk gets a 2-5 word description ("Mark any square", "+10 seconds").
 takedown): no matching colors, card layouts, piece shapes, card names or logos.
 Wild Match cards are dark with a colored edge and a symbol per color (Pink
 star, Purple crown, Teal bolt, Orange flame; silver "Pick" and "Take 4"), and
-the actions are Block, Flip, Take 2. Drop Line uses square Lime and Pink tiles
-on a dark slate board. Never use red/yellow/green/blue card sets, white-bordered
+the actions are Block, Flip, Take 2 and Again (go again). Its deck is its own:
+8-card hands, numbers 1-8 (no 0 or 9), 104 cards (migration 0136). Drop Line
+uses square Lime and Pink tiles on a dark slate board 7 wide and 7 tall. Never use red/yellow/green/blue card sets, white-bordered
 solid cards, "Skip", "Reverse", "Draw Two", "Wild Draw Four", round red and
 yellow discs, or a blue grid.
 

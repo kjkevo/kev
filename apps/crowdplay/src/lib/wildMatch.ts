@@ -52,20 +52,21 @@ export const WM_COLORS: WmColor[] = ["red", "blue", "green", "yellow"];
 export function wmColor(c: number): WmColor | null {
   return c < 100 ? WM_COLORS[Math.floor(c / 25)] : null;
 }
+/** Inside a color (id % 25): 0-15 numbers 1-8, 16-17 Block, 18-19 Flip, 20-21 Take 2, 22-23 Again. */
 export function wmKind(c: number): string {
   if (c >= 104) return "wild4";
   if (c >= 100) return "wild";
   const r = c % 25;
-  if (r === 0) return "0";
-  if (r <= 18) return String(Math.floor((r - 1) / 2) + 1);
-  if (r <= 20) return "skip";
-  if (r <= 22) return "flip";
-  return "draw2";
+  if (r <= 15) return String(Math.floor(r / 2) + 1);
+  if (r <= 17) return "skip";
+  if (r <= 19) return "flip";
+  if (r <= 21) return "draw2";
+  return "again";
 }
 /** What's printed on the card, big. */
 export function wmLabel(c: number): string {
   const k = wmKind(c);
-  return k === "wild4" ? "Take 4" : k === "wild" ? "Pick" : k === "skip" ? "Block" : k === "flip" ? "Flip" : k === "draw2" ? "Take 2" : k;
+  return k === "wild4" ? "Take 4" : k === "wild" ? "Pick" : k === "skip" ? "Block" : k === "flip" ? "Flip" : k === "draw2" ? "Take 2" : k === "again" ? "Again" : k;
 }
 export function wmPlayable(c: number, top: number | null, color: WmColor | null, free: boolean) {
   return free || c >= 100 || wmColor(c) === color || (top !== null && top < 100 && wmKind(c) === wmKind(top));
