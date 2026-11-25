@@ -196,11 +196,11 @@ const WILD: GameInfo = {
   Demo: ({ done }) => {
     let top: { c: WmColor; n: string } = { c: "blue", n: "5" };
     if (done.has("wPlay")) top = { c: "blue", n: "2" };
-    if (done.has("wAny")) top = { c: "red", n: "9" };
+    if (done.has("wAny")) top = { c: "red", n: "8" };
     const color = top.c;
     const hand: { k: string; c: WmColor; n: string; gone: boolean }[] = [
       { k: "b2", c: "blue", n: "2", gone: done.has("wPlay") },
-      { k: "r9", c: "red", n: "9", gone: done.has("wAny") },
+      { k: "r9", c: "red", n: "8", gone: done.has("wAny") },
       { k: "y7", c: "yellow", n: "7", gone: false },
       { k: "g4", c: "green", n: "4", gone: false },
     ];
@@ -249,7 +249,7 @@ const DROP: GameInfo = {
   steps: [],
   Demo: ({ done }) => {
     // board[row][col], row 0 = bottom. 1 lime (you), 2 pink (them).
-    const b: number[][] = Array.from({ length: 6 }, () => Array(7).fill(0));
+    const b: number[][] = Array.from({ length: 7 }, () => Array(7).fill(0));
     b[0][0] = 1; b[0][1] = 1; b[0][4] = 2; b[1][4] = 2; b[0][5] = 2; b[0][3] = 2; b[1][0] = 2; b[1][5] = 1;
     if (done.has("dDrop")) b[0][2] = 1;
     if (done.has("dPower")) b[0][3] = 0;
@@ -266,13 +266,13 @@ const DROP: GameInfo = {
           <div className="grid grid-cols-7 gap-1">
             {Array.from({ length: 7 }, (_, c) => (
               <div key={c} data-tut={`col${c}`} className="flex flex-col gap-1 rounded-xl p-0.5">
-                {Array.from({ length: 6 }, (_, i) => {
-                  const v = b[5 - i][c];
+                {Array.from({ length: 7 }, (_, i) => {
+                  const v = b[6 - i][c];
                   return (
                     <span
                       key={i}
                       className={`aspect-square w-full ${DL_SHAPE} ${v ? DL_PIECE[v] : DL_SLOT} ${
-                        won && 5 - i === 0 && c <= 3 ? "ring-2 ring-white" : ""
+                        won && 6 - i === 0 && c <= 3 ? "ring-2 ring-white" : ""
                       }`}
                     />
                   );
