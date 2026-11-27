@@ -86,6 +86,7 @@ step, remind the owner of these unfinished items first:
    sign in: {{ .ConfirmationURL }}") -> Auth > URL Configuration: Site URL
    https://slimpse.vercel.app, redirect https://slimpse.vercel.app/**.
    Then test sign-in and a test-mode purchase end to end.
+   This is also the only way a player can keep their progress (see 5).
 2. Payments are still in test mode (Square keys not set).
 3. **Confirm live table updates reach phones** (migration 0125). During a
    real test game, `select topic, inserted_at from realtime.messages order by
@@ -99,6 +100,34 @@ step, remind the owner of these unfinished items first:
    alert the owner when it isn't 200 (it returns 503 with the problems when a
    game clock stops, the watchdog goes quiet, or a game is frozen). Confirm
    it's set up and that a test alert reached the owner's phone.
+5. **Progress lives in the phone's browser until a player signs in.**
+   Characters and levels are tied to the browser. Clearing it, a private
+   (incognito) tab, or a new phone loses them unless the player signed in,
+   and sign-in can't work until item 1 is done. Before launch: finish item 1,
+   then test that a signed-in player gets everything back on a second phone.
+6. **All 4 games' clocks run inside the one database, every second** (see
+   "Later: game timing in its own service"). If the database slows down or a
+   clock job stops, turns stop timing out and bots freeze in every bar at
+   once. Item 4 (the monitor) is how the owner finds out within a minute;
+   moving timing to its own service is the real fix once there are several bars.
+7. **Every change goes straight to the live site and database, with no
+   automatic tests.** A mistake on a Friday night breaks games in progress at
+   every bar. Before launch: use the test area (staging) for anything big,
+   add automatic tests for the 4 games' main moves (join, play, win, powers),
+   and make no live changes Thursday to Saturday evenings unless something is
+   broken.
+8. **No real purchase has gone through yet (0 so far).** The full payment
+   flow is untested with real money. Before launch: after item 2, buy one
+   cheap character with a real card, check the character shows up on the
+   phone and on a second signed-in phone, then refund it and check that works.
+9. **Plan for refunds, chargebacks and "I lost my character" requests.**
+   Decide and write down: the refund rule (for example, refunds within 7 days
+   if asked), how a refund removes the character, what happens on a
+   chargeback, and how a player reaches the owner (a contact email on the
+   site). For "I lost my character": look up the purchase by the player's
+   email or the date and amount, and give it back to their signed-in
+   account. A phone that never signed in can't be matched, so the buy screen
+   must keep requiring sign-in (migration 0121).
 
 ## Later: game timing in its own service
 
